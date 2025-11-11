@@ -1,0 +1,481 @@
+'use client'
+
+import { useState, useCallback } from 'react'
+import { useDropzone } from 'react-dropzone'
+import { Upload, FileText, X, Loader2, ArrowRight, Image as ImageIcon, HardDrive, Sparkles, Edit } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Progress } from '@/components/ui/progress'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { useStore } from '@/lib/store'
+import { apiClient } from '@/lib/api'
+import { toast } from 'sonner'
+import { formatFileSize, generateId } from '@/lib/utils'
+
+export default function UploadSection() {
+  const [images, setImages] = useState<File[]>([])
+  const [instructionFile, setInstructionFile] = useState<File | null>(null)
+  const [instructionText, setInstructionText] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [collapsed, setCollapsed] = useState(false)
+  const [showSummaryDialog, setShowSummaryDialog] = useState(false)
+  const [projectSummary, setProjectSummary] = useState('')
+  const [isEditingeSummary, setIsEditingSummary] = useState(false)
+  const [parsedInstructions, setParsedInstructions] = useState<string[]>([])
+  const [selectedInstructions, setSelectedInstructions] = useState<Set<number>>(new Set())
+
+  const { batch, createBatch } = useStore()
+
+  const onDropImages = useCallback((acceptedFiles: File[]) => {
+    setImages(prev => [...prev, ...acceptedFiles])
+    toast.success(`${acceptedFiles.length} image(s) added`)
+  }, [])
+
+  const onDropInstructions = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles[0]) {
+      setInstructionFile(acceptedFiles[0])
+      toast.success('Instruction file added')
+    }
+  }, [])
+
+  const {
+    getRootProps: getImageRootProps,
+    getInputProps: getImageInputProps,
+    isDragActive: isImageDragActive,
+  } = useDropzone({
+    onDrop: onDropImages,
+    accept: {
+      'image/*': ['.png', '.jpg', '.jpeg', '.webp'],
+    },
+    multiple: true,
+  })
+
+  const {
+    getRootProps: getInstructionRootProps,
+    getInputProps: getInstructionInputProps,
+    isDragActive: isInstructionDragActive,
+  } = useDropzone({
+    onDrop: onDropInstructions,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/plain': ['.txt'],
+    },
+    multiple: false,
+  })
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleStartProcessing = async () => {
+    if (images.length === 0) {
+      toast.error('Please upload at least one image')
+      return
+    }
+
+    if (!instructionFile && !instructionText.trim()) {
+      toast.error('Please provide instructions')
+      return
+    }
+
+    // Parse instructions into individual prompts
+    const instructionSource = instructionText || instructionFile?.name || ''
+    const instructions = parseInstructions(instructionSource)
+    setParsedInstructions(instructions)
+    
+    // Select all by default
+    setSelectedInstructions(new Set(instructions.map((_, idx) => idx)))
+    
+    // Generate AI summary
+    const summary = `This batch contains ${images.length} images for AI-powered processing.`
+    setProjectSummary(summary)
+    setShowSummaryDialog(true)
+  }
+
+  // Parse instructions from text - split by bullet points, new lines, or numbered lists
+  const parseInstructions = (text: string): string[] => {
+    if (!text.trim()) return []
+    
+    // Split by common delimiters: bullet points, numbers, new lines
+    const lines = text
+      .split(/\n|•|●|·|\d+\.|[-–—]/)
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .filter(line => !line.match(/^(instructions?|prompts?):?$/i)) // Remove header words
+    
+    // If no structure found, split by sentences
+    if (lines.length <= 1) {
+      return text
+        .split(/[.!?]+/)
+        .map(s => s.trim())
+        .filter(s => s.length > 10) // Minimum length for a meaningful instruction
+    }
+    
+    return lines.length > 0 ? lines : ['Apply AI processing']
+  }
+
+  const toggleInstruction = (index: number) => {
+    setSelectedInstructions(prev => {
+      const next = new Set(prev)
+      if (next.has(index)) {
+        next.delete(index)
+      } else {
+        next.add(index)
+      }
+      return next
+    })
+  }
+
+  const toggleAllInstructions = () => {
+    if (selectedInstructions.size === parsedInstructions.length) {
+      setSelectedInstructions(new Set())
+    } else {
+      setSelectedInstructions(new Set(parsedInstructions.map((_, idx) => idx)))
+    }
+  }
+
+  const handleProceed = async () => {
+    if (selectedInstructions.size === 0) {
+      toast.error('Please select at least one instruction to apply')
+      return
+    }
+
+    setShowSummaryDialog(false)
+    setUploading(true)
+    setUploadProgress(0)
+
+    try {
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval)
+            return 90
+          }
+          return prev + 10
+        })
+      }, 200)
+
+      const instructions = instructionFile || instructionText
+      const response = await apiClient.upload(images, instructions)
+
+      clearInterval(progressInterval)
+      setUploadProgress(100)
+
+      // Create batch in store with selected instructions
+      const selectedPrompts = Array.from(selectedInstructions)
+        .map(idx => parsedInstructions[idx])
+        .join('; ')
+      
+      createBatch(response.batchId, selectedPrompts || instructionText || instructionFile?.name || '', images.length)
+
+      setTimeout(() => {
+        setCollapsed(true)
+        toast.success(`Upload complete! Processing ${images.length} images with ${selectedInstructions.size} instructions...`)
+      }, 500)
+    } catch (error) {
+      console.error('Upload failed:', error)
+      toast.error('Upload failed. Please try again.')
+      setUploadProgress(0)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  if (collapsed && batch) {
+    return null
+  }
+
+  // Calculate total size
+  const totalSize = images.reduce((acc, file) => acc + file.size, 0)
+  const hasImages = images.length > 0
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="container py-8 px-4 md:px-8"
+    >
+      <div className="mx-auto max-w-5xl">
+        {!hasImages && (
+          <div className="mb-8 text-center">
+            <h2 className="mb-2 text-3xl font-bold">Upload Your Images</h2>
+            <p className="text-muted-foreground">
+              Drag and drop your images and instructions to get started
+            </p>
+          </div>
+        )}
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Image Upload */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5" />
+                Images
+              </CardTitle>
+              <CardDescription>
+                Upload images to process (PNG, JPG, WEBP)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!hasImages && (
+                <div
+                  {...getImageRootProps()}
+                  className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+                    isImageDragActive
+                      ? 'border-primary bg-primary/5'
+                      : 'border-muted-foreground/25 hover:border-primary/50'
+                  }`}
+                >
+                  <input {...getImageInputProps()} />
+                  <Upload className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                  <p className="mb-2 text-sm font-medium">
+                    {isImageDragActive ? 'Drop images here' : 'Drag & drop images'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    or click to browse
+                  </p>
+                </div>
+              )}
+
+              {images.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">{images.length} image(s) selected</p>
+                  <div className="max-h-[300px] space-y-2 overflow-y-auto">
+                    <AnimatePresence>
+                      {images.map((file, index) => {
+                        // Create preview URL for image
+                        const previewUrl = URL.createObjectURL(file)
+                        
+                        return (
+                          <motion.div
+                            key={file.name + index}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            className="flex items-center justify-between rounded-lg border p-2"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded bg-muted">
+                                <img
+                                  src={previewUrl}
+                                  alt={file.name}
+                                  className="h-full w-full object-cover"
+                                  onLoad={() => URL.revokeObjectURL(previewUrl)}
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium">{file.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatFileSize(file.size)}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 flex-shrink-0"
+                              onClick={() => removeImage(index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </motion.div>
+                        )
+                      })}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Instructions Upload */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Instructions
+              </CardTitle>
+              <CardDescription>
+                Upload a file or enter instructions manually
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div
+                {...getInstructionRootProps()}
+                className={`cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
+                  isInstructionDragActive
+                    ? 'border-primary bg-primary/5'
+                    : 'border-muted-foreground/25 hover:border-primary/50'
+                }`}
+              >
+                <input {...getInstructionInputProps()} />
+                <FileText className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+                <p className="mb-1 text-sm font-medium">
+                  {isInstructionDragActive
+                    ? 'Drop file here'
+                    : 'Upload instruction file'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  PDF, DOC, TXT
+                </p>
+              </div>
+
+              {instructionFile && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-center justify-between rounded-lg border p-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">{instructionFile.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatFileSize(instructionFile.size)}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setInstructionFile(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </motion.div>
+              )}
+
+              <div className="relative">
+                <div className="absolute inset-x-0 top-1/2 h-px bg-border">
+                  <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
+                    OR
+                  </div>
+                </div>
+              </div>
+
+              <Textarea
+                placeholder="Enter processing instructions here...
+Example: Replace background with solid white, enhance colors, remove shadows..."
+                value={instructionText}
+                onChange={(e) => setInstructionText(e.target.value)}
+                className="min-h-[120px] resize-none"
+                disabled={!!instructionFile}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Stats and Continue Button */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="mt-8"
+        >
+          {uploading ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">Uploading...</p>
+                    <p className="text-sm text-muted-foreground">
+                      {uploadProgress}%
+                    </p>
+                  </div>
+                  <Progress value={uploadProgress} />
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {/* Stats Section */}
+              {images.length > 0 && (
+                <Card>
+                  <CardContent className="py-6">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                          <ImageIcon className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-3xl font-bold tracking-tight">{images.length}</p>
+                          <p className="text-sm text-muted-foreground">Images uploaded</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10">
+                          <HardDrive className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-3xl font-bold tracking-tight">{formatFileSize(totalSize)}</p>
+                          <p className="text-sm text-muted-foreground">Total File Size</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Continue Button */}
+              <Button
+                onClick={handleStartProcessing}
+                size="lg"
+                className="w-full h-14 text-base font-semibold"
+                disabled={images.length === 0 || (!instructionFile && !instructionText.trim())}
+              >
+                Continue
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
+          )}
+        </motion.div>
+      </div>
+
+      {/* Processing Confirmation Dialog */}
+      <Dialog open={showSummaryDialog} onOpenChange={setShowSummaryDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-2xl">
+              <Sparkles className="h-6 w-6 text-primary" />
+              Confirm Processing Details
+            </DialogTitle>
+            <DialogDescription>
+              Review your images and select the instructions to apply
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto space-y-6 py-4">
+            {/* Uploaded Images Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <HardDrive className="h-4 w-4" />
+                  Uploaded Images ({images.length})
+                </h3>
+                <span className="text-xs text-muted-foreground">
+                  Total: {formatFileSize(images.reduce((acc, file) => acc + file.size, 0))}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-4 gap-3 p-4 rounded-lg border bg-muted/30">
+                {images.slice(0, 8).map((file, index) => {
+                  const previewUrl = URL.createObjectURL
+    </motion.section>
+  )
+}
+
