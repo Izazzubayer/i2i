@@ -1,295 +1,295 @@
 "use client"
 
+import { useState } from 'react'
 import AuthenticatedNav from '@/components/AuthenticatedNav'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Plus } from 'lucide-react'
-
-const notificationPreferences = [
-  {
-    title: 'Processing Updates',
-    description: 'Email me when a job completes or fails.',
-    enabled: true,
-  },
-  {
-    title: 'Weekly Usage Summary',
-    description: 'Monday recap of credits used and remaining.',
-    enabled: true,
-  },
-  {
-    title: 'Product Announcements',
-    description: 'Major releases and best-practice guides.',
-    enabled: false,
-  },
-  {
-    title: 'Security Alerts',
-    description: 'Receive a notification when a new device signs in.',
-    enabled: true,
-  },
-]
-
-const connectedApps = [
-  { name: 'Slack Workspace', detail: 'notifications@studio.slack.com', status: 'Active' },
-  { name: 'Zapier Automation', detail: 'Order summary to Google Sheets', status: 'Active' },
-]
-
-const damSettings = {
-  provider: 'Bynder DAM',
-  workspaceUrl: 'https://studio-assets.bynder.com',
-  status: 'Connected',
-  lastSync: '15 minutes ago',
-}
-
-const badgeClassByStatus = (status: string) => {
-  switch (status.toLowerCase()) {
-    case 'active':
-      return 'cursor-default bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-200 hover:bg-green-100'
-    case 'connected':
-      return 'cursor-default bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200 hover:bg-blue-100'
-    case 'disconnected':
-      return 'cursor-default bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200 hover:bg-red-100'
-    default:
-      return 'cursor-default bg-muted text-foreground hover:bg-muted'
-  }
-}
-
-const activeSessions = [
-  { device: 'MacBook Pro · Chrome', location: 'Brooklyn, USA', lastActive: '2 minutes ago' },
-  { device: 'iPhone 15 · Safari', location: 'Brooklyn, USA', lastActive: '2 hours ago' },
-]
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Upload, Trash2, AlertTriangle } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function AccountPage() {
+  const [username, setUsername] = useState('johndoe')
+  const [email, setEmail] = useState('john@example.com')
+  const [avatar, setAvatar] = useState('')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string>('')
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('File size must be less than 2MB')
+        return
+      }
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please upload an image file')
+        return
+      }
+      setAvatarFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleSaveProfile = () => {
+    // In a real app, this would save to the backend
+    toast.success('Profile updated successfully')
+    if (avatarFile) {
+      setAvatar(avatarPreview)
+      setAvatarFile(null)
+    }
+  }
+
+  const handleDeleteAccount = () => {
+    // In a real app, this would delete the account
+    toast.error('Account deletion is not implemented in this demo')
+    setDeleteDialogOpen(false)
+  }
+
+  const handleExportData = () => {
+    toast.info('Data export feature coming soon')
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <AuthenticatedNav />
-      <div className="container mx-auto px-4 py-10 space-y-8">
+      <div className="container mx-auto px-4 py-10 space-y-8 max-w-4xl">
         <div>
-          <h1 className="text-3xl font-bold">Account Settings</h1>
+          <h1 className="text-3xl font-bold">Account</h1>
           <p className="text-muted-foreground">
-            Manage your profile, security preferences, integrations, and compliance settings.
+            Manage your profile information and account settings.
           </p>
         </div>
 
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="inline-flex h-10 flex-wrap items-center gap-1 rounded-lg bg-muted p-1">
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="security">Login & Security</TabsTrigger>
-            <TabsTrigger value="integrations">Integrations</TabsTrigger>
-            <TabsTrigger value="dam">DAM Settings</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="sessions">Sessions</TabsTrigger>
-            <TabsTrigger value="compliance">Compliance</TabsTrigger>
-          </TabsList>
+        <Card>
+          <CardHeader>
+            <CardTitle>User Information</CardTitle>
+            <CardDescription>
+              View or change your username, email, and profile photo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Avatar */}
+            <div className="flex items-center gap-4">
+              <Avatar className="h-24 w-24">
+                <AvatarImage src={avatarPreview || avatar} />
+                <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-2xl">
+                  {username.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="avatar-upload" className="cursor-pointer">
+                    <Button variant="outline" size="sm" asChild>
+                      <span>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Change Avatar
+                      </span>
+                    </Button>
+                  </Label>
+                  <Input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                  {avatarPreview && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setAvatarPreview('')
+                        setAvatarFile(null)
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">JPG, PNG or GIF. Max size 2MB.</p>
+              </div>
+            </div>
 
-          <TabsContent value="profile" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-                <CardDescription>Shared internally with collaborators on your team.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Full Name</label>
-                  <Input defaultValue="John Doe" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Job Title</label>
-                  <Input defaultValue="Creative Producer" />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-medium">Email</label>
-                  <Input type="email" defaultValue="john@example.com" />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-medium">Phone</label>
-                  <Input defaultValue="+1 (555) 123-4567" />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-medium">Time Zone</label>
-                  <Input defaultValue="GMT-04:00 (Eastern Time)" />
-                </div>
-                <div className="md:col-span-2">
-                  <Button>Save Profile</Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+            {/* Username */}
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
+              />
+              <p className="text-xs text-muted-foreground">
+                This is your unique identifier. You can change it at any time.
+              </p>
+            </div>
 
-          <TabsContent value="security" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Login & Security</CardTitle>
-                <CardDescription>Update your password and enable two-factor authentication.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-medium">Current Password</label>
-                  <Input type="password" placeholder="••••••••" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">New Password</label>
-                  <Input type="password" placeholder="••••••••" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Confirm Password</label>
-                  <Input type="password" placeholder="••••••••" />
-                </div>
-                <div className="md:col-span-2">
-                  <Button>Update Password</Button>
-                </div>
-                <div className="md:col-span-2 flex items-center justify-between border rounded-lg p-4">
-                  <div>
-                    <p className="font-medium">Two-Factor Authentication</p>
-                    <p className="text-sm text-muted-foreground">
-                      Use an authenticator app to require a one-time code at sign-in.
-                    </p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+            {/* Email */}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+              />
+              <p className="text-xs text-muted-foreground">
+                This is the email address associated with your account.
+              </p>
+            </div>
 
-          <TabsContent value="integrations" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Connected Apps</CardTitle>
-                <CardDescription>Manage integrations that sync orders, notifications, or assets.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {connectedApps.map((app) => (
-                  <div key={app.name} className="flex items-center justify-between border rounded-lg p-4">
-                    <div>
-                      <p className="font-medium">{app.name}</p>
-                      <p className="text-sm text-muted-foreground">{app.detail}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge className={badgeClassByStatus(app.status)}>{app.status}</Badge>
-                      <Button variant="outline" size="sm">
-                        Disconnect
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                <Button variant="outline">Add Integration</Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="dam" className="space-y-6">
-            <div className="flex justify-end">
-              <Button variant="outline">
-                <Plus className="mr-2 h-4 w-4" />
-                Add DAM
+            <div className="flex gap-2">
+              <Button onClick={handleSaveProfile}>Save Changes</Button>
+              <Button variant="outline" onClick={() => {
+                setUsername('johndoe')
+                setEmail('john@example.com')
+                setAvatarPreview('')
+                setAvatarFile(null)
+              }}>
+                Reset
               </Button>
             </div>
-            <Card>
-              <CardHeader>
-                <CardTitle>DAM Settings</CardTitle>
-                <CardDescription>
-                  Configure where processed assets are delivered after each order completes.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-wrap items-center gap-3">
-                  <Badge variant="secondary" className="cursor-default hover:bg-secondary">
-                    {damSettings.provider}
-                  </Badge>
-                  <Badge className={badgeClassByStatus(damSettings.status)}>{damSettings.status}</Badge>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Workspace URL</label>
-                  <Input defaultValue={damSettings.workspaceUrl} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">API Key</label>
-                  <Input placeholder="••••••••••••••••" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Destination Folder</label>
-                  <Input defaultValue="/2025/Product Launch" />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Last successful sync {damSettings.lastSync}. Update credentials if your DAM workspace recently rotated keys.
+          </CardContent>
+        </Card>
+
+        {/* DAM Connection */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Connect to Your DAM</CardTitle>
+            <CardDescription>
+              Connect your Digital Asset Management system to automatically sync processed images.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="dam-select">Select Your DAM</Label>
+              <Select defaultValue="">
+                <SelectTrigger id="dam-select">
+                  <SelectValue placeholder="Choose a DAM provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bynder">Bynder</SelectItem>
+                  <SelectItem value="adobe">Adobe Experience Manager</SelectItem>
+                  <SelectItem value="cloudinary">Cloudinary</SelectItem>
+                  <SelectItem value="brandfolder">Brandfolder</SelectItem>
+                  <SelectItem value="canto">Canto</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dam-url">Workspace URL</Label>
+              <Input
+                id="dam-url"
+                placeholder="https://your-workspace.dam.com"
+                type="url"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dam-username">Username / API Key</Label>
+              <Input
+                id="dam-username"
+                placeholder="Enter your username or API key"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dam-password">Password / API Secret</Label>
+              <Input
+                id="dam-password"
+                type="password"
+                placeholder="Enter your password or API secret"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="save-dam-credentials" />
+              <Label htmlFor="save-dam-credentials" className="text-sm cursor-pointer font-normal">
+                Save DAM login info for future use
+              </Label>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={() => toast.success('DAM connection saved successfully')}>
+                Connect to DAM
+              </Button>
+              <Button variant="outline" onClick={() => toast.info('Testing connection...')}>
+                Test Connection
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Account Deletion */}
+        <Card className="border-destructive/50">
+          <CardHeader>
+            <CardTitle className="text-destructive">Account Deletion</CardTitle>
+            <CardDescription>
+              Permanently delete your account and all associated data.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-destructive">Warning: This action cannot be undone</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This will permanently delete your account, all your orders, images, and data. 
+                  We recommend exporting your data before proceeding.
                 </p>
-                <div className="flex gap-2">
-                  <Button>Save DAM Settings</Button>
-                  <Button variant="outline">Disconnect</Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="notifications" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>
-                  Choose how your team receives updates about processing activity and product news.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {notificationPreferences.map((pref) => (
-                  <div key={pref.title} className="flex items-start justify-between gap-4 border rounded-lg p-4">
-                    <div>
-                      <p className="font-medium">{pref.title}</p>
-                      <p className="text-sm text-muted-foreground">{pref.description}</p>
-                    </div>
-                    <Switch defaultChecked={pref.enabled} />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleExportData}>
+                Export Data
+              </Button>
+              <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="destructive">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Account
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Delete Account</DialogTitle>
+                    <DialogDescription>
+                      Are you absolutely sure? This will permanently delete your account and all associated data. 
+                      This action cannot be undone.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <p className="text-sm text-muted-foreground">
+                      To confirm, please type <strong className="text-foreground">DELETE</strong> in the field below:
+                    </p>
+                    <Input
+                      id="delete-confirm"
+                      placeholder="Type DELETE to confirm"
+                      className="mt-2"
+                    />
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="sessions" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Session History</CardTitle>
-                <CardDescription>Sign out of any sessions you no longer recognize.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {activeSessions.map((session) => (
-                  <div key={session.device} className="flex items-center justify-between border rounded-lg p-4">
-                    <div>
-                      <p className="font-medium">{session.device}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {session.location} · Last active {session.lastActive}
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Sign Out
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                      Cancel
                     </Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="compliance" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Delete Account</CardTitle>
-                <CardDescription>
-                  Export all current orders and request permanent deletion of your workspace.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Download a full data export before submitting a deletion request. This action cannot be undone.
-                </p>
-                <div className="flex gap-2">
-                  <Button variant="outline">Export Data</Button>
-                  <Button variant="destructive">Delete Workspace</Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                    <Button variant="destructive" onClick={handleDeleteAccount}>
+                      Delete Account
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

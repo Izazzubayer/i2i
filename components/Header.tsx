@@ -1,13 +1,49 @@
 'use client'
 
-import { Moon, Sun, Zap, Home, Package, Code, User } from 'lucide-react'
+import { useState } from 'react'
+import { Zap, Home, DollarSign, Image, ChevronDown, User, Globe, Code, Mail, HelpCircle, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useStore } from '@/lib/store'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+  DrawerClose,
+} from '@/components/ui/drawer'
 
 export default function Header() {
-  const { darkMode, toggleDarkMode } = useStore()
   const pathname = usePathname()
+  const router = useRouter()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const navigationItems = [
+    { label: 'Home', icon: Home, href: '/', path: '/' },
+    { label: 'Pricing', icon: DollarSign, href: '/pricing', path: '/pricing' },
+    { label: 'Portfolio', icon: Image, href: '/portfolio', path: '/portfolio' },
+  ]
+
+  const resourcesItems = [
+    { label: 'API', icon: Code, href: '/api-docs' },
+    { label: 'Contact', icon: Mail, href: '/contact' },
+    { label: 'FAQ', icon: HelpCircle, href: '/faq' },
+  ]
+
+  const isResourcesActive = pathname?.startsWith('/api-docs') || pathname?.startsWith('/contact') || pathname?.startsWith('/faq')
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -17,74 +53,193 @@ export default function Header() {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-purple-600">
             <Zap className="h-6 w-6 text-white" />
           </div>
-          <div>
+          <div className="hidden sm:block">
             <h1 className="text-xl font-bold">i2i</h1>
             <p className="text-xs text-muted-foreground">AI Image Processing</p>
           </div>
+          <div className="sm:hidden">
+            <h1 className="text-lg font-bold">i2i</h1>
+          </div>
         </div>
 
-          {/* Navigation Links - Centered */}
-          <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
-            <Button 
-              variant={pathname === '/' ? 'secondary' : 'ghost'} 
-              size="sm" 
-              className="gap-2" 
-              asChild
-            >
-              <a href="/">
-                <Home className="h-4 w-4" />
-                Home
-              </a>
-            </Button>
-            <Button 
-              variant={pathname?.startsWith('/orders') ? 'secondary' : 'ghost'} 
-              size="sm" 
-              className="gap-2" 
-              asChild
-            >
-              <a href="/orders">
-                <Package className="h-4 w-4" />
-                My Orders
-              </a>
-            </Button>
-            <Button 
-              variant={pathname?.startsWith('/api-docs') ? 'secondary' : 'ghost'} 
-              size="sm" 
-              className="gap-2" 
-              asChild
-            >
-              <a href="/api-docs">
-                <Code className="h-4 w-4" />
-                API
-              </a>
-            </Button>
-          </nav>
+        {/* Navigation Links - Desktop */}
+        <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
+          {navigationItems.map((item) => {
+            const Icon = item.icon
+            return (
+              <Button 
+                key={item.href}
+                variant={pathname === item.path ? 'secondary' : 'ghost'} 
+                size="sm" 
+                className="gap-2" 
+                asChild
+              >
+                <a href={item.href}>
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </a>
+              </Button>
+            )
+          })}
+          
+          {/* Resources Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant={isResourcesActive ? 'secondary' : 'ghost'} 
+                size="sm" 
+                className="gap-2"
+              >
+                Resources
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center">
+              {resourcesItems.map((item) => {
+                const Icon = item.icon
+                return (
+                  <DropdownMenuItem key={item.href} onClick={() => router.push(item.href)}>
+                    <Icon className="mr-2 h-4 w-4" />
+                    {item.label}
+                  </DropdownMenuItem>
+                )
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </nav>
 
-        {/* Right Side - Auth & Dark Mode */}
-        <nav className="flex items-center gap-2">
-          {/* Sign In/Sign Up */}
-          <Button variant="ghost" size="sm" className="hidden sm:flex gap-2">
+        {/* Right Side - Auth & Language - Desktop */}
+        <nav className="hidden lg:flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="gap-2"
+            onClick={() => router.push('/sign-in')}
+          >
             <User className="h-4 w-4" />
-            Sign In
+            Log In
           </Button>
-          <Button size="sm" className="hidden sm:flex">
+          <span className="text-muted-foreground">·</span>
+          <Button 
+            size="sm" 
+            onClick={() => router.push('/sign-up')}
+          >
             Sign Up
           </Button>
 
-          {/* Dark Mode Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleDarkMode}
-            className="rounded-full"
-          >
-            {darkMode ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
-          </Button>
+          {/* Language Selector */}
+          <Select defaultValue="en">
+            <SelectTrigger className="w-auto h-8 border-0 bg-transparent hover:bg-muted px-2 gap-1.5">
+              <Globe className="h-4 w-4" />
+              <SelectValue placeholder="Language" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="en">English</SelectItem>
+              <SelectItem value="es">Español</SelectItem>
+              <SelectItem value="fr">Français</SelectItem>
+              <SelectItem value="de">Deutsch</SelectItem>
+              <SelectItem value="zh">中文</SelectItem>
+            </SelectContent>
+          </Select>
         </nav>
+
+        {/* Mobile Menu Button */}
+        <Drawer open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <DrawerTrigger asChild>
+            <Button variant="ghost" size="icon" className="lg:hidden">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </DrawerTrigger>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle className="text-left">Navigation</DrawerTitle>
+            </DrawerHeader>
+            <div className="px-4 pb-4 space-y-2">
+              {navigationItems.map((item) => {
+                const Icon = item.icon
+                return (
+                  <Button
+                    key={item.href}
+                    variant={pathname === item.path ? 'secondary' : 'ghost'}
+                    className="w-full justify-start gap-2"
+                    onClick={() => {
+                      router.push(item.href)
+                      setMobileMenuOpen(false)
+                    }}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </Button>
+                )
+              })}
+              
+              {/* Resources Section */}
+              <div className="pt-2 border-t">
+                <p className="text-xs font-semibold text-muted-foreground uppercase mb-2 px-2">Resources</p>
+                {resourcesItems.map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <Button
+                      key={item.href}
+                      variant="ghost"
+                      className="w-full justify-start gap-2"
+                      onClick={() => {
+                        router.push(item.href)
+                        setMobileMenuOpen(false)
+                      }}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                    </Button>
+                  )
+                })}
+              </div>
+
+              {/* Auth Buttons */}
+              <div className="pt-4 border-t space-y-2">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2"
+                  onClick={() => {
+                    router.push('/sign-in')
+                    setMobileMenuOpen(false)
+                  }}
+                >
+                  <User className="h-4 w-4" />
+                  Log In
+                </Button>
+                <Button
+                  className="w-full justify-start gap-2"
+                  onClick={() => {
+                    router.push('/sign-up')
+                    setMobileMenuOpen(false)
+                  }}
+                >
+                  Sign Up
+                </Button>
+              </div>
+
+              {/* Language Selector */}
+              <div className="pt-2">
+                <Select defaultValue="en">
+                  <SelectTrigger className="w-full">
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      <SelectValue placeholder="Language" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="es">Español</SelectItem>
+                    <SelectItem value="fr">Français</SelectItem>
+                    <SelectItem value="de">Deutsch</SelectItem>
+                    <SelectItem value="zh">中文</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </DrawerContent>
+        </Drawer>
       </div>
     </header>
   )

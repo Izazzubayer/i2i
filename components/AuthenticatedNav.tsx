@@ -6,21 +6,21 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   Sparkles,
-  LayoutDashboard,
+  Home,
   Package,
   Briefcase,
-  BookOpen,
   HelpCircle,
   User,
   Globe,
   ChevronDown,
-  Settings,
+  Shield,
+  Bell,
   CreditCard,
-  FileText,
   Coins,
   LogOut,
   Menu,
-  X
+  X,
+  Trash2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -55,10 +55,9 @@ export default function AuthenticatedNav() {
   }
 
   const navItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { label: 'Home', href: '/', icon: Home },
     { label: 'Orders', href: '/orders', icon: Package },
     { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
-    { label: 'Resources', href: '/resources', icon: BookOpen },
     { label: 'Support', href: '/support', icon: HelpCircle },
   ]
 
@@ -67,7 +66,7 @@ export default function AuthenticatedNav() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-2 group">
+          <Link href="/processing" className="flex items-center gap-2 group">
             <motion.div
               className="relative"
               whileHover={{ scale: 1.05 }}
@@ -95,15 +94,8 @@ export default function AuthenticatedNav() {
             ))}
           </div>
 
-          {/* Right Side: Credits, Language, Profile */}
+          {/* Right Side: Language, Profile */}
           <div className="flex items-center gap-3">
-            {/* Credits Badge */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border">
-              <Coins className="h-4 w-4 text-yellow-600" />
-              <span className="text-sm font-semibold">{user.credits}</span>
-              <span className="text-xs text-muted-foreground">credits</span>
-            </div>
-
             {/* Language Selector */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -113,9 +105,10 @@ export default function AuthenticatedNav() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem>English</DropdownMenuItem>
-                <DropdownMenuItem>Spanish</DropdownMenuItem>
-                <DropdownMenuItem>French</DropdownMenuItem>
-                <DropdownMenuItem>German</DropdownMenuItem>
+                <DropdownMenuItem>Español</DropdownMenuItem>
+                <DropdownMenuItem>Français</DropdownMenuItem>
+                <DropdownMenuItem>Deutsch</DropdownMenuItem>
+                <DropdownMenuItem>中文</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -135,7 +128,7 @@ export default function AuthenticatedNav() {
               </DropdownMenuTrigger>
               
               <DropdownMenuContent align="end" className="w-64">
-                {/* Account Section */}
+                {/* Account Section - Header */}
                 <DropdownMenuLabel>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-12 w-12">
@@ -147,51 +140,60 @@ export default function AuthenticatedNav() {
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold truncate">{user.name}</div>
                       <div className="text-xs text-muted-foreground truncate">{user.email}</div>
-                      <Badge variant="secondary" className="mt-1 text-xs">
-                        {user.plan} Plan
-                      </Badge>
                     </div>
                   </div>
                 </DropdownMenuLabel>
                 
                 <DropdownMenuSeparator />
 
-                {/* Account Settings */}
-                <DropdownMenuItem asChild>
-                  <Link href="/account" className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    Account Settings
-                  </Link>
+                {/* Account */}
+                <DropdownMenuItem 
+                  onClick={() => router.push('/account')}
+                  className="cursor-pointer"
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Account
+                </DropdownMenuItem>
+
+                {/* Login & Security */}
+                <DropdownMenuItem 
+                  onClick={() => router.push('/account/security')}
+                  className="cursor-pointer"
+                >
+                  <Shield className="mr-2 h-4 w-4" />
+                  Login & Security
+                </DropdownMenuItem>
+
+                {/* Notifications */}
+                <DropdownMenuItem 
+                  onClick={() => router.push('/account/notifications')}
+                  className="cursor-pointer"
+                >
+                  <Bell className="mr-2 h-4 w-4" />
+                  Notifications
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
 
-                {/* Billing */}
-                <DropdownMenuItem asChild>
-                  <Link href="/billing" className="cursor-pointer">
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Billing & Subscription
-                  </Link>
+                {/* Billing & Subscription */}
+                <DropdownMenuItem 
+                  onClick={() => router.push('/billing')}
+                  className="cursor-pointer"
+                >
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Billing & Subscription
                 </DropdownMenuItem>
 
-                <DropdownMenuItem asChild>
-                  <Link href="/tokens" className="cursor-pointer">
-                    <Coins className="mr-2 h-4 w-4" />
-                    Tokens/Coins
-                    <Badge variant="outline" className="ml-auto">
-                      {user.credits}
-                    </Badge>
-                  </Link>
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-
-                {/* Legal */}
-                <DropdownMenuItem asChild>
-                  <Link href="/legal" className="cursor-pointer">
-                    <FileText className="mr-2 h-4 w-4" />
-                    Legal & Compliance
-                  </Link>
+                {/* Token/Coin */}
+                <DropdownMenuItem 
+                  onClick={() => router.push('/tokens')}
+                  className="cursor-pointer"
+                >
+                  <Coins className="mr-2 h-4 w-4" />
+                  Token/Coin
+                  <Badge variant="outline" className="ml-auto">
+                    {user.credits}
+                  </Badge>
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
@@ -241,13 +243,6 @@ export default function AuthenticatedNav() {
                     </Button>
                   </Link>
                 ))}
-                
-                <div className="pt-2 border-t">
-                  <div className="flex items-center gap-2 px-3 py-2">
-                    <Coins className="h-4 w-4 text-yellow-600" />
-                    <span className="text-sm font-semibold">{user.credits} credits</span>
-                  </div>
-                </div>
               </div>
             </motion.div>
           )}

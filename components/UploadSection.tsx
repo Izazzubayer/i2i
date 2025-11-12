@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
 import { Upload, X, Loader2, ArrowRight, Image as ImageIcon, HardDrive, Sparkles, Edit } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -22,6 +24,7 @@ import { formatFileSize, generateId } from '@/lib/utils'
 import InstructionChat from './InstructionChat'
 
 export default function UploadSection() {
+  const router = useRouter()
   const [images, setImages] = useState<File[]>([])
   const [instructionFile, setInstructionFile] = useState<File | null>(null)
   const [instructionText, setInstructionText] = useState('')
@@ -124,6 +127,8 @@ All processed images will maintain original quality while applying the requested
       setTimeout(() => {
         setCollapsed(true)
         toast.success('Upload complete! Processing started...')
+        // Navigate to processing page
+        router.push('/processing')
       }, 500)
     } catch (error) {
       console.error('Upload failed:', error)

@@ -14,7 +14,7 @@
 // ============================================
 // CONFIGURATION: Change this to switch pages
 // ============================================
-const PAGE_STYLE: 'default' | 'chat' | 'enterprise' = 'default'
+const PAGE_STYLE: 'default' | 'chat' | 'enterprise' = 'chat'
 // ============================================
 
 import PageDefault from './PageDefault'
