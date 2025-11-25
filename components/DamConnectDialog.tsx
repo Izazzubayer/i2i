@@ -43,27 +43,27 @@ export interface DamConfig {
   password?: string
   clientId?: string
   clientSecret?: string
-  
+
   // Organization
   workspace: string
   projectId?: string
-  
+
   // Upload Settings
   targetFolder: string
   createSubfolders: boolean
   subfolderPattern: string
-  
+
   // Metadata
   addMetadata: boolean
   metadataTemplate: string
   customMetadata: Record<string, string>
-  
+
   // Permissions
   setPermissions: boolean
   visibility: 'private' | 'public' | 'restricted'
   allowedUsers: string[]
   allowedGroups: string[]
-  
+
   // Processing
   autoTag: boolean
   autoVersion: boolean
@@ -75,30 +75,30 @@ export default function DamConnectDialog({ open, onOpenChange, onConnect }: DamC
   const [connecting, setConnecting] = useState(false)
   const [testingConnection, setTestingConnection] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle')
-  
+
   const [config, setConfig] = useState<DamConfig>({
     // Authentication defaults
     provider: 'custom',
     authType: 'api-key',
     apiUrl: '',
     workspace: '',
-    
+
     // Upload defaults
     targetFolder: '/uploads',
     createSubfolders: true,
     subfolderPattern: 'YYYY/MM/DD',
-    
+
     // Metadata defaults
     addMetadata: true,
     metadataTemplate: 'default',
     customMetadata: {},
-    
+
     // Permissions defaults
     setPermissions: false,
     visibility: 'private',
     allowedUsers: [],
     allowedGroups: [],
-    
+
     // Processing defaults
     autoTag: true,
     autoVersion: true,
@@ -121,7 +121,7 @@ export default function DamConnectDialog({ open, onOpenChange, onConnect }: DamC
     try {
       // Simulate API connection test
       await new Promise(resolve => setTimeout(resolve, 1500))
-      
+
       // Mock validation
       if (config.authType === 'api-key' && !config.apiKey) {
         throw new Error('API key required')
@@ -154,7 +154,7 @@ export default function DamConnectDialog({ open, onOpenChange, onConnect }: DamC
     try {
       // Simulate saving and connecting
       await new Promise(resolve => setTimeout(resolve, 1000))
-      
+
       toast.success('DAM configured successfully!')
       onConnect?.(config)
       onOpenChange(false)
@@ -225,9 +225,8 @@ export default function DamConnectDialog({ open, onOpenChange, onConnect }: DamC
                     <button
                       key={provider.id}
                       onClick={() => updateConfig('provider', provider.id)}
-                      className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all hover:border-primary ${
-                        config.provider === provider.id ? 'border-primary bg-primary/5' : 'border-border'
-                      }`}
+                      className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all hover:border-primary ${config.provider === provider.id ? 'border-primary bg-primary/5' : 'border-border'
+                        }`}
                     >
                       <span className="text-2xl">{provider.icon}</span>
                       <span className="text-xs font-medium text-center">{provider.name}</span>
@@ -359,12 +358,12 @@ export default function DamConnectDialog({ open, onOpenChange, onConnect }: DamC
                   </>
                 ) : connectionStatus === 'success' ? (
                   <>
-                    <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
+                    <CheckCircle2 className="mr-2 h-4 w-4 text-primary" />
                     Connection Successful
                   </>
                 ) : connectionStatus === 'error' ? (
                   <>
-                    <AlertCircle className="mr-2 h-4 w-4 text-red-600" />
+                    <AlertCircle className="mr-2 h-4 w-4 text-destructive" />
                     Connection Failed - Retry
                   </>
                 ) : (
@@ -589,11 +588,11 @@ export default function DamConnectDialog({ open, onOpenChange, onConnect }: DamC
                   </>
                 )}
 
-                <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+                <Card className="bg-muted border-border">
                   <CardContent className="pt-4">
                     <div className="flex gap-2">
-                      <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-blue-800 dark:text-blue-300">
+                      <AlertCircle className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-muted-foreground">
                         Permissions will be applied based on your DAM system's access control settings.
                         Make sure the API user has permission to set these.
                       </p>

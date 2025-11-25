@@ -25,7 +25,7 @@ export default function ProcessingPanel() {
 
       if (processedCount < batch.totalImages) {
         const nextImage = batch.images.find(img => img.status === 'processing')
-        
+
         if (nextImage) {
           // Simulate processing with mock URL
           updateImageStatus(
@@ -33,9 +33,9 @@ export default function ProcessingPanel() {
             'completed',
             `https://picsum.photos/seed/${nextImage.id}/400/300`
           )
-          
+
           addLog(`Processed ${nextImage.originalName} successfully`, 'success')
-          
+
           const newProgress = ((processedCount + 1) / batch.totalImages) * 100
           updateBatchProgress(newProgress, processedCount + 1 === batch.totalImages ? 'completed' : 'processing')
         }
@@ -44,14 +44,14 @@ export default function ProcessingPanel() {
         clearInterval(processingInterval)
         addLog('All images processed successfully!', 'success')
         updateBatchProgress(100, 'completed')
-        
+
         // Generate mock summary
         setSummary(
           `Successfully processed ${batch.totalImages} images with AI enhancement. ` +
           `Background replacement and color enhancement applied according to instructions. ` +
           `All images are ready for review and export.`
         )
-        
+
         // Auto-open summary drawer
         setTimeout(() => {
           toggleSummaryDrawer(true)
@@ -67,22 +67,22 @@ export default function ProcessingPanel() {
   const getStatusIcon = () => {
     switch (batch.status) {
       case 'processing':
-        return <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+        return <Loader2 className="h-5 w-5 animate-spin text-primary" />
       case 'completed':
-        return <CheckCircle2 className="h-5 w-5 text-green-600" />
+        return <CheckCircle2 className="h-5 w-5 text-primary" />
       case 'failed':
-        return <XCircle className="h-5 w-5 text-red-600" />
+        return <XCircle className="h-5 w-5 text-destructive" />
       default:
-        return <Info className="h-5 w-5 text-gray-600" />
+        return <Info className="h-5 w-5 text-muted-foreground" />
     }
   }
 
   const getStatusBadge = () => {
     switch (batch.status) {
       case 'processing':
-        return <Badge className="bg-blue-600">Processing</Badge>
+        return <Badge variant="default">Processing</Badge>
       case 'completed':
-        return <Badge className="bg-green-600">Completed</Badge>
+        return <Badge variant="outline" className="border-primary text-primary">Completed</Badge>
       case 'failed':
         return <Badge variant="destructive">Failed</Badge>
       default:
@@ -143,56 +143,56 @@ export default function ProcessingPanel() {
             >
               <Card>
                 <CardContent className="pt-6 space-y-6">
-            {/* Progress Bar */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Overall Progress</span>
-                <span className="text-muted-foreground">
-                  {batch.processedCount} / {batch.totalImages} images
-                </span>
-              </div>
-              <Progress value={batch.progress} className="h-2" />
-              <p className="text-xs text-muted-foreground">
-                {Math.round(batch.progress)}% complete
-              </p>
-            </div>
+                  {/* Progress Bar */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">Overall Progress</span>
+                      <span className="text-muted-foreground">
+                        {batch.processedCount} / {batch.totalImages} images
+                      </span>
+                    </div>
+                    <Progress value={batch.progress} className="h-2" />
+                    <p className="text-xs text-muted-foreground">
+                      {Math.round(batch.progress)}% complete
+                    </p>
+                  </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div className="rounded-lg border p-4">
-                <p className="text-2xl font-bold">{batch.totalImages}</p>
-                <p className="text-xs text-muted-foreground">Total Images</p>
-              </div>
-              <div className="rounded-lg border p-4">
-                <p className="text-2xl font-bold text-green-600">{batch.processedCount}</p>
-                <p className="text-xs text-muted-foreground">Processed</p>
-              </div>
-              <div className="rounded-lg border p-4">
-                <p className="text-2xl font-bold text-blue-600">{batch.approvedCount}</p>
-                <p className="text-xs text-muted-foreground">Approved</p>
-              </div>
-              <div className="rounded-lg border p-4">
-                <p className="text-2xl font-bold text-yellow-600">{batch.retouchCount}</p>
-                <p className="text-xs text-muted-foreground">Needs Retouch</p>
-              </div>
-            </div>
+                  {/* Stats */}
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                    <div className="rounded-lg border p-4">
+                      <p className="text-2xl font-bold">{batch.totalImages}</p>
+                      <p className="text-xs text-muted-foreground">Total Images</p>
+                    </div>
+                    <div className="rounded-lg border p-4">
+                      <p className="text-2xl font-bold text-primary">{batch.processedCount}</p>
+                      <p className="text-xs text-muted-foreground">Processed</p>
+                    </div>
+                    <div className="rounded-lg border p-4">
+                      <p className="text-2xl font-bold text-primary">{batch.approvedCount}</p>
+                      <p className="text-xs text-muted-foreground">Approved</p>
+                    </div>
+                    <div className="rounded-lg border p-4">
+                      <p className="text-2xl font-bold text-primary">{batch.retouchCount}</p>
+                      <p className="text-xs text-muted-foreground">Needs Retouch</p>
+                    </div>
+                  </div>
 
-            {/* AI Summary (when processing complete) */}
-            {batch.status === 'completed' && batch.summary && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="rounded-lg border-2 border-green-600/20 bg-green-50 p-4 dark:bg-green-950/20"
-              >
-                <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold text-green-900 dark:text-green-100">
-                  <CheckCircle2 className="h-4 w-4" />
-                  AI Summary
-                </h4>
-                <p className="text-sm leading-relaxed text-green-800 dark:text-green-200">
-                  {batch.summary}
-                </p>
-              </motion.div>
-            )}
+                  {/* AI Summary (when processing complete) */}
+                  {batch.status === 'completed' && batch.summary && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="rounded-lg border bg-muted/50 p-4"
+                    >
+                      <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold">
+                        <CheckCircle2 className="h-4 w-4" />
+                        AI Summary
+                      </h4>
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        {batch.summary}
+                      </p>
+                    </motion.div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>

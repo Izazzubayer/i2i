@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
-import { Upload, X, Loader2, ArrowRight, Image as ImageIcon, HardDrive, Sparkles, Edit } from 'lucide-react'
+import { Upload, X, Loader2, ArrowRight, Image as ImageIcon, HardDrive, Sparkles, Edit, Coins, DollarSign } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -179,11 +179,10 @@ All processed images will maintain original quality while applying the requested
               {!hasImages && (
                 <div
                   {...getImageRootProps()}
-                  className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
-                    isImageDragActive
-                      ? 'border-primary bg-primary/5'
-                      : 'border-muted-foreground/25 hover:border-primary/50'
-                  }`}
+                  className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${isImageDragActive
+                    ? 'border-primary bg-primary/5'
+                    : 'border-muted-foreground/25 hover:border-primary/50'
+                    }`}
                 >
                   <input {...getImageInputProps()} />
                   <Upload className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
@@ -204,7 +203,7 @@ All processed images will maintain original quality while applying the requested
                       {images.map((file, index) => {
                         // Create preview URL for image
                         const previewUrl = URL.createObjectURL(file)
-                        
+
                         return (
                           <motion.div
                             key={file.name + index}
@@ -281,23 +280,41 @@ All processed images will maintain original quality while applying the requested
               {images.length > 0 && (
                 <Card>
                   <CardContent className="py-6">
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                       <div className="flex items-center gap-3">
                         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
                           <ImageIcon className="h-6 w-6 text-primary" />
                         </div>
                         <div>
                           <p className="text-3xl font-bold tracking-tight">{images.length}</p>
-                          <p className="text-sm text-muted-foreground">Images uploaded</p>
+                          <p className="text-sm text-muted-foreground">Images</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10">
-                          <HardDrive className="h-6 w-6 text-blue-600" />
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                          <HardDrive className="h-6 w-6 text-primary" />
                         </div>
                         <div>
                           <p className="text-3xl font-bold tracking-tight">{formatFileSize(totalSize)}</p>
-                          <p className="text-sm text-muted-foreground">Total File Size</p>
+                          <p className="text-sm text-muted-foreground">File Size</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                          <Coins className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-3xl font-bold tracking-tight">{(images.length * 150).toLocaleString()}</p>
+                          <p className="text-sm text-muted-foreground">Tokens</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                          <DollarSign className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-3xl font-bold tracking-tight">${((images.length * 150 * 0.002) / 1000).toFixed(3)}</p>
+                          <p className="text-sm text-muted-foreground">Est. Cost</p>
                         </div>
                       </div>
                     </div>

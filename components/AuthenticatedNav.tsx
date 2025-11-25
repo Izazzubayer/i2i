@@ -126,7 +126,7 @@ export default function AuthenticatedNav() {
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
-              
+
               <DropdownMenuContent align="end" className="w-64">
                 {/* Account Section - Header */}
                 <DropdownMenuLabel>
@@ -143,11 +143,11 @@ export default function AuthenticatedNav() {
                     </div>
                   </div>
                 </DropdownMenuLabel>
-                
+
                 <DropdownMenuSeparator />
 
                 {/* Account */}
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => router.push('/account')}
                   className="cursor-pointer"
                 >
@@ -156,7 +156,7 @@ export default function AuthenticatedNav() {
                 </DropdownMenuItem>
 
                 {/* Login & Security */}
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => router.push('/account/security')}
                   className="cursor-pointer"
                 >
@@ -165,7 +165,7 @@ export default function AuthenticatedNav() {
                 </DropdownMenuItem>
 
                 {/* Notifications */}
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => router.push('/account/notifications')}
                   className="cursor-pointer"
                 >
@@ -176,7 +176,7 @@ export default function AuthenticatedNav() {
                 <DropdownMenuSeparator />
 
                 {/* Billing & Subscription */}
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => router.push('/billing')}
                   className="cursor-pointer"
                 >
@@ -185,7 +185,7 @@ export default function AuthenticatedNav() {
                 </DropdownMenuItem>
 
                 {/* Token/Coin */}
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => router.push('/tokens')}
                   className="cursor-pointer"
                 >
@@ -199,9 +199,9 @@ export default function AuthenticatedNav() {
                 <DropdownMenuSeparator />
 
                 {/* Sign Out */}
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={handleSignOut}
-                  className="text-red-600 focus:text-red-600 cursor-pointer"
+                  className="text-destructive focus:text-destructive cursor-pointer"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign Out

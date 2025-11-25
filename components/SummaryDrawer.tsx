@@ -51,7 +51,7 @@ export default function SummaryDrawer() {
 
     try {
       const zip = new JSZip()
-      
+
       // Add summary file
       zip.file('summary.txt', `
 i2i Processing Summary
@@ -81,7 +81,7 @@ ${batch.images.map((img, i) => `${i + 1}. ${img.originalName} - Status: ${img.st
         processedUrl: img.processedUrl,
         status: img.status,
       }))
-      
+
       zip.file('manifest.json', JSON.stringify(manifest, null, 2))
 
       // Generate and download ZIP
@@ -134,7 +134,7 @@ ${batch.images.map((img, i) => `${i + 1}. ${img.originalName} - Status: ${img.st
         id: 'dam-upload-summary',
         description: `${response.uploadedCount} images uploaded to ${response.damWorkspace}`,
       })
-      
+
       setShowDamDialog(false)
     } catch (error) {
       console.error('DAM upload failed:', error)
@@ -189,7 +189,7 @@ ${batch.images.map((img, i) => `${i + 1}. ${img.originalName} - Status: ${img.st
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-green-600">
+                  <p className="text-3xl font-bold text-primary">
                     {batch.processedCount}
                   </p>
                 </CardContent>
@@ -202,7 +202,7 @@ ${batch.images.map((img, i) => `${i + 1}. ${img.originalName} - Status: ${img.st
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-blue-600">
+                  <p className="text-3xl font-bold text-primary">
                     {batch.approvedCount}
                   </p>
                 </CardContent>
@@ -215,7 +215,7 @@ ${batch.images.map((img, i) => `${i + 1}. ${img.originalName} - Status: ${img.st
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-yellow-600">
+                  <p className="text-3xl font-bold text-primary">
                     {batch.retouchCount}
                   </p>
                 </CardContent>

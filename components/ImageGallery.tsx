@@ -102,7 +102,7 @@ export default function ImageGallery() {
 
   const handleUploadToDAM = async (damConfig?: DamConfig) => {
     if (!batch) return
-    
+
     const config = damConfig || activeDamConnection?.config
     if (!config) {
       toast.error('No DAM connection configured')
@@ -172,9 +172,9 @@ export default function ImageGallery() {
   const getStatusBadge = (status: ProcessedImage['status']) => {
     switch (status) {
       case 'approved':
-        return <Badge className="bg-green-600">Approved</Badge>
+        return <Badge variant="outline" className="border-primary text-primary">Approved</Badge>
       case 'needs-retouch':
-        return <Badge className="bg-yellow-600">Needs Retouch</Badge>
+        return <Badge variant="secondary">Needs Retouch</Badge>
       case 'completed':
         return <Badge variant="secondary">Ready</Badge>
       case 'processing':
@@ -267,7 +267,7 @@ export default function ImageGallery() {
                 </TooltipTrigger>
                 <TooltipContent>Grid View</TooltipContent>
               </Tooltip>
-              
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -385,12 +385,10 @@ export default function ImageGallery() {
                 onHoverEnd={() => setHoveredImage(null)}
                 className={viewMode === 'list' ? 'w-full' : ''}
               >
-                <Card className={`overflow-hidden transition-all hover:shadow-lg ${
-                  selectedImages.has(image.id) ? 'ring-2 ring-primary' : ''
-                } ${viewMode === 'list' ? 'flex flex-row' : ''}`}>
-                  <div className={`relative bg-muted ${
-                    viewMode === 'list' ? 'w-48 flex-shrink-0' : 'aspect-[4/3]'
-                  }`}>
+                <Card className={`overflow-hidden transition-all hover:shadow-lg ${selectedImages.has(image.id) ? 'ring-2 ring-primary' : ''
+                  } ${viewMode === 'list' ? 'flex flex-row' : ''}`}>
+                  <div className={`relative bg-muted ${viewMode === 'list' ? 'w-48 flex-shrink-0' : 'aspect-[4/3]'
+                    }`}>
                     {/* Selection checkbox */}
                     <div className="absolute left-2 top-2 z-10">
                       <button
@@ -416,7 +414,7 @@ export default function ImageGallery() {
                           className="object-cover"
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
-                        
+
                         {/* Hover Overlay */}
                         <AnimatePresence>
                           {hoveredImage === image.id && image.status !== 'processing' && (
@@ -443,7 +441,7 @@ export default function ImageGallery() {
                                   </TooltipContent>
                                 </Tooltip>
                               )}
-                              
+
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
@@ -499,7 +497,7 @@ export default function ImageGallery() {
                       <p className="text-xs text-muted-foreground">
                         Processed at {new Date(image.timestamp).toLocaleTimeString()}
                       </p>
-                      
+
                       {image.instruction && (
                         <Tooltip>
                           <TooltipTrigger asChild>

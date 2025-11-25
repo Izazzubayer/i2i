@@ -39,7 +39,6 @@ export default function SignUpPage() {
     company: '',
     password: '',
     confirmPassword: '',
-    hearAboutUs: '',
     agree: false,
     captcha: false,
   })
@@ -57,7 +56,7 @@ export default function SignUpPage() {
   const handleChange = (field: keyof typeof formState) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const value = event.target.value
     setFormState(prev => ({ ...prev, [field]: value }))
-    
+
     // Clear error for this field
     if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }))
@@ -146,10 +145,10 @@ export default function SignUpPage() {
       newErrors.confirmPassword = 'Passwords do not match'
     }
 
-    // CAPTCHA validation (hidden for now)
-    // if (!formState.captcha) {
-    //   newErrors.captcha = 'Please complete the CAPTCHA'
-    // }
+    // CAPTCHA validation
+    if (!formState.captcha) {
+      newErrors.captcha = 'Please complete the CAPTCHA verification'
+    }
 
     // Terms validation
     if (!formState.agree) {
@@ -162,7 +161,7 @@ export default function SignUpPage() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    
+
     if (!validateForm()) {
       toast.error('Please fix the errors in the form')
       return
@@ -174,11 +173,11 @@ export default function SignUpPage() {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500))
-      
+
       // Simulate sending verification email
       setMessage('Verification email sent! Please check your inbox.')
       toast.success('Account created! Verification email sent to ' + formState.email)
-      
+
       // In a real app, you would redirect to a "check your email" page
       setTimeout(() => {
         router.push('/sign-in?verified=false')
@@ -394,30 +393,42 @@ export default function SignUpPage() {
                   </div>
                 </div>
 
-                {/* How did you hear about us? (Optional) */}
+
+                {/* Dummy reCAPTCHA */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="hearAboutUs" className="text-sm">
-                    How did you hear about us? <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
-                  </Label>
-                  <Select
-                    value={formState.hearAboutUs}
-                    onValueChange={(value) => setFormState(prev => ({ ...prev, hearAboutUs: value }))}
-                  >
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Select an option" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="social-media">Social media</SelectItem>
-                      <SelectItem value="search-engine">Search engine (Google, Bing, etc.)</SelectItem>
-                      <SelectItem value="friend-referral">Friend/Colleague referral</SelectItem>
-                      <SelectItem value="blog-article">Blog or article</SelectItem>
-                      <SelectItem value="podcast">Podcast</SelectItem>
-                      <SelectItem value="youtube">YouTube</SelectItem>
-                      <SelectItem value="advertisement">Advertisement</SelectItem>
-                      <SelectItem value="event-conference">Event or conference</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="inline-flex items-center justify-between rounded border border-muted bg-background p-3 shadow-sm" style={{ width: '304px' }}>
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id="captcha"
+                        checked={formState.captcha}
+                        onCheckedChange={(checked) => handleCheckboxChange('captcha')(Boolean(checked))}
+                      />
+                      <span className="text-sm font-normal">I'm not a robot</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <svg className="h-8 w-8" viewBox="0 0 256 256" fill="none">
+                        <rect width="256" height="256" fill="none" />
+                        <path d="M128 24L32 80L128 136L224 80L128 24Z" fill="#4285F4" />
+                        <path d="M128 136L32 80L32 176L128 232L128 136Z" fill="#34A853" />
+                        <path d="M128 136L224 80L224 176L128 232L128 136Z" fill="#FBBC04" />
+                        <path d="M128 136L128 232L224 176L224 80L128 136Z" fill="#EA4335" opacity="0.7" />
+                      </svg>
+                      <div className="flex flex-col items-center -mt-1">
+                        <span className="text-[9px] text-muted-foreground leading-tight">reCAPTCHA</span>
+                        <div className="flex gap-1 text-[8px] text-muted-foreground leading-tight">
+                          <a href="#" className="hover:underline">Privacy</a>
+                          <span>-</span>
+                          <a href="#" className="hover:underline">Terms</a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {errors.captcha && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.captcha}
+                    </p>
+                  )}
                 </div>
 
                 {/* Terms and Conditions */}

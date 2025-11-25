@@ -50,8 +50,8 @@ export default function Header() {
       <div className="container flex h-16 items-center px-4 md:px-8">
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-purple-600">
-            <Zap className="h-6 w-6 text-white" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <Zap className="h-6 w-6" />
           </div>
           <div className="hidden sm:block">
             <h1 className="text-xl font-bold">i2i</h1>

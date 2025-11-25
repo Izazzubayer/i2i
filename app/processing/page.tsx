@@ -473,7 +473,7 @@ export default function ProcessingOverviewPage() {
       <AuthenticatedNav />
 
       <main className="mx-auto w-full max-w-7xl px-4 py-8">
-        <div className="grid gap-6 lg:grid-cols-[240px_1fr_320px]">
+        <div className="grid gap-6 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_320px]">
           <aside className="space-y-6">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Projects</p>
@@ -489,7 +489,7 @@ export default function ProcessingOverviewPage() {
                 {projects.map((project) => {
                   const isExpanded = expandedFolders.has(project.id)
                   const hasChildren = project.children && project.children.length > 0
-                  
+
                   return (
                     <div key={project.id} className="space-y-1">
                       <div className="flex items-center gap-1">
@@ -518,54 +518,52 @@ export default function ProcessingOverviewPage() {
                               toggleFolderExpansion(project.id)
                             }
                           }}
-                          className={`flex-1 rounded-lg border px-3 py-2 text-left transition ${
-                            activeProject === project.id && !activeFolder
-                              ? 'border-transparent bg-gradient-to-r from-blue-600/90 to-purple-600/90 text-white shadow-sm'
+                          className={`flex-1 rounded-lg border px-3 py-2 text-left transition ${activeProject === project.id && !activeFolder
+                              ? 'border-primary bg-primary text-primary-foreground shadow-sm'
                               : 'border-muted hover:border-foreground/40 hover:bg-muted/60'
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center gap-2 text-sm font-medium">
                             <Folder className="h-4 w-4" />
                             {project.name}
                           </div>
-                          <p className={`text-xs ${activeProject === project.id && !activeFolder ? 'text-blue-50/90' : 'text-muted-foreground'}`}>
+                          <p className={`text-xs ${activeProject === project.id && !activeFolder ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                             {project.visuals} visuals · {project.status}
                           </p>
                         </button>
                       </div>
-                      
+
                       {isExpanded && hasChildren && (
                         <div className="relative ml-6 space-y-1">
                           {/* Main vertical line connecting all children to parent */}
                           <div className="absolute left-0 top-0 bottom-0 w-[1.5px] bg-muted-foreground/40" />
-                          
+
                           {project.children?.map((child, index) => {
                             const isChildActive = activeFolder === child.id
                             const isLast = index === (project.children?.length ?? 0) - 1
-                            
+
                             return (
                               <div key={child.id} className="relative pl-4">
                                 {/* Horizontal line connecting child to main vertical line */}
                                 <div className="absolute left-0 top-1/2 w-4 h-[1.5px] bg-muted-foreground/40 -translate-y-1/2" />
-                                
+
                                 {/* Hide vertical line below last item */}
                                 {isLast && (
                                   <div className="absolute left-0 top-1/2 bottom-0 w-[1.5px] bg-background" />
                                 )}
-                                
+
                                 <button
                                   onClick={() => handleFolderSelect(child.id)}
-                                  className={`w-full rounded-lg border px-3 py-2 text-left transition relative z-10 ${
-                                    isChildActive
-                                      ? 'border-transparent bg-gradient-to-r from-blue-600/90 to-purple-600/90 text-white shadow-sm'
+                                  className={`w-full rounded-lg border px-3 py-2 text-left transition relative z-10 ${isChildActive
+                                      ? 'border-primary bg-primary text-primary-foreground shadow-sm'
                                       : 'border-muted hover:border-foreground/40 hover:bg-muted/60'
-                                  }`}
+                                    }`}
                                 >
                                   <div className="flex items-center gap-2 text-sm font-medium">
                                     <Folder className="h-4 w-4" />
                                     {child.name}
                                   </div>
-                                  <p className={`text-xs ${isChildActive ? 'text-blue-50/90' : 'text-muted-foreground'}`}>
+                                  <p className={`text-xs ${isChildActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                                     {child.visuals} visuals · {child.status}
                                   </p>
                                 </button>
@@ -685,55 +683,54 @@ export default function ProcessingOverviewPage() {
 
               <ScrollArea className="w-full">
                 <div className="flex gap-3 pb-3">
-                {filteredImages.map((image) => {
-                  const isSelected = selectedImages.has(image.id)
-                  const isActive = image.id === selectedImageId
+                  {filteredImages.map((image) => {
+                    const isSelected = selectedImages.has(image.id)
+                    const isActive = image.id === selectedImageId
 
-                  return (
-                    <button
-                      key={image.id}
-                      onClick={() => setSelectedImageId(image.id)}
-                      className={`group relative w-44 shrink-0 overflow-hidden rounded-xl border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                        isActive ? 'border-blue-600 ring-2 ring-blue-200' : 'border-muted hover:border-foreground/40'
-                      }`}
-                    >
-                      <div className="relative aspect-[4/3] bg-muted">
-                        <Image
-                          src={image.processedUrl}
-                          alt={image.name}
-                          fill
-                          className="object-cover transition duration-300 group-hover:scale-105"
-                        />
-                        <div className="absolute left-3 top-3 rounded-full bg-white/95 p-1 shadow">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={(checked) => toggleSelection(image.id, Boolean(checked))}
-                            aria-label={`Select ${image.name}`}
-                            className="h-4 w-4"
+                    return (
+                      <button
+                        key={image.id}
+                        onClick={() => setSelectedImageId(image.id)}
+                        className={`group relative w-44 shrink-0 overflow-hidden rounded-xl border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isActive ? 'border-primary ring-2 ring-primary/20' : 'border-muted hover:border-foreground/40'
+                          }`}
+                      >
+                        <div className="relative aspect-[4/3] bg-muted">
+                          <Image
+                            src={image.processedUrl}
+                            alt={image.name}
+                            fill
+                            className="object-cover transition duration-300 group-hover:scale-105"
                           />
+                          <div className="absolute left-3 top-3 rounded-full bg-white/95 p-1 shadow">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={(checked) => toggleSelection(image.id, Boolean(checked))}
+                              aria-label={`Select ${image.name}`}
+                              className="h-4 w-4"
+                            />
+                          </div>
+                          <div className="absolute right-3 top-3">
+                            <Badge
+                              variant={image.status === 'needs-retouch' ? 'destructive' : 'secondary'}
+                              className="capitalize shadow-sm"
+                            >
+                              {image.status.replace('-', ' ')}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="absolute right-3 top-3">
-                          <Badge
-                            variant={image.status === 'needs-retouch' ? 'destructive' : 'secondary'}
-                            className="capitalize shadow-sm"
-                          >
-                            {image.status.replace('-', ' ')}
-                          </Badge>
+                        <div className="space-y-1 p-4">
+                          <p className="truncate text-sm font-semibold text-foreground">{image.name}</p>
+                          <p className="text-xs text-muted-foreground">{image.processedAt}</p>
                         </div>
-                      </div>
-                      <div className="space-y-1 p-4">
-                        <p className="truncate text-sm font-semibold text-foreground">{image.name}</p>
-                        <p className="text-xs text-muted-foreground">{image.processedAt}</p>
-                      </div>
-                    </button>
-                  )
-                })}
+                      </button>
+                    )
+                  })}
                 </div>
               </ScrollArea>
             </div>
           </section>
 
-          <aside className="space-y-6">
+          <aside className="hidden xl:block space-y-6">
             <Card className="select-none">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold">Activity Log</CardTitle>
@@ -825,7 +822,7 @@ export default function ProcessingOverviewPage() {
               Select which version of the image you want to restore. Each version includes the prompt used to generate it.
             </DialogDescription>
           </DialogHeader>
-          
+
           {revertImageId && (() => {
             const image = images.find((img) => img.id === revertImageId)
             if (!image) return null
@@ -839,11 +836,10 @@ export default function ProcessingOverviewPage() {
                     return (
                       <div
                         key={version.id}
-                        className={`relative rounded-lg border-2 p-3 transition ${
-                          isCurrent
+                        className={`relative rounded-lg border-2 p-3 transition ${isCurrent
                             ? 'border-primary bg-primary/5'
                             : 'border-muted hover:border-primary/50 cursor-pointer'
-                        }`}
+                          }`}
                         onClick={() => !isCurrent && handleSelectVersion(image.id, version.id)}
                       >
                         {isCurrent && (
@@ -891,7 +887,7 @@ export default function ProcessingOverviewPage() {
               </div>
             )
           })()}
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setRevertDialogOpen(false)}>
               Cancel
