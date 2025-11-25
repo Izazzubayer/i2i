@@ -14,6 +14,7 @@ import {
   Image as ImageIcon,
   X
 } from 'lucide-react'
+import Image from 'next/image'
 import Header from '@/components/Header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -436,11 +437,13 @@ export default function PageChat() {
                           className="group flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors bg-background"
                         >
                           <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded bg-muted">
-                            <img
+                            <Image
                               src={previewUrl}
                               alt={file.name}
-                              className="h-full w-full object-cover"
+                              fill
+                              className="object-cover"
                               onLoad={() => URL.revokeObjectURL(previewUrl)}
+                              unoptimized
                             />
                           </div>
                           <div className="flex-1 min-w-0">

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
 import { Upload, X, Loader2, ArrowRight, Image as ImageIcon, HardDrive, Sparkles, Edit, Coins, DollarSign } from 'lucide-react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -214,11 +215,13 @@ All processed images will maintain original quality while applying the requested
                           >
                             <div className="flex items-center gap-2">
                               <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded bg-muted">
-                                <img
+                                <Image
                                   src={previewUrl}
                                   alt={file.name}
-                                  className="h-full w-full object-cover"
+                                  fill
+                                  className="object-cover"
                                   onLoad={() => URL.revokeObjectURL(previewUrl)}
+                                  unoptimized
                                 />
                               </div>
                               <div className="min-w-0 flex-1">

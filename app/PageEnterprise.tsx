@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  Upload, 
+import {
+  Upload,
   FolderOpen,
   Settings,
   Play,
@@ -70,7 +70,7 @@ interface BatchJob {
 
 export default function PageEnterprise() {
   const { resetBatch } = useStore()
-  
+
   const [batches, setBatches] = useState<BatchJob[]>([
     {
       id: 'batch-1',
@@ -117,17 +117,17 @@ export default function PageEnterprise() {
   const queuedBatches = batches.filter(b => b.status === 'queued').length
 
   const getStatusBadge = (status: BatchJob['status']) => {
-    const variants = {
-      queued: { variant: 'secondary' as const, icon: Clock },
-      processing: { variant: 'default' as const, icon: Zap },
-      paused: { variant: 'secondary' as const, icon: Pause },
-      completed: { variant: 'outline' as const, icon: CheckCircle2, className: 'border-green-600 text-green-600' },
-      failed: { variant: 'destructive' as const, icon: AlertCircle }
+    const variants: Record<string, { variant: "secondary" | "default" | "outline" | "destructive", icon: any, className?: string }> = {
+      queued: { variant: 'secondary', icon: Clock },
+      processing: { variant: 'default', icon: Zap },
+      paused: { variant: 'secondary', icon: Pause },
+      completed: { variant: 'outline', icon: CheckCircle2, className: 'border-green-600 text-green-600' },
+      failed: { variant: 'destructive', icon: AlertCircle }
     }
-    
+
     const config = variants[status]
     const Icon = config.icon
-    
+
     return (
       <Badge variant={config.variant} className={config.className}>
         <Icon className="mr-1 h-3 w-3" />
@@ -148,7 +148,7 @@ export default function PageEnterprise() {
   return (
     <main className="min-h-screen bg-background">
       <Header />
-      
+
       {/* Enterprise Dashboard Header */}
       <div className="border-b bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
         <div className="container py-6 px-4 md:px-8">
@@ -190,9 +190,9 @@ export default function PageEnterprise() {
                 <p className="text-xs text-muted-foreground">
                   {totalProcessed.toLocaleString()} processed
                 </p>
-                <Progress 
-                  value={(totalProcessed / totalImages) * 100} 
-                  className="mt-2 h-1" 
+                <Progress
+                  value={(totalProcessed / totalImages) * 100}
+                  className="mt-2 h-1"
                 />
               </CardContent>
             </Card>
@@ -315,9 +315,8 @@ export default function PageEnterprise() {
                         { action: 'Export completed', batch: 'Winter Collection', time: '3 hours ago', success: true }
                       ].map((activity, idx) => (
                         <div key={idx} className="flex items-start gap-3">
-                          <div className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ${
-                            activity.success ? 'bg-green-500/10' : 'bg-red-500/10'
-                          }`}>
+                          <div className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ${activity.success ? 'bg-green-500/10' : 'bg-red-500/10'
+                            }`}>
                             {activity.success ? (
                               <CheckCircle2 className="h-4 w-4 text-green-600" />
                             ) : (
@@ -390,8 +389,8 @@ export default function PageEnterprise() {
                                 <Checkbox />
                                 <h3 className="font-semibold">{batch.name}</h3>
                                 {getStatusBadge(batch.status)}
-                                <Badge 
-                                  variant="outline" 
+                                <Badge
+                                  variant="outline"
                                   className={getPriorityColor(batch.priority)}
                                 >
                                   {batch.priority} priority

@@ -17,72 +17,72 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
+const orders = [
+  {
+    id: 'ORD-2024-001',
+    name: 'Product Catalog 2024',
+    images: 120,
+    status: 'completed',
+    createdAt: '2024-11-10 14:30',
+    completedAt: '2024-11-10 15:45',
+    credits: 120,
+    size: '4.2 GB'
+  },
+  {
+    id: 'ORD-2024-002',
+    name: 'Website Hero Images',
+    images: 45,
+    status: 'processing',
+    createdAt: '2024-11-10 16:00',
+    progress: 67,
+    credits: 45,
+    size: '1.8 GB'
+  },
+  {
+    id: 'ORD-2024-003',
+    name: 'Marketing Campaign',
+    images: 85,
+    status: 'completed',
+    createdAt: '2024-11-09 10:15',
+    completedAt: '2024-11-09 12:30',
+    credits: 85,
+    size: '3.1 GB'
+  },
+  {
+    id: 'ORD-2024-004',
+    name: 'Social Media Content',
+    images: 30,
+    status: 'failed',
+    createdAt: '2024-11-08 09:00',
+    error: 'Processing timeout',
+    credits: 15,
+    size: '890 MB'
+  },
+  {
+    id: 'ORD-2024-005',
+    name: 'E-commerce Product Shots',
+    images: 200,
+    status: 'completed',
+    createdAt: '2024-11-07 08:00',
+    completedAt: '2024-11-07 11:20',
+    credits: 200,
+    size: '6.8 GB'
+  },
+  {
+    id: 'ORD-2024-006',
+    name: 'Blog Images',
+    images: 15,
+    status: 'queued',
+    createdAt: '2024-11-10 17:00',
+    credits: 15,
+    size: '520 MB'
+  }
+]
+
 export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortBy, setSortBy] = useState('newest')
-
-  const orders = [
-    {
-      id: 'ORD-2024-001',
-      name: 'Product Catalog 2024',
-      images: 120,
-      status: 'completed',
-      createdAt: '2024-11-10 14:30',
-      completedAt: '2024-11-10 15:45',
-      credits: 120,
-      size: '4.2 GB'
-    },
-    {
-      id: 'ORD-2024-002',
-      name: 'Website Hero Images',
-      images: 45,
-      status: 'processing',
-      createdAt: '2024-11-10 16:00',
-      progress: 67,
-      credits: 45,
-      size: '1.8 GB'
-    },
-    {
-      id: 'ORD-2024-003',
-      name: 'Marketing Campaign',
-      images: 85,
-      status: 'completed',
-      createdAt: '2024-11-09 10:15',
-      completedAt: '2024-11-09 12:30',
-      credits: 85,
-      size: '3.1 GB'
-    },
-    {
-      id: 'ORD-2024-004',
-      name: 'Social Media Content',
-      images: 30,
-      status: 'failed',
-      createdAt: '2024-11-08 09:00',
-      error: 'Processing timeout',
-      credits: 15,
-      size: '890 MB'
-    },
-    {
-      id: 'ORD-2024-005',
-      name: 'E-commerce Product Shots',
-      images: 200,
-      status: 'completed',
-      createdAt: '2024-11-07 08:00',
-      completedAt: '2024-11-07 11:20',
-      credits: 200,
-      size: '6.8 GB'
-    },
-    {
-      id: 'ORD-2024-006',
-      name: 'Blog Images',
-      images: 15,
-      status: 'queued',
-      createdAt: '2024-11-10 17:00',
-      credits: 15,
-      size: '520 MB'
-    }
-  ]
 
   const filteredOrders = useMemo(() => {
     const filtered = orders.filter(order => {
@@ -108,7 +108,7 @@ export default function OrdersPage() {
     })
 
     return sorted
-  }, [orders, searchQuery, statusFilter, sortBy])
+  }, [searchQuery, statusFilter, sortBy])
 
   const ordersByStatus = useMemo(
     () => ({

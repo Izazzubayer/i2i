@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/lib/store'
-import { 
-  ArrowLeft, 
-  Download, 
-  Trash2, 
-  CheckCircle, 
-  Edit3, 
-  Send, 
+import {
+  ArrowLeft,
+  Download,
+  Trash2,
+  CheckCircle,
+  Edit3,
+  Send,
   X,
   Loader2,
   Image as ImageIcon,
@@ -58,17 +58,17 @@ export default function ProcessingPage() {
   const params = useParams()
   const router = useRouter()
   const batchId = params.batchId as string
-  
+
   const { batch, updateImageStatus, approveImage, addLog } = useStore()
-  
+
   // Stage 3: Processing Stage
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set())
   const [isProcessing, setIsProcessing] = useState(false)
-  
+
   // Stage 4: Processing Feedback
   const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(0)
   const [canCancel, setCanCancel] = useState(true)
-  
+
   // Stage 5: Result Stage
   const [selectedImageForView, setSelectedImageForView] = useState<string | null>(null)
   const [beforeAfterSlider, setBeforeAfterSlider] = useState(50)
@@ -76,14 +76,14 @@ export default function ProcessingPage() {
   const [retouchImageId, setRetouchImageId] = useState<string | null>(null)
   const [retouchInstruction, setRetouchInstruction] = useState('')
   const [isRetouching, setIsRetouching] = useState(false)
-  
+
   // Stage 6: Review Stage (Activity Log)
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([])
-  
+
   // Stage 7: Approval Stage
   const [approveModalOpen, setApproveModalOpen] = useState(false)
   const [imagesToApprove, setImagesToApprove] = useState<string[]>([])
-  
+
   // Stage 8: Export Stage
   const [exportModalOpen, setExportModalOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<'jpg' | 'png' | 'webp'>('jpg')
@@ -92,11 +92,11 @@ export default function ProcessingPage() {
   const [exportProgress, setExportProgress] = useState(0)
   const [damModalOpen, setDamModalOpen] = useState(false)
   const [isDamSending, setIsDamSending] = useState(false)
-  
+
   // Stage 9: Completion Stage
   const [showCompletionBanner, setShowCompletionBanner] = useState(false)
   const [allApproved, setAllApproved] = useState(false)
-  
+
   // Delete functionality
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [imagesToDelete, setImagesToDelete] = useState<string[]>([])
@@ -119,7 +119,7 @@ export default function ProcessingPage() {
         addActivityLog('approve', 'All images approved', 'Batch completed successfully')
       }
     }
-  }, [batch])
+  }, [batch, showCompletionBanner])
 
   // Calculate estimated time
   useEffect(() => {
@@ -128,7 +128,7 @@ export default function ProcessingPage() {
       const avgTimePerImage = 2.5 // seconds
       setEstimatedTimeRemaining(remaining * avgTimePerImage)
     }
-  }, [batch?.processedCount])
+  }, [batch])
 
   // Add activity log entry
   const addActivityLog = (
@@ -181,11 +181,11 @@ export default function ProcessingPage() {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000))
-      
+
       updateImageStatus(retouchImageId, 'completed', undefined)
       toast.success('Retouch applied successfully')
       addActivityLog('retouch', 'Image Retouched', `Applied retouch: "${retouchInstruction.substring(0, 50)}..."`)
-      
+
       setRetouchModalOpen(false)
       setRetouchInstruction('')
       setRetouchImageId(null)
@@ -231,7 +231,7 @@ export default function ProcessingPage() {
   // Stage 8: Download with Format Selection
   const handleDownloadImages = async () => {
     if (!batch) return
-    
+
     setIsExporting(true)
     setExportProgress(0)
 
@@ -260,16 +260,16 @@ export default function ProcessingPage() {
   // Stage 8: Send to DAM
   const handleSendToDAM = async () => {
     if (!batch) return
-    
+
     setIsDamSending(true)
     try {
       await new Promise(resolve => setTimeout(resolve, 2000))
-      
+
       const count = selectedImages.size > 0 ? selectedImages.size : batch.images.length
       toast.success(`Successfully sent ${count} image(s) to DAM`)
       addActivityLog('export', 'Sent to DAM', `Transferred ${count} images to DAM system`)
       setDamModalOpen(false)
-      
+
       // Show link to DAM (mock)
       toast.info('View in DAM', {
         description: 'Click to open in your DAM system',
@@ -383,7 +383,7 @@ export default function ProcessingPage() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <Badge variant={batch.status === 'completed' ? 'default' : 'secondary'}>
                 {batch.status}
@@ -454,7 +454,7 @@ export default function ProcessingPage() {
                     <CheckCircle className="mr-2 h-4 w-4" />
                     Approve Selected
                   </Button>
-                  
+
                   <Button
                     variant="outline"
                     onClick={() => setExportModalOpen(true)}
@@ -462,7 +462,7 @@ export default function ProcessingPage() {
                     <Download className="mr-2 h-4 w-4" />
                     Download
                   </Button>
-                  
+
                   <Button
                     variant="outline"
                     onClick={() => setDamModalOpen(true)}
@@ -470,7 +470,7 @@ export default function ProcessingPage() {
                     <Send className="mr-2 h-4 w-4" />
                     Send to DAM
                   </Button>
-                  
+
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -486,7 +486,7 @@ export default function ProcessingPage() {
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete
                   </Button>
-                  
+
                   <div className="ml-auto text-sm text-muted-foreground">
                     {selectedImages.size > 0 ? `${selectedImages.size} selected` : 'No selection'}
                   </div>
@@ -517,7 +517,7 @@ export default function ProcessingPage() {
                           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                         </div>
                       )}
-                      
+
                       {/* Selection Checkbox */}
                       {batch.status === 'completed' && (
                         <div className="absolute top-2 left-2">
@@ -537,7 +537,7 @@ export default function ProcessingPage() {
                           />
                         </div>
                       )}
-                      
+
                       {/* Status Badge */}
                       <div className="absolute top-2 right-2">
                         <Badge variant={image.status === 'approved' ? 'default' : 'secondary'}>
@@ -545,10 +545,10 @@ export default function ProcessingPage() {
                         </Badge>
                       </div>
                     </div>
-                    
+
                     <div className="p-4">
                       <h3 className="mb-2 truncate font-medium text-sm">{image.originalName}</h3>
-                      
+
                       <div className="flex flex-wrap gap-2">
                         {image.processedUrl && (
                           <>
@@ -596,7 +596,7 @@ export default function ProcessingPage() {
                   Chronological history
                 </p>
               </div>
-              
+
               <ScrollArea className="h-[600px]">
                 <div className="p-4 space-y-3">
                   {activityLog.length === 0 ? (
@@ -614,7 +614,7 @@ export default function ProcessingPage() {
                         <div className={`absolute -left-2 top-0 rounded-full bg-background p-1 ${getActivityColor(entry.type)}`}>
                           {getActivityIcon(entry.type)}
                         </div>
-                        
+
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
                             <span className="font-medium text-sm">{entry.action}</span>
@@ -649,11 +649,11 @@ export default function ProcessingPage() {
               Drag the slider to compare the original and processed images
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedImageForView && (() => {
             const image = batch.images.find(img => img.id === selectedImageForView)
             if (!image) return null
-            
+
             return (
               <div className="space-y-4">
                 <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
@@ -666,7 +666,7 @@ export default function ProcessingPage() {
                       className="object-contain"
                     />
                   </div>
-                  
+
                   {/* After Image with Clip Path */}
                   <div
                     className="absolute inset-0"
@@ -681,7 +681,7 @@ export default function ProcessingPage() {
                       className="object-contain"
                     />
                   </div>
-                  
+
                   {/* Slider Handle */}
                   <div
                     className="absolute top-0 bottom-0 w-1 bg-white shadow-lg cursor-ew-resize"
@@ -694,7 +694,7 @@ export default function ProcessingPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Labels */}
                   <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-1 rounded text-sm">
                     Before
@@ -703,7 +703,7 @@ export default function ProcessingPage() {
                     After
                   </div>
                 </div>
-                
+
                 <Slider
                   value={[beforeAfterSlider]}
                   onValueChange={(value) => setBeforeAfterSlider(value[0])}
@@ -711,7 +711,7 @@ export default function ProcessingPage() {
                   step={1}
                   className="w-full"
                 />
-                
+
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Original</span>
                   <span>Processed</span>
@@ -731,7 +731,7 @@ export default function ProcessingPage() {
               Describe the changes you want to apply to this image
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <Textarea
               placeholder="e.g., Brighten the image, remove shadows, adjust colors..."
@@ -739,12 +739,12 @@ export default function ProcessingPage() {
               onChange={(e) => setRetouchInstruction(e.target.value)}
               rows={4}
             />
-            
+
             <div className="text-xs text-muted-foreground">
               {retouchInstruction.length} characters
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button
               variant="outline"
@@ -773,7 +773,7 @@ export default function ProcessingPage() {
               Approved images will be locked and cannot be modified.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="rounded-lg bg-muted p-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5" />
@@ -787,7 +787,7 @@ export default function ProcessingPage() {
               </div>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button
               variant="outline"
@@ -813,7 +813,7 @@ export default function ProcessingPage() {
               This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 p-4">
             <div className="flex items-start gap-3">
               <XCircle className="h-5 w-5 text-red-600 mt-0.5" />
@@ -827,7 +827,7 @@ export default function ProcessingPage() {
               </div>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button
               variant="outline"
@@ -855,7 +855,7 @@ export default function ProcessingPage() {
               Choose format and quality settings for your export
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Format</label>
@@ -870,7 +870,7 @@ export default function ProcessingPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">Quality</label>
@@ -887,7 +887,7 @@ export default function ProcessingPage() {
                 Higher quality = larger file size
               </p>
             </div>
-            
+
             {isExporting && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
@@ -898,7 +898,7 @@ export default function ProcessingPage() {
               </div>
             )}
           </div>
-          
+
           <DialogFooter>
             <Button
               variant="outline"
@@ -936,7 +936,7 @@ export default function ProcessingPage() {
               Transfer selected images to your Digital Asset Management system
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-4">
               <div className="flex items-start gap-3">
@@ -951,15 +951,15 @@ export default function ProcessingPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="text-sm text-muted-foreground">
-              {selectedImages.size > 0 
+              {selectedImages.size > 0
                 ? `${selectedImages.size} selected image(s) will be transferred`
                 : `All ${batch.images.length} images will be transferred`
               }
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button
               variant="outline"
