@@ -53,7 +53,7 @@ export default function InstructionChat({ onInstructionChange, onFileChange }: I
 
   const getAIResponse = (userMessage: string): string => {
     const lower = userMessage.toLowerCase()
-    
+
     if (lower.includes('background')) {
       return "I can help with background processing! I'll:\n• Remove existing backgrounds\n• Replace with your preferred color or image\n• Ensure clean edges\n\nIs there a specific background color you prefer?"
     } else if (lower.includes('color') || lower.includes('enhance')) {
@@ -81,7 +81,7 @@ export default function InstructionChat({ onInstructionChange, onFileChange }: I
     }
 
     setMessages(prev => [...prev, userMessage])
-    
+
     // Update parent component with instruction
     onInstructionChange(input)
     if (attachedFiles.length > 0) {
@@ -130,7 +130,7 @@ export default function InstructionChat({ onInstructionChange, onFileChange }: I
           <h3 className="font-semibold">AI Instructions Assistant</h3>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          Describe what you'd like to do with your images
+          Describe what you&apos;d like to do with your images
         </p>
       </div>
 
@@ -151,23 +151,21 @@ export default function InstructionChat({ onInstructionChange, onFileChange }: I
                     <Bot className="h-4 w-4 text-primary-foreground" />
                   </div>
                 )}
-                
+
                 <div className={`flex flex-col gap-1 ${message.role === 'user' ? 'items-end' : 'items-start'} max-w-[85%]`}>
-                  <div className={`rounded-lg px-3 py-2 text-sm ${
-                    message.role === 'user' 
-                      ? 'bg-primary text-primary-foreground' 
+                  <div className={`rounded-lg px-3 py-2 text-sm ${message.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
                       : 'bg-muted'
-                  }`}>
+                    }`}>
                     <p className="whitespace-pre-wrap">{message.content}</p>
-                    
+
                     {message.attachments && message.attachments.length > 0 && (
                       <div className="mt-2 space-y-1">
                         {message.attachments.map((attachment, idx) => (
                           <div
                             key={idx}
-                            className={`flex items-center gap-2 rounded p-1 text-xs ${
-                              message.role === 'user' ? 'bg-primary-foreground/10' : 'bg-background'
-                            }`}
+                            className={`flex items-center gap-2 rounded p-1 text-xs ${message.role === 'user' ? 'bg-primary-foreground/10' : 'bg-background'
+                              }`}
                           >
                             <FileText className="h-3 w-3" />
                             <span className="truncate">{attachment.name}</span>
@@ -176,12 +174,12 @@ export default function InstructionChat({ onInstructionChange, onFileChange }: I
                       </div>
                     )}
                   </div>
-                  
+
                   <span className="text-xs text-muted-foreground">
                     {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
-                
+
                 {message.role === 'user' && (
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-muted">
                     <User className="h-4 w-4" />
@@ -190,7 +188,7 @@ export default function InstructionChat({ onInstructionChange, onFileChange }: I
               </motion.div>
             ))}
           </AnimatePresence>
-          
+
           {/* Typing Indicator */}
           <AnimatePresence>
             {isTyping && (
@@ -225,7 +223,7 @@ export default function InstructionChat({ onInstructionChange, onFileChange }: I
               </motion.div>
             )}
           </AnimatePresence>
-          
+
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
@@ -272,7 +270,7 @@ export default function InstructionChat({ onInstructionChange, onFileChange }: I
             className="hidden"
             onChange={handleFileSelect}
           />
-          
+
           <Button
             variant="outline"
             size="icon"
@@ -281,7 +279,7 @@ export default function InstructionChat({ onInstructionChange, onFileChange }: I
           >
             <Paperclip className="h-4 w-4" />
           </Button>
-          
+
           <div className="relative flex-1">
             <Textarea
               value={input}

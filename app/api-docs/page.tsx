@@ -237,7 +237,7 @@ export default function ApiPage() {
                       <div>
                         <h3 className="font-semibold">Get your API Key</h3>
                         <p className="text-sm text-muted-foreground">
-                          Generate an API key from the "API Keys" tab to authenticate your requests
+                          Generate an API key from the &quot;API Keys&quot; tab to authenticate your requests
                         </p>
                       </div>
                     </div>
@@ -344,7 +344,7 @@ export default function ApiPage() {
                         Keep your API keys secure
                       </p>
                       <p className="text-sm text-yellow-700 dark:text-yellow-400">
-                        Never share your API keys publicly or commit them to version control. 
+                        Never share your API keys publicly or commit them to version control.
                         Treat them like passwords.
                       </p>
                     </div>
@@ -453,9 +453,8 @@ export default function ApiPage() {
                         <button
                           key={idx}
                           onClick={() => setSelectedEndpoint(endpoint)}
-                          className={`w-full flex items-center justify-between p-4 text-left hover:bg-muted transition-colors ${
-                            selectedEndpoint === endpoint ? 'bg-muted' : ''
-                          }`}
+                          className={`w-full flex items-center justify-between p-4 text-left hover:bg-muted transition-colors ${selectedEndpoint === endpoint ? 'bg-muted' : ''
+                            }`}
                         >
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">

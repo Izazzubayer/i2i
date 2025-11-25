@@ -36,17 +36,17 @@ export default function RetouchDrawer() {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000))
-      
+
       // In a real app, this would call the API
       // const result = await apiClient.retouch(selectedImageForRetouch.id, instruction)
-      
+
       // Update image with new processed URL
       const newProcessedUrl = `https://picsum.photos/seed/${selectedImageForRetouch.id}-retouched/400/300`
       updateImageStatus(selectedImageForRetouch.id, 'completed', newProcessedUrl)
-      
+
       addLog(`Retouch completed for ${selectedImageForRetouch.originalName}`, 'success')
       toast.success('Retouch applied successfully!')
-      
+
       setInstruction('')
       closeRetouchDrawer()
     } catch (error) {
@@ -135,7 +135,7 @@ export default function RetouchDrawer() {
                       </li>
                       <li className="flex gap-2">
                         <span>•</span>
-                        <span>Use measurable values (e.g., "increase by 20%")</span>
+                        <span>Use measurable values (e.g., &quot;increase by 20%&quot;)</span>
                       </li>
                     </ul>
                   </div>

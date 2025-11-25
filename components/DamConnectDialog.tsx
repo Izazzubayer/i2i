@@ -593,7 +593,7 @@ export default function DamConnectDialog({ open, onOpenChange, onConnect }: DamC
                     <div className="flex gap-2">
                       <AlertCircle className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
                       <p className="text-xs text-muted-foreground">
-                        Permissions will be applied based on your DAM system's access control settings.
+                        Permissions will be applied based on your DAM system&apos;s access control settings.
                         Make sure the API user has permission to set these.
                       </p>
                     </div>

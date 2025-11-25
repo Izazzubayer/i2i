@@ -519,8 +519,8 @@ export default function ProcessingOverviewPage() {
                             }
                           }}
                           className={`flex-1 rounded-lg border px-3 py-2 text-left transition ${activeProject === project.id && !activeFolder
-                              ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                              : 'border-muted hover:border-foreground/40 hover:bg-muted/60'
+                            ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                            : 'border-muted hover:border-foreground/40 hover:bg-muted/60'
                             }`}
                         >
                           <div className="flex items-center gap-2 text-sm font-medium">
@@ -555,8 +555,8 @@ export default function ProcessingOverviewPage() {
                                 <button
                                   onClick={() => handleFolderSelect(child.id)}
                                   className={`w-full rounded-lg border px-3 py-2 text-left transition relative z-10 ${isChildActive
-                                      ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                                      : 'border-muted hover:border-foreground/40 hover:bg-muted/60'
+                                    ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                                    : 'border-muted hover:border-foreground/40 hover:bg-muted/60'
                                     }`}
                                 >
                                   <div className="flex items-center gap-2 text-sm font-medium">
@@ -760,7 +760,7 @@ export default function ProcessingOverviewPage() {
                             </Button>
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm text-muted-foreground italic">"{entry.prompt}"</p>
+                            <p className="text-sm text-muted-foreground italic">&quot;{entry.prompt}&quot;</p>
                           </div>
                         </div>
                       ))}
@@ -837,8 +837,8 @@ export default function ProcessingOverviewPage() {
                       <div
                         key={version.id}
                         className={`relative rounded-lg border-2 p-3 transition ${isCurrent
-                            ? 'border-primary bg-primary/5'
-                            : 'border-muted hover:border-primary/50 cursor-pointer'
+                          ? 'border-primary bg-primary/5'
+                          : 'border-muted hover:border-primary/50 cursor-pointer'
                           }`}
                         onClick={() => !isCurrent && handleSelectVersion(image.id, version.id)}
                       >
@@ -863,7 +863,7 @@ export default function ProcessingOverviewPage() {
                           </div>
                           <div className="rounded bg-muted/50 p-2">
                             <p className="text-xs font-medium text-muted-foreground mb-1">Prompt:</p>
-                            <p className="text-xs text-foreground italic">"{version.prompt}"</p>
+                            <p className="text-xs text-foreground italic">&quot;{version.prompt}&quot;</p>
                           </div>
                           {!isCurrent && (
                             <Button

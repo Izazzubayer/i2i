@@ -403,7 +403,7 @@ export default function SignUpPage() {
                         checked={formState.captcha}
                         onCheckedChange={(checked) => handleCheckboxChange('captcha')(Boolean(checked))}
                       />
-                      <span className="text-sm font-normal">I'm not a robot</span>
+                      <span className="text-sm font-normal">I&apos;m not a robot</span>
                     </div>
                     <div className="flex flex-col items-center gap-0.5">
                       <svg className="h-8 w-8" viewBox="0 0 256 256" fill="none">

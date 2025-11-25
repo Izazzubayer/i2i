@@ -71,7 +71,7 @@ export default function SecurityPage() {
           <CardHeader>
             <CardTitle>Change Password</CardTitle>
             <CardDescription>
-              Update your password. Make sure it's strong and unique.
+              Update your password. Make sure it&apos;s strong and unique.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

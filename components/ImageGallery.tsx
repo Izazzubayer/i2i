@@ -31,16 +31,17 @@ export default function ImageGallery() {
   const [damDialogOpen, setDamDialogOpen] = useState(false)
   const [uploadingToDAM, setUploadingToDAM] = useState(false)
 
-  if (!batch || batch.images.length === 0) return null
-
-  // Filter images based on selected filter
+  // Filter images based on selected filter - must be before early return
   const filteredImages = useMemo(() => {
+    if (!batch || batch.images.length === 0) return []
     if (filterMode === 'all') return batch.images
     return batch.images.filter(img => {
       if (filterMode === 'needs-retouch') return img.status === 'needs-retouch'
       return img.status === filterMode
     })
-  }, [batch.images, filterMode])
+  }, [batch, filterMode])
+
+  if (!batch || batch.images.length === 0) return null
 
   // Selection handlers
   const toggleImageSelection = (imageId: string) => {
