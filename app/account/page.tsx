@@ -8,8 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Upload, Trash2, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -175,71 +173,6 @@ export default function AccountPage() {
                 setAvatarFile(null)
               }}>
                 Reset
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* DAM Connection */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Connect to Your DAM</CardTitle>
-            <CardDescription>
-              Connect your Digital Asset Management system to automatically sync processed images.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="dam-select">Select Your DAM</Label>
-              <Select defaultValue="">
-                <SelectTrigger id="dam-select">
-                  <SelectValue placeholder="Choose a DAM provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bynder">Bynder</SelectItem>
-                  <SelectItem value="adobe">Adobe Experience Manager</SelectItem>
-                  <SelectItem value="cloudinary">Cloudinary</SelectItem>
-                  <SelectItem value="brandfolder">Brandfolder</SelectItem>
-                  <SelectItem value="canto">Canto</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dam-url">Workspace URL</Label>
-              <Input
-                id="dam-url"
-                placeholder="https://your-workspace.dam.com"
-                type="url"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dam-username">Username / API Key</Label>
-              <Input
-                id="dam-username"
-                placeholder="Enter your username or API key"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dam-password">Password / API Secret</Label>
-              <Input
-                id="dam-password"
-                type="password"
-                placeholder="Enter your password or API secret"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox id="save-dam-credentials" />
-              <Label htmlFor="save-dam-credentials" className="text-sm cursor-pointer font-normal">
-                Save DAM login info for future use
-              </Label>
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Button onClick={() => toast.success('DAM connection saved successfully')}>
-                Connect to DAM
-              </Button>
-              <Button variant="outline" onClick={() => toast.info('Testing connection...')}>
-                Test Connection
               </Button>
             </div>
           </CardContent>

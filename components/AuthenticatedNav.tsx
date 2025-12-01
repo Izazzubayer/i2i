@@ -20,7 +20,8 @@ import {
   LogOut,
   Menu,
   X,
-  Trash2
+  Trash2,
+  Cloud
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -194,6 +195,15 @@ export default function AuthenticatedNav() {
                   <Badge variant="outline" className="ml-auto">
                     {user.credits}
                   </Badge>
+                </DropdownMenuItem>
+
+                {/* Integrations */}
+                <DropdownMenuItem
+                  onClick={() => router.push('/integrations')}
+                  className="cursor-pointer"
+                >
+                  <Cloud className="mr-2 h-4 w-4" />
+                  Integrations
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
