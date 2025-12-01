@@ -178,9 +178,9 @@ export default function SignUpPage() {
       setMessage('Verification email sent! Please check your inbox.')
       toast.success('Account created! Verification email sent to ' + formState.email)
 
-      // In a real app, you would redirect to a "check your email" page
+      // Redirect to verify email page
       setTimeout(() => {
-        router.push('/sign-in?verified=false')
+        router.push(`/verify-email?email=${encodeURIComponent(formState.email)}`)
       }, 2000)
     } catch (error) {
       setMessage('')

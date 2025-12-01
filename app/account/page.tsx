@@ -16,6 +16,7 @@ import { toast } from 'sonner'
 export default function AccountPage() {
   const [username, setUsername] = useState('johndoe')
   const [email, setEmail] = useState('john@example.com')
+  const [companyName, setCompanyName] = useState('Acme Studio')
   const [avatar, setAvatar] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
@@ -150,11 +151,26 @@ export default function AccountPage() {
               </p>
             </div>
 
+            {/* Company Name */}
+            <div className="space-y-2">
+              <Label htmlFor="companyName">Company Name</Label>
+              <Input
+                id="companyName"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="Enter your company name"
+              />
+              <p className="text-xs text-muted-foreground">
+                The name of your company or organization.
+              </p>
+            </div>
+
             <div className="flex gap-2">
               <Button onClick={handleSaveProfile}>Save Changes</Button>
               <Button variant="outline" onClick={() => {
                 setUsername('johndoe')
                 setEmail('john@example.com')
+                setCompanyName('Acme Studio')
                 setAvatarPreview('')
                 setAvatarFile(null)
               }}>

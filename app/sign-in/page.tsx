@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Mail, Lock, ArrowRight, Loader2, ShieldCheck } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Loader2, ShieldCheck, CheckCircle2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,11 +14,20 @@ import { toast } from 'sonner'
 
 export default function SignInPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [staySignedIn, setStaySignedIn] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [showPasswordResetSuccess, setShowPasswordResetSuccess] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get('passwordReset') === 'true') {
+      setShowPasswordResetSuccess(true)
+      toast.success('Password reset successfully! You can now sign in with your new password.')
+    }
+  }, [searchParams])
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -68,6 +77,21 @@ export default function SignInPage() {
               <CardDescription>Enter your credentials to access the dashboard.</CardDescription>
             </CardHeader>
             <CardContent>
+              {showPasswordResetSuccess && (
+                <div className="mb-5 rounded-lg border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 p-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-green-800 dark:text-green-300">
+                        Password reset successful!
+                      </p>
+                      <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                        You can now sign in with your new password.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <form className="space-y-5" onSubmit={handleSubmit}>
                 <div className="space-y-2">
                   <Label htmlFor="email">Work email</Label>
@@ -89,7 +113,7 @@ export default function SignInPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Password</Label>
-                    <Link href="/support" className="text-sm font-medium text-primary hover:underline">
+                    <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
                       Forgot?
                     </Link>
                   </div>

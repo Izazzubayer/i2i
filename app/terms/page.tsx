@@ -9,7 +9,6 @@ import {
   Shield, 
   AlertCircle,
   Mail,
-  Download,
   ChevronRight
 } from 'lucide-react'
 import Header from '@/components/Header'
@@ -44,18 +43,7 @@ export default function TermsOfServicePage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
-          <Card className="cursor-pointer hover:border-primary transition-colors">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <Download className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-semibold text-sm">Download PDF</p>
-                  <p className="text-xs text-muted-foreground">Offline reference</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid gap-4 md:grid-cols-2 mb-8">
           <Link href="/privacy">
             <Card className="cursor-pointer hover:border-primary transition-colors">
               <CardContent className="pt-6">
@@ -876,10 +864,6 @@ export default function TermsOfServicePage() {
               Contact Support
             </Button>
           </Link>
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Download PDF
-          </Button>
           <Link href="/dashboard">
             <Button className="gap-2">
               Get Started
