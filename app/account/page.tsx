@@ -135,17 +135,19 @@ export default function AccountPage() {
             </div>
 
             {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <div className="space-y-2 opacity-60">
+              <Label htmlFor="email" className="cursor-not-allowed">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
+                disabled
+                className="cursor-not-allowed"
               />
               <p className="text-xs text-muted-foreground">
-                This is the email address associated with your account.
+                This is the email address associated with your account. Email cannot be changed.
               </p>
             </div>
 

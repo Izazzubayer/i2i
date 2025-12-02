@@ -63,7 +63,6 @@ interface Integration {
   targetFolder: string
   totalUploads: number
   totalDownloads: number
-  autoSync: boolean
   createdAt: string
 }
 
@@ -78,7 +77,6 @@ const mockIntegrations: Integration[] = [
     targetFolder: '/products',
     totalUploads: 1247,
     totalDownloads: 89,
-    autoSync: true,
     createdAt: 'Oct 15, 2025',
   },
   {
@@ -91,7 +89,6 @@ const mockIntegrations: Integration[] = [
     targetFolder: '/assets/images',
     totalUploads: 3562,
     totalDownloads: 234,
-    autoSync: true,
     createdAt: 'Sep 22, 2025',
   },
   {
@@ -104,7 +101,6 @@ const mockIntegrations: Integration[] = [
     targetFolder: '/brand/assets',
     totalUploads: 456,
     totalDownloads: 12,
-    autoSync: false,
     createdAt: 'Aug 10, 2025',
   },
 ]
@@ -182,12 +178,6 @@ export default function IntegrationsPage() {
     toast.success('Integration disconnected')
   }
 
-  const handleToggleAutoSync = (integrationId: string, enabled: boolean) => {
-    setIntegrations(prev => prev.map(i => 
-      i.id === integrationId ? { ...i, autoSync: enabled } : i
-    ))
-    toast.success(`Auto-sync ${enabled ? 'enabled' : 'disabled'}`)
-  }
 
   const handleSelectProvider = (provider: typeof availableProviders[0]) => {
     setSelectedProvider(provider)
@@ -213,7 +203,6 @@ export default function IntegrationsPage() {
       targetFolder: config.targetFolder || '/uploads',
       totalUploads: 0,
       totalDownloads: 0,
-      autoSync: true,
       createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     }
     setIntegrations(prev => [...prev, newIntegration])
@@ -233,7 +222,6 @@ export default function IntegrationsPage() {
       targetFolder: '/uploads',
       totalUploads: 0,
       totalDownloads: 0,
-      autoSync: true,
       createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     }
     setIntegrations(prev => [...prev, newIntegration])
@@ -350,16 +338,6 @@ export default function IntegrationsPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-2 mr-4">
-                            <Label htmlFor={`auto-sync-${integration.id}`} className="text-sm text-muted-foreground">
-                              Auto-sync
-                            </Label>
-                            <Switch
-                              id={`auto-sync-${integration.id}`}
-                              checked={integration.autoSync}
-                              onCheckedChange={(checked) => handleToggleAutoSync(integration.id, checked)}
-                            />
-                          </div>
                           <Button
                             variant="outline"
                             size="sm"
@@ -629,18 +607,6 @@ export default function IntegrationsPage() {
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Status</Label>
                   <div>{getStatusBadge(selectedIntegration.status)}</div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Auto-sync</Label>
-                  <div className="text-sm">
-                    {selectedIntegration.autoSync ? (
-                      <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                        Enabled
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">Disabled</Badge>
-                    )}
-                  </div>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Workspace</Label>

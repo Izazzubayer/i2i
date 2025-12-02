@@ -169,36 +169,6 @@ export default function ApiPage() {
             </p>
           </div>
 
-          {/* Quick Stats */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardDescription className="text-sm">API Version</CardDescription>
-                <CardTitle className="text-2xl">v1.0</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardDescription className="text-sm">Total Requests</CardDescription>
-                <CardTitle className="text-2xl">
-                  {apiKeys.reduce((sum, key) => sum + (typeof key.requests === 'number' ? key.requests : 0), 0).toLocaleString()}
-                </CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardDescription className="text-sm">Active Keys</CardDescription>
-                <CardTitle className="text-2xl">{apiKeys.length}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardDescription className="text-sm">Uptime</CardDescription>
-                <CardTitle className="text-2xl text-green-600">99.9%</CardTitle>
-              </CardHeader>
-            </Card>
-          </div>
-
           <Tabs defaultValue="overview" className="w-full">
             <TabsList>
               <TabsTrigger value="overview">
@@ -221,171 +191,73 @@ export default function ApiPage() {
 
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6 mt-6">
-              {/* About i2i */}
-              <Card className="border-l-4 border-l-primary">
-                <CardHeader>
-                  <CardTitle className="text-xl">About i2i Platform</CardTitle>
-                  <CardDescription className="text-sm">
-                    AI-Powered Image Processing, API-First Approach
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-muted-foreground leading-relaxed">
-                    i2i is an enterprise-grade AI image processing platform designed with an API-first architecture. 
-                    We empower businesses to seamlessly integrate professional-quality image enhancement, background 
-                    removal, retouching, and AI-driven optimizations directly into their workflows, e-commerce platforms, 
-                    DAM systems, and applications.
-                  </p>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Our platform leverages cutting-edge AI models including GPT, Gemini, and proprietary algorithms 
-                    like NanoBanana, Seedream, and Reve to deliver exceptional results. Whether you&apos;re processing 
-                    thousands of product images or need real-time enhancements, i2i provides the flexibility, speed, 
-                    and reliability your business demands.
-                  </p>
-                  <div className="grid gap-3 md:grid-cols-3 mt-6">
-                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted">
-                      <Zap className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <h4 className="font-semibold text-sm">Lightning Fast</h4>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Process thousands of images in minutes
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted">
-                      <Shield className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <h4 className="font-semibold text-sm">Enterprise Security</h4>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Bank-grade encryption and compliance
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted">
-                      <Code className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <h4 className="font-semibold text-sm">Developer Friendly</h4>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          RESTful API with comprehensive docs
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Usage Process */}
+              {/* Getting Started */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">API Usage Process</CardTitle>
+                  <CardTitle className="text-xl">Getting Started</CardTitle>
                   <CardDescription className="text-sm">
-                    Three simple steps to integrate i2i into your workflow
+                    Quick guide to integrate i2i API into your application
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-6">
-                    {/* Step 1: Authentication */}
-                    <div className="flex gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold flex-shrink-0">
+                  <p className="text-muted-foreground leading-relaxed">
+                    i2i provides an AI-powered image processing API that integrates seamlessly into your workflow. 
+                    Process images with background removal, enhancement, retouching, and more.
+                  </p>
+                  <div className="space-y-4 mt-4">
+                    <div className="flex gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold flex-shrink-0 text-sm">
                         1
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-base mb-2">Authentication</h3>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          Secure your API requests with Bearer token authentication. Generate your API key from the dashboard 
-                          and include it in the Authorization header of every request.
+                        <h3 className="font-semibold text-sm mb-1">Generate API Key</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Create an API key from the "API Keys" tab and include it in your requests.
                         </p>
-                        <div className="rounded-lg bg-muted p-3 font-mono text-xs">
-                          Authorization: Bearer sk_live_your_api_key_here
-                        </div>
                       </div>
                     </div>
-
-                    {/* Step 2: Upload */}
-                    <div className="flex gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold flex-shrink-0">
+                    <div className="flex gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold flex-shrink-0 text-sm">
                         2
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-base mb-2">Upload Images & Attachments</h3>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          Upload your images via multipart/form-data requests. Attach instructions, reference images, 
-                          or processing parameters. Supports batch uploads up to 100 images per request.
+                        <h3 className="font-semibold text-sm mb-1">Upload Images</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Send images via POST request with your processing instructions.
                         </p>
-                        <div className="rounded-lg bg-muted p-3 font-mono text-xs">
-                          POST /api/v1/upload - Submit images with AI instructions
-                        </div>
                       </div>
                     </div>
-
-                    {/* Step 3: Retrieve */}
-                    <div className="flex gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold flex-shrink-0">
+                    <div className="flex gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold flex-shrink-0 text-sm">
                         3
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-base mb-2">Retrieve Processed Images via FTP/SFTP</h3>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          Access your processed images through our secure FTP/SFTP servers or retrieve directly via API. 
-                          Configure automated delivery to your DAM system or storage solution.
+                        <h3 className="font-semibold text-sm mb-1">Retrieve Results</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Get your processed images via API or FTP/SFTP delivery.
                         </p>
-                        <div className="rounded-lg bg-muted p-3 font-mono text-xs space-y-1">
-                          <div>GET /api/v1/results/:batchId - Download via API</div>
-                          <div className="text-muted-foreground">or connect to: sftp://results.i2i.ai/your-batch</div>
-                        </div>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Base URL */}
+              {/* Quick Reference */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Base URL</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="rounded-lg bg-muted p-4 font-mono text-sm">
-                    https://api.i2i.ai/v1
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Authentication */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
-                    Authentication
-                  </CardTitle>
+                  <CardTitle className="text-lg">Quick Reference</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    All API requests must include your API key in the Authorization header:
-                  </p>
-                  <div className="rounded-lg bg-muted p-4 font-mono text-sm">
-                    Authorization: Bearer YOUR_API_KEY
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Rate Limits */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Zap className="h-5 w-5" />
-                    Rate Limits
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <p className="font-semibold text-sm">Standard Plan</p>
-                      <p className="text-sm text-muted-foreground">1,000 requests/hour</p>
+                  <div>
+                    <p className="text-sm font-semibold mb-2">Base URL</p>
+                    <div className="rounded-lg bg-muted p-3 font-mono text-sm">
+                      https://api.i2i.ai/v1
                     </div>
-                    <div>
-                      <p className="font-semibold text-sm">Pro Plan</p>
-                      <p className="text-sm text-muted-foreground">10,000 requests/hour</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold mb-2">Authentication</p>
+                    <div className="rounded-lg bg-muted p-3 font-mono text-sm">
+                      Authorization: Bearer YOUR_API_KEY
                     </div>
                   </div>
                 </CardContent>
@@ -508,47 +380,10 @@ export default function ApiPage() {
             {/* Endpoints Tab */}
             <TabsContent value="endpoints" className="space-y-6 mt-6">
               <div>
-                <h2 className="text-2xl font-bold">API Endpoints Reference</h2>
+                <h2 className="text-2xl font-bold">API Endpoints</h2>
                 <p className="text-sm text-muted-foreground">
-                  Complete documentation of all available endpoints with detailed examples
+                  Browse available endpoints and view request/response examples
                 </p>
-              </div>
-
-              {/* Endpoints Overview Cards */}
-              <div className="grid gap-4 md:grid-cols-3">
-                <Card className="border-l-4 border-l-blue-500">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Processing</CardTitle>
-                    <div className="text-2xl font-bold">4 Endpoints</div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-xs text-muted-foreground">
-                      Upload, process, and retouch images with AI
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="border-l-4 border-l-green-500">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Orders</CardTitle>
-                    <div className="text-2xl font-bold">2 Endpoints</div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-xs text-muted-foreground">
-                      Manage and track your processing orders
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="border-l-4 border-l-purple-500">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Export</CardTitle>
-                    <div className="text-2xl font-bold">1 Endpoint</div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-xs text-muted-foreground">
-                      Download and export processed results
-                    </p>
-                  </CardContent>
-                </Card>
               </div>
 
               <div className="grid gap-6 lg:grid-cols-3">
@@ -864,87 +699,16 @@ echo 'Batch ID: ' . $result['batchId'];
             </CardContent>
           </Card>
 
-          {/* Conclusion */}
-          <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+          {/* Need Help */}
+          <Card>
             <CardHeader>
-              <CardTitle className="text-xl flex items-center gap-2">
-                <Zap className="h-6 w-6 text-primary" />
-                Ready to Get Started?
-              </CardTitle>
+              <CardTitle className="text-lg">Need Help?</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-muted-foreground leading-relaxed">
-                The i2i API provides a powerful, flexible, and scalable solution for integrating AI-powered image 
-                processing into your applications. With comprehensive documentation, multiple SDKs, and dedicated 
-                support, you&apos;ll be up and running in minutes.
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Contact our support team at <a href="mailto:api@i2i.ai" className="text-primary hover:underline">api@i2i.ai</a> or 
+                visit our <a href="/support" className="text-primary hover:underline">support center</a> for assistance.
               </p>
-              
-              <div className="grid gap-4 md:grid-cols-2 mt-6">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 flex-shrink-0">
-                    <Check className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-sm">Enterprise-Grade Security</h4>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      SOC 2 compliant with end-to-end encryption
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 flex-shrink-0">
-                    <Check className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-sm">99.9% Uptime SLA</h4>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Reliable infrastructure you can depend on
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 flex-shrink-0">
-                    <Check className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-sm">24/7 Support</h4>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Expert team ready to help you succeed
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 flex-shrink-0">
-                    <Check className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-sm">Flexible Pricing</h4>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Pay only for what you use, scale effortlessly
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t">
-                <Button size="lg" className="gap-2">
-                  <Key className="h-4 w-4" />
-                  Generate Your First API Key
-                </Button>
-                <Button size="lg" variant="outline" className="gap-2">
-                  <Book className="h-4 w-4" />
-                  View Full Documentation
-                </Button>
-              </div>
-
-              <div className="mt-6 p-4 rounded-lg bg-muted">
-                <p className="text-xs text-muted-foreground">
-                  <strong className="text-foreground">Need help?</strong> Our solutions team is here to assist 
-                  with integration planning, custom workflows, and enterprise deployments. 
-                  Contact us at <a href="mailto:api@i2i.ai" className="text-primary hover:underline">api@i2i.ai</a> or 
-                  visit our <a href="/support" className="text-primary hover:underline">support center</a>.
-                </p>
-              </div>
             </CardContent>
           </Card>
         </div>

@@ -13,13 +13,16 @@ import {
   Sofa, 
   Home, 
   Laptop,
-  Filter
+  Filter,
+  Eye
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import Link from 'next/link'
 import { BeforeAfterSlider } from '@/components/portfolio/BeforeAfterSlider'
 import { cn } from '@/lib/utils'
+import Image from 'next/image'
 
 const categories = [
   { 
@@ -94,7 +97,8 @@ const portfolioItems = [
     title: 'Premium T-Shirt Collection',
     before: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800&h=600&fit=crop',
-    tags: ['Background Removal', 'Color Enhancement', 'Shadow Correction']
+    tags: ['Background Removal', 'Color Enhancement', 'Shadow Correction'],
+    prompt: 'Remove the background completely and replace with pure white. Enhance the colors to make them more vibrant and appealing. Add professional studio lighting with soft shadows.'
   },
   {
     id: 2,
@@ -102,7 +106,8 @@ const portfolioItems = [
     title: 'Designer Dress Photography',
     before: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&h=600&fit=crop',
-    tags: ['Wrinkle Removal', 'Color Grading', 'Model Retouching']
+    tags: ['Wrinkle Removal', 'Color Grading', 'Model Retouching'],
+    prompt: 'Remove all wrinkles from the fabric and make it look perfectly pressed. Apply professional color grading with warm tones. Retouch the model skin for a flawless appearance.'
   },
   {
     id: 3,
@@ -110,7 +115,8 @@ const portfolioItems = [
     title: 'Sneaker Product Shot',
     before: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=800&h=600&fit=crop',
-    tags: ['Shadow Enhancement', 'Detail Sharpening', 'Background Cleanup']
+    tags: ['Shadow Enhancement', 'Detail Sharpening', 'Background Cleanup'],
+    prompt: 'Add realistic drop shadow beneath the sneaker. Sharpen all details especially the stitching and texture. Clean up the background to pure white and remove any distractions.'
   },
   {
     id: 4,
@@ -118,7 +124,8 @@ const portfolioItems = [
     title: 'Luxury Leather Shoes',
     before: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=800&h=600&fit=crop',
-    tags: ['Texture Enhancement', 'Reflection Add', 'Professional Finish']
+    tags: ['Texture Enhancement', 'Reflection Add', 'Professional Finish'],
+    prompt: 'Enhance the leather texture to show premium quality. Add subtle reflections on the surface. Apply professional studio lighting and finish for luxury product photography.'
   },
   {
     id: 5,
@@ -126,7 +133,8 @@ const portfolioItems = [
     title: 'Luxury Watch Photography',
     before: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1622434641406-a158123450f9?w=800&h=600&fit=crop',
-    tags: ['Metal Polish', 'Glass Reflection', 'Precision Editing']
+    tags: ['Metal Polish', 'Glass Reflection', 'Precision Editing'],
+    prompt: 'Polish the metal surfaces to show brilliant shine. Add realistic glass reflections on the watch face. Perform precision editing to highlight every detail of the luxury timepiece.'
   },
   {
     id: 6,
@@ -134,7 +142,8 @@ const portfolioItems = [
     title: 'Designer Handbag',
     before: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800&h=600&fit=crop',
-    tags: ['Texture Detail', 'Color Correction', 'Studio Enhancement']
+    tags: ['Texture Detail', 'Color Correction', 'Studio Enhancement'],
+    prompt: 'Bring out the texture details of the leather material. Correct colors to match brand standards. Apply studio-quality lighting and enhancement for e-commerce photography.'
   },
   {
     id: 7,
@@ -142,7 +151,8 @@ const portfolioItems = [
     title: 'Diamond Ring Showcase',
     before: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=600&fit=crop',
-    tags: ['Sparkle Enhancement', 'Reflection', 'Luxury Finish']
+    tags: ['Sparkle Enhancement', 'Reflection', 'Luxury Finish'],
+    prompt: 'Enhance the diamond sparkle and brilliance. Add realistic light reflections on the gemstone. Apply luxury finishing touches for high-end jewelry photography.'
   },
   {
     id: 8,
@@ -150,7 +160,8 @@ const portfolioItems = [
     title: 'Gold Necklace Collection',
     before: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=600&fit=crop',
-    tags: ['Shine Effect', 'Detail Enhancement', 'Premium Look']
+    tags: ['Shine Effect', 'Detail Enhancement', 'Premium Look'],
+    prompt: 'Add natural shine effect to the gold surface. Enhance fine details and craftsmanship. Create a premium look suitable for luxury jewelry catalog.'
   },
   {
     id: 9,
@@ -158,7 +169,8 @@ const portfolioItems = [
     title: 'Luxury Fragrance Bottle',
     before: 'https://images.unsplash.com/photo-1541643600914-78b084683601?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=800&h=600&fit=crop',
-    tags: ['Glass Effect', 'Lighting Enhancement', 'Elegant Finish']
+    tags: ['Glass Effect', 'Lighting Enhancement', 'Elegant Finish'],
+    prompt: 'Create realistic glass transparency and refraction effects. Enhance lighting to show the bottle elegance. Apply sophisticated finishing for luxury perfume advertising.'
   },
   {
     id: 10,
@@ -166,7 +178,8 @@ const portfolioItems = [
     title: 'Cosmetic Product Line',
     before: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800&h=600&fit=crop',
-    tags: ['Product Arrangement', 'Color Pop', 'Beauty Enhancement']
+    tags: ['Product Arrangement', 'Color Pop', 'Beauty Enhancement'],
+    prompt: 'Arrange products in an aesthetically pleasing composition. Make colors pop and look vibrant. Apply beauty product enhancement for cosmetics e-commerce.'
   },
   {
     id: 11,
@@ -174,7 +187,8 @@ const portfolioItems = [
     title: 'Modern Living Room Set',
     before: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&h=600&fit=crop',
-    tags: ['Lifestyle Context', 'Lighting Adjustment', 'Space Enhancement']
+    tags: ['Lifestyle Context', 'Lighting Adjustment', 'Space Enhancement'],
+    prompt: 'Add lifestyle context to make the space feel lived-in. Adjust lighting for warm and inviting atmosphere. Enhance the space to show room dimensions and furniture scale.'
   },
   {
     id: 12,
@@ -182,7 +196,8 @@ const portfolioItems = [
     title: 'Luxury Dining Table',
     before: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=800&h=600&fit=crop',
-    tags: ['Wood Texture', 'Ambient Lighting', 'Professional Staging']
+    tags: ['Wood Texture', 'Ambient Lighting', 'Professional Staging'],
+    prompt: 'Bring out the natural wood grain and texture. Add warm ambient lighting for dining atmosphere. Apply professional staging techniques for furniture catalog photography.'
   },
   {
     id: 13,
@@ -190,7 +205,8 @@ const portfolioItems = [
     title: 'Kitchen Utensil Set',
     before: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1565538810643-b5bdb714032a?w=800&h=600&fit=crop',
-    tags: ['Product Grouping', 'Clean Background', 'Sharp Details']
+    tags: ['Product Grouping', 'Clean Background', 'Sharp Details'],
+    prompt: 'Group products in a balanced composition. Replace background with clean white. Sharpen all details to show product quality and craftsmanship.'
   },
   {
     id: 14,
@@ -198,7 +214,8 @@ const portfolioItems = [
     title: 'Decorative Vase Collection',
     before: 'https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=800&h=600&fit=crop',
-    tags: ['Artistic Enhancement', 'Color Balance', 'Elegant Presentation']
+    tags: ['Artistic Enhancement', 'Color Balance', 'Elegant Presentation'],
+    prompt: 'Apply artistic enhancement to highlight the decorative nature. Balance colors for harmonious appearance. Create elegant presentation suitable for home decor catalog.'
   },
   {
     id: 15,
@@ -206,7 +223,8 @@ const portfolioItems = [
     title: 'Smartphone Photography',
     before: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1592286927505-67eb63926d79?w=800&h=600&fit=crop',
-    tags: ['Screen Enhancement', 'Reflection Control', 'Sleek Finish']
+    tags: ['Screen Enhancement', 'Reflection Control', 'Sleek Finish'],
+    prompt: 'Enhance the screen display to show clarity. Control reflections on the glass surface. Apply sleek finishing for modern tech product photography.'
   },
   {
     id: 16,
@@ -214,16 +232,24 @@ const portfolioItems = [
     title: 'Laptop Product Shot',
     before: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&h=600&fit=crop',
     after: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800&h=600&fit=crop',
-    tags: ['Tech Product Polish', 'Background Gradient', 'Modern Look']
+    tags: ['Tech Product Polish', 'Background Gradient', 'Modern Look'],
+    prompt: 'Polish the laptop surface for premium appearance. Add subtle gradient background. Create modern tech product look for e-commerce listing.'
   }
 ]
 
 export default function PortfolioPage() {
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [promptDialogOpen, setPromptDialogOpen] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<typeof portfolioItems[0] | null>(null)
 
   const filteredItems = selectedCategory === 'all' 
     ? portfolioItems 
     : portfolioItems.filter(item => item.category === selectedCategory)
+
+  const handleViewPrompt = (item: typeof portfolioItems[0]) => {
+    setSelectedItem(item)
+    setPromptDialogOpen(true)
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -334,6 +360,15 @@ export default function PortfolioPage() {
                         </span>
                       ))}
                     </div>
+                    <button
+                      className="mt-3 text-sm text-white underline hover:text-zinc-200 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewPrompt(item)
+                      }}
+                    >
+                      View Prompt
+                    </button>
                   </div>
                 </div>
 
@@ -399,6 +434,56 @@ export default function PortfolioPage() {
           </motion.div>
         </div>
       </section>
+
+      {/* Prompt Dialog */}
+      <Dialog open={promptDialogOpen} onOpenChange={setPromptDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{selectedItem?.title}</DialogTitle>
+          </DialogHeader>
+          
+          {selectedItem && (
+            <div className="space-y-6">
+              {/* User Prompt */}
+              <div className="rounded-lg bg-zinc-100 dark:bg-zinc-900 p-4">
+                <h3 className="text-sm font-semibold mb-2 text-zinc-700 dark:text-zinc-300">User Prompt</h3>
+                <p className="text-sm text-zinc-900 dark:text-zinc-100 leading-relaxed">
+                  {selectedItem.prompt}
+                </p>
+              </div>
+
+              {/* Before and After Images Side by Side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Before Image */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Before</h3>
+                  <div className="relative aspect-[4/3] rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+                    <Image
+                      src={selectedItem.before}
+                      alt="Before"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                </div>
+
+                {/* After Image */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">After</h3>
+                  <div className="relative aspect-[4/3] rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+                    <Image
+                      src={selectedItem.after}
+                      alt="After"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
