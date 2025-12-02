@@ -18,6 +18,12 @@ import { toast } from 'sonner'
 
 // Provider logo mapping
 const providerLogos: Record<string, string> = {
+  'Creative Force': '/logos/integrations/creative-force.png',
+  'Dalim': '/logos/integrations/dalim.png',
+  'Spin Me': '/logos/integrations/spin-me.png',
+  'Facebook': '/logos/integrations/facebook.png',
+  'Instagram': '/logos/integrations/instagram.png',
+  'GlobalEdit': '/logos/integrations/globaledit.png',
   'Shopify': '/logos/integrations/shopify.png',
   'Cloudinary': '/logos/integrations/cloudinary.png',
   'Adobe AEM': '/logos/integrations/adobe.png',
@@ -45,6 +51,48 @@ interface IntegrationConnectDialogProps {
 
 // Provider-specific field configurations
 const providerFields: Record<string, Array<{ key: string; label: string; type: string; placeholder: string; required: boolean }>> = {
+  'creative-force': [
+    { key: 'apiUrl', label: 'API URL', type: 'text', placeholder: 'https://api.creativeforce.io', required: true },
+    { key: 'apiToken', label: 'API Token', type: 'password', placeholder: 'Enter API token', required: true },
+    { key: 'projectId', label: 'Project ID', type: 'text', placeholder: 'Enter project ID', required: true },
+    { key: 'workspace', label: 'Workspace', type: 'text', placeholder: 'workspace-name', required: true },
+    { key: 'targetFolder', label: 'Target Folder', type: 'text', placeholder: '/assets', required: true },
+  ],
+  'dalim': [
+    { key: 'serverUrl', label: 'Server URL', type: 'text', placeholder: 'https://your-server.dalim.com', required: true },
+    { key: 'username', label: 'Username', type: 'text', placeholder: 'Enter username', required: true },
+    { key: 'password', label: 'Password', type: 'password', placeholder: 'Enter password', required: true },
+    { key: 'workspace', label: 'Workspace', type: 'text', placeholder: 'workspace-name', required: true },
+    { key: 'targetFolder', label: 'Target Folder', type: 'text', placeholder: '/content', required: true },
+  ],
+  'spin-me': [
+    { key: 'apiEndpoint', label: 'API Endpoint', type: 'text', placeholder: 'https://api.spin-me.com', required: true },
+    { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'Enter API key', required: true },
+    { key: 'accountId', label: 'Account ID', type: 'text', placeholder: 'Enter account ID', required: true },
+    { key: 'workspace', label: 'Workspace', type: 'text', placeholder: 'workspace-name', required: true },
+    { key: 'targetFolder', label: 'Target Folder', type: 'text', placeholder: '/media', required: true },
+  ],
+  'facebook': [
+    { key: 'pageId', label: 'Page ID', type: 'text', placeholder: 'Enter Facebook Page ID', required: true },
+    { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'Enter access token', required: true },
+    { key: 'appSecret', label: 'App Secret', type: 'password', placeholder: 'Enter app secret', required: true },
+    { key: 'workspace', label: 'Workspace', type: 'text', placeholder: 'workspace-name', required: true },
+    { key: 'targetFolder', label: 'Target Folder', type: 'text', placeholder: '/media', required: true },
+  ],
+  'instagram': [
+    { key: 'accountId', label: 'Business Account ID', type: 'text', placeholder: 'Enter Instagram Business Account ID', required: true },
+    { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'Enter access token', required: true },
+    { key: 'appSecret', label: 'App Secret', type: 'password', placeholder: 'Enter app secret', required: true },
+    { key: 'workspace', label: 'Workspace', type: 'text', placeholder: 'workspace-name', required: true },
+    { key: 'targetFolder', label: 'Target Folder', type: 'text', placeholder: '/posts', required: true },
+  ],
+  'globaledit': [
+    { key: 'serverUrl', label: 'Server URL', type: 'text', placeholder: 'https://your-instance.globaledit.com', required: true },
+    { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'Enter API key', required: true },
+    { key: 'clientId', label: 'Client ID', type: 'text', placeholder: 'Enter client ID', required: true },
+    { key: 'workspace', label: 'Workspace', type: 'text', placeholder: 'workspace-name', required: true },
+    { key: 'targetFolder', label: 'Target Folder', type: 'text', placeholder: '/brand/assets', required: true },
+  ],
   'shopify': [
     { key: 'storeUrl', label: 'Store URL', type: 'text', placeholder: 'your-store.myshopify.com', required: true },
     { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'Enter API key', required: true },

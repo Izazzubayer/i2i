@@ -44,22 +44,13 @@ import IntegrationConnectDialog from '@/components/IntegrationConnectDialog'
 
 // Provider logo mapping - using local images
 const providerLogos: Record<string, string> = {
-  'Cloudinary': '/logos/integrations/cloudinary.png',
-  'Adobe AEM': '/logos/integrations/adobe.png',
-  'Dropbox': '/logos/integrations/dropbox.png',
-  'Google Drive': '/logos/integrations/google-drive.png',
-  'AWS S3': '/logos/integrations/aws.png',
-  'Azure Blob': '/logos/integrations/azure.png',
+  'Creative Force': '/logos/integrations/creative-force.png',
+  'Dalim': '/logos/integrations/dalim.png',
+  'Spin Me': '/logos/integrations/spin-me.png',
+  'Facebook': '/logos/integrations/facebook.png',
+  'Instagram': '/logos/integrations/instagram.png',
   'Shopify': '/logos/integrations/shopify.png',
-  'Meta': '/logos/integrations/meta.png',
-  'Slack': '/logos/integrations/slack.png',
-  'Salesforce': '/logos/integrations/salesforce.png',
-  'WordPress': '/logos/integrations/wordpress.png',
-  'WooCommerce': '/logos/integrations/woocommerce.png',
-  'Zapier': '/logos/integrations/zapier.png',
-  'HubSpot': '/logos/integrations/hubspot.png',
-  'Airtable': '/logos/integrations/airtable.png',
-  'Notion': '/logos/integrations/notion.png',
+  'GlobalEdit': '/logos/integrations/globaledit.png',
 }
 
 interface Integration {
@@ -79,7 +70,7 @@ interface Integration {
 const mockIntegrations: Integration[] = [
   {
     id: '1',
-    name: 'Product Catalog',
+    name: 'E-commerce Assets',
     provider: 'Shopify',
     status: 'connected',
     lastSync: '2 minutes ago',
@@ -92,8 +83,8 @@ const mockIntegrations: Integration[] = [
   },
   {
     id: '2',
-    name: 'Media Library',
-    provider: 'Cloudinary',
+    name: 'Social Media Content',
+    provider: 'Facebook',
     status: 'connected',
     lastSync: '1 hour ago',
     workspace: 'acme-media',
@@ -106,7 +97,7 @@ const mockIntegrations: Integration[] = [
   {
     id: '3',
     name: 'Brand Assets',
-    provider: 'Adobe AEM',
+    provider: 'GlobalEdit',
     status: 'error',
     lastSync: '3 days ago',
     workspace: 'brand-central',
@@ -145,23 +136,14 @@ const ProviderLogo = ({ provider, size = 'md' }: { provider: string; size?: 'sm'
 }
 
 const availableProviders = [
+  { id: 'creative-force', name: 'Creative Force', description: 'E-commerce content production management' },
+  { id: 'dalim', name: 'Dalim', description: 'Print, packaging, and digital content solutions' },
+  { id: 'spin-me', name: 'Spin Me', description: 'Workflow solutions for managing digital assets' },
+  { id: 'facebook', name: 'Facebook', description: 'Social media platform integration' },
+  { id: 'instagram', name: 'Instagram', description: 'Photo and video sharing platform' },
   { id: 'shopify', name: 'Shopify', description: 'E-commerce platform integration' },
-  { id: 'cloudinary', name: 'Cloudinary', description: 'Media management and delivery' },
-  { id: 'adobe-aem', name: 'Adobe AEM', description: 'Adobe Experience Manager' },
-  { id: 'meta', name: 'Meta', description: 'Facebook & Instagram integration' },
-  { id: 'google-drive', name: 'Google Drive', description: 'Cloud storage by Google' },
-  { id: 'dropbox', name: 'Dropbox', description: 'Cloud storage and sharing' },
-  { id: 'aws-s3', name: 'AWS S3', description: 'Amazon Simple Storage Service' },
-  { id: 'azure-blob', name: 'Azure Blob', description: 'Microsoft Azure storage' },
-  { id: 'salesforce', name: 'Salesforce', description: 'CRM and marketing platform' },
-  { id: 'hubspot', name: 'HubSpot', description: 'Marketing and sales platform' },
-  { id: 'slack', name: 'Slack', description: 'Team communication' },
-  { id: 'wordpress', name: 'WordPress', description: 'Content management system' },
-  { id: 'woocommerce', name: 'WooCommerce', description: 'WordPress e-commerce' },
-  { id: 'zapier', name: 'Zapier', description: 'Workflow automation' },
-  { id: 'airtable', name: 'Airtable', description: 'Database and spreadsheet' },
-  { id: 'notion', name: 'Notion', description: 'Workspace and documentation' },
-  { id: 'custom', name: 'Custom / Other', description: 'Connect to a custom DAM or API' },
+  { id: 'globaledit', name: 'GlobalEdit', description: 'Digital asset management platform' },
+  { id: 'custom', name: 'Custom platform', description: 'Connect to a custom DAM or API' },
 ]
 
 export default function IntegrationsPage() {
@@ -301,9 +283,9 @@ export default function IntegrationsPage() {
       <div className="container mx-auto px-4 py-10 space-y-8 max-w-6xl">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold leading-tight">Integrations</h1>
+            <h1 className="text-3xl font-bold leading-tight">DAM Integrations</h1>
             <p className="text-muted-foreground leading-relaxed mt-2">
-              Connect your Digital Asset Management systems and cloud storage.
+              Connect your Digital Asset Management systems to streamline your creative workflows.
             </p>
           </div>
           <Button onClick={() => setAddDialogOpen(true)}>
@@ -327,7 +309,7 @@ export default function IntegrationsPage() {
                   <Cloud className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                   <h3 className="font-semibold text-lg mb-2">No integrations yet</h3>
                   <p className="text-muted-foreground mb-6">
-                    Connect your DAM or cloud storage to start syncing your processed images.
+                    Connect your DAM system to start syncing your processed images.
                   </p>
                   <Button onClick={() => setAddDialogOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" />
@@ -522,9 +504,9 @@ export default function IntegrationsPage() {
         {/* Available Providers */}
         <Card>
           <CardHeader>
-            <CardTitle className="leading-tight">Available Integrations</CardTitle>
+            <CardTitle className="leading-tight">Available DAM Integrations</CardTitle>
             <CardDescription className="leading-relaxed">
-              Connect to popular DAM systems and cloud storage providers.
+              Connect to supported Digital Asset Management systems.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -566,9 +548,9 @@ export default function IntegrationsPage() {
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="leading-tight">Add Integration</DialogTitle>
+            <DialogTitle className="leading-tight">Add DAM Integration</DialogTitle>
             <DialogDescription className="leading-relaxed">
-              Select a DAM system or cloud storage provider to connect.
+              Select a Digital Asset Management system to connect.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-4 max-h-[60vh] overflow-y-auto">
