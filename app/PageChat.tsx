@@ -370,131 +370,203 @@ export default function PageChat() {
   }
 
   return (
-    <main className="flex h-screen flex-col bg-background overflow-hidden">
+    <main className="flex h-screen flex-col bg-gradient-to-b from-background to-muted/20 overflow-hidden">
       <Header />
 
-      {/* Two Column Layout */}
-      <div className="flex flex-1 overflow-hidden min-h-0 flex-col lg:flex-row">
-        {/* Left Column - Image Upload Section */}
-        <div className="hidden lg:flex w-96 border-r bg-muted/30 flex-col shrink-0">
-          <div className="p-4 border-b">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <ImageIcon className="h-5 w-5" />
-              Images
-            </h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Upload images to process
-            </p>
-          </div>
-
-          {/* Upload Dropzone */}
-          <div className="p-4 shrink-0">
-            <Card>
-              <CardContent className="p-0">
-                <div
-                  {...getImageRootProps()}
-                  className={`cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors ${isImageDragActive
-                    ? 'border-primary bg-primary/5'
-                    : 'border-muted-foreground/25 hover:border-primary/50'
-                    }`}
-                >
-                  <input {...getImageInputProps()} />
-                  <Upload className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-                  <p className="mb-1 text-sm font-medium">
-                    {isImageDragActive ? 'Drop images here' : 'Drag & drop images'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    or click to browse (PNG, JPG, WEBP)
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Uploaded Images List - Scrollable */}
+      <div className="flex flex-1 overflow-hidden min-h-0">
+        {/* Left Sidebar - Uploaded Images */}
+        <AnimatePresence>
           {uploadedImages.length > 0 && (
-            <div className="flex-1 min-h-0 border-t flex flex-col">
-              <div className="p-4 shrink-0 border-b">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">{uploadedImages.length} image(s)</p>
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 320, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              className="border-r bg-muted/30 flex-shrink-0 overflow-hidden"
+            >
+              <div className="h-full flex flex-col">
+                {/* Header */}
+                <div className="p-4 border-b">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      Uploaded Images
+                    </h3>
+                    <Badge variant="secondary">
+                      {uploadedImages.length}
+                    </Badge>
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     {formatFileSize(uploadedImages.reduce((acc, file) => acc + file.size, 0))} total
                   </p>
                 </div>
-              </div>
-              <div className="flex-1 overflow-y-auto p-4">
-                <div className="space-y-2">
-                  <AnimatePresence>
-                    {uploadedImages.map((file, index) => {
-                      const previewUrl = URL.createObjectURL(file)
-                      const uploadDate = new Date(file.lastModified)
-                      return (
-                        <motion.div
-                          key={file.name + index}
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className="group flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors bg-background"
-                        >
-                          <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded bg-muted">
-                            <Image
-                              src={previewUrl}
-                              alt={file.name}
-                              fill
-                              className="object-cover"
-                              onLoad={() => URL.revokeObjectURL(previewUrl)}
-                              unoptimized
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{file.name}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-muted-foreground">
-                                {formatFileSize(file.size)}
-                              </span>
-                              <span className="text-xs text-muted-foreground">•</span>
-                              <span className="text-xs text-muted-foreground">
-                                {uploadDate.toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 flex-shrink-0"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              removeUploadedImage(index)
-                            }}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </motion.div>
-                      )
-                    })}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
 
-        {/* Right Column - Chat Interface */}
+                {/* Images List */}
+                <ScrollArea className="flex-1">
+                  <div className="p-3 space-y-2">
+                    <AnimatePresence>
+                      {uploadedImages.map((file, index) => {
+                        const previewUrl = URL.createObjectURL(file)
+                        return (
+                          <motion.div
+                            key={`sidebar-${file.name}-${index}`}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="group relative rounded-xl border bg-card hover:shadow-md transition-all overflow-hidden"
+                          >
+                            <div className="flex gap-3 p-3">
+                              {/* Thumbnail */}
+                              <div className="relative h-16 w-16 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+                                <Image
+                                  src={previewUrl}
+                                  alt={file.name}
+                                  fill
+                                  className="object-cover"
+                                  unoptimized
+                                />
+                              </div>
+
+                              {/* Metadata */}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate mb-1">
+                                  {file.name}
+                                </p>
+                                <div className="space-y-1">
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatFileSize(file.size)}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {file.type.split('/')[1]?.toUpperCase() || 'IMAGE'}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Remove Button */}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => removeUploadedImage(index)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </motion.div>
+                        )
+                      })}
+                    </AnimatePresence>
+                  </div>
+                </ScrollArea>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Main Chat Container */}
         <div className="flex flex-1 flex-col min-w-0 min-h-0">
           {/* Messages Area */}
-          <ScrollArea className="flex-1 min-h-0 px-2 sm:px-4 py-4 sm:py-6">
-            {/* Empty State - Centered Instruction */}
+          <ScrollArea className="flex-1 min-h-0 px-4 py-6">
+            {/* Empty State */}
             {messages.length === 0 ? (
-              <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 200px)' }}>
-                <div className="text-center max-w-3xl px-4">
-                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground leading-tight">
-                    Upload your document with reference images in the chatbox below and explain your requirements.
-                  </h2>
+              <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
+                <div className="text-center max-w-2xl px-4 space-y-8">
+                  {/* AI Avatar */}
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", duration: 0.6 }}
+                    className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg"
+                  >
+                    <Bot className="h-10 w-10 text-white" />
+                  </motion.div>
+
+                  {/* Welcome Message */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="space-y-3"
+                  >
+                    <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                      Hi! I'm your AI assistant
+                    </h1>
+                    <p className="text-lg text-muted-foreground">
+                      Upload images and tell me what you'd like to do with them
+                    </p>
+                  </motion.div>
+
+                  {/* Quick Actions */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="grid gap-3 md:grid-cols-2 mt-8"
+                  >
+                    <Card 
+                      className="p-4 hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-primary/50"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20">
+                          <Upload className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="font-semibold text-sm mb-1">Upload Images</h3>
+                          <p className="text-xs text-muted-foreground">
+                            Drag & drop or click to browse
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                    <Card 
+                      className="p-4 hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-primary/50"
+                      onClick={() => document.getElementById('chat-input')?.focus()}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/20">
+                          <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="font-semibold text-sm mb-1">Add Instructions</h3>
+                          <p className="text-xs text-muted-foreground">
+                            Describe what you need
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+
+                  {/* Example Prompts */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                    className="pt-4"
+                  >
+                    <p className="text-xs text-muted-foreground mb-3">Try asking:</p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {[
+                        "Remove background",
+                        "Enhance colors",
+                        "Resize images",
+                        "Add shadows"
+                      ].map((prompt) => (
+                        <Badge
+                          key={prompt}
+                          variant="secondary"
+                          className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                          onClick={() => setInput(prompt)}
+                        >
+                          {prompt}
+                        </Badge>
+                      ))}
+                    </div>
+                  </motion.div>
                 </div>
               </div>
             ) : (
               /* Messages */
-              <div className="mx-auto max-w-3xl space-y-4 sm:space-y-6">
+              <div className="mx-auto max-w-4xl space-y-6 pb-4">
                 <AnimatePresence>
                   {messages.map((message) => (
                     <motion.div
@@ -502,82 +574,100 @@ export default function PageChat() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       {message.role === 'assistant' && (
-                        <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary">
-                          <Bot className="h-4 w-4 sm:h-6 sm:w-6 text-primary-foreground" />
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 shadow-md">
+                          <Bot className="h-5 w-5 text-white" />
                         </div>
                       )}
 
-                      <div className={`flex flex-col gap-1.5 sm:gap-2 ${message.role === 'user' ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-[80%]`}>
-                        <Card className={`px-3 py-2 sm:px-4 sm:py-3 ${message.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                          }`}>
-                          <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
+                      <div className={`flex flex-col gap-2 ${message.role === 'user' ? 'items-end' : 'items-start'} max-w-[80%]`}>
+                        <div className={`rounded-2xl px-4 py-3 shadow-sm ${
+                          message.role === 'user'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-card border'
+                        }`}>
+                          <div className="whitespace-pre-wrap text-sm leading-relaxed">
                             {renderMessageContent(message.content)}
                           </div>
 
                           {/* Attachments */}
                           {message.attachments && message.attachments.length > 0 && (
-                            <div className="mt-3 space-y-2">
+                            <div className="mt-3 grid grid-cols-2 gap-2">
                               {message.attachments.map((attachment, idx) => (
                                 <div
                                   key={idx}
-                                  className={`flex items-center gap-2 rounded-lg p-2 ${message.role === 'user' ? 'bg-primary-foreground/10' : 'bg-background'
-                                    }`}
+                                  className={`flex items-center gap-2 rounded-lg p-2 text-xs ${
+                                    message.role === 'user' 
+                                      ? 'bg-primary-foreground/10' 
+                                      : 'bg-muted'
+                                  }`}
                                 >
                                   {attachment.type === 'image' ? (
-                                    <ImageIcon className="h-4 w-4" />
+                                    <div className="relative h-10 w-10 rounded overflow-hidden flex-shrink-0">
+                                      {attachment.url && (
+                                        <Image
+                                          src={attachment.url}
+                                          alt={attachment.name}
+                                          fill
+                                          className="object-cover"
+                                          unoptimized
+                                        />
+                                      )}
+                                    </div>
                                   ) : (
-                                    <FileText className="h-4 w-4" />
+                                    <div className="h-10 w-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                                      <FileText className="h-5 w-5" />
+                                    </div>
                                   )}
-                                  <span className="flex-1 truncate text-xs">
-                                    {attachment.name}
-                                  </span>
-                                  <span className="text-xs opacity-70">
-                                    {(attachment.size / 1024).toFixed(1)} KB
-                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="truncate font-medium">{attachment.name}</p>
+                                    <p className="text-xs opacity-70">
+                                      {formatFileSize(attachment.size)}
+                                    </p>
+                                  </div>
                                 </div>
                               ))}
                             </div>
                           )}
-                        </Card>
+                        </div>
 
                         {/* Action Buttons (Yes/No) */}
                         {message.role === 'assistant' && message.showActions && (
-                          <div className="flex gap-2 mt-2">
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex gap-2"
+                          >
                             <Button
                               size="sm"
                               onClick={() => handleYesNo('yes', message.id)}
-                              className="text-xs sm:text-sm px-3 sm:px-4"
+                              className="rounded-full px-6"
                             >
-                              Yes
+                              ✓ Yes, proceed
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleYesNo('no', message.id)}
-                              className="text-xs sm:text-sm px-3 sm:px-4"
+                              className="rounded-full px-6"
                             >
-                              No
+                              ✗ No, customize
                             </Button>
-                          </div>
+                          </motion.div>
                         )}
 
-                        <span className="text-[10px] sm:text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground px-1">
                           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
 
-                      {
-                        message.role === 'user' && (
-                          <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-muted">
-                            <User className="h-4 w-4 sm:h-6 sm:w-6" />
-                          </div>
-                        )
-                      }
+                      {message.role === 'user' && (
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-muted to-muted/60 border-2 border-border">
+                          <User className="h-5 w-5" />
+                        </div>
+                      )}
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -589,30 +679,30 @@ export default function PageChat() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      className="flex gap-4"
+                      className="flex gap-3"
                     >
-                      <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary">
-                        <Bot className="h-4 w-4 sm:h-6 sm:w-6 text-primary-foreground" />
+                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 shadow-md">
+                        <Bot className="h-5 w-5 text-white" />
                       </div>
-                      <Card className="bg-muted px-3 py-2 sm:px-4 sm:py-3">
-                        <div className="flex gap-1">
+                      <div className="rounded-2xl bg-card border px-4 py-3 shadow-sm">
+                        <div className="flex gap-1.5">
                           <motion.div
-                            animate={{ scale: [1, 1.2, 1] }}
+                            animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
                             transition={{ repeat: Infinity, duration: 1, delay: 0 }}
-                            className="h-2 w-2 rounded-full bg-foreground/40"
+                            className="h-2 w-2 rounded-full bg-primary"
                           />
                           <motion.div
-                            animate={{ scale: [1, 1.2, 1] }}
+                            animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
                             transition={{ repeat: Infinity, duration: 1, delay: 0.2 }}
-                            className="h-2 w-2 rounded-full bg-foreground/40"
+                            className="h-2 w-2 rounded-full bg-primary"
                           />
                           <motion.div
-                            animate={{ scale: [1, 1.2, 1] }}
+                            animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
                             transition={{ repeat: Infinity, duration: 1, delay: 0.4 }}
-                            className="h-2 w-2 rounded-full bg-foreground/40"
+                            className="h-2 w-2 rounded-full bg-primary"
                           />
                         </div>
-                      </Card>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -624,44 +714,51 @@ export default function PageChat() {
 
           {/* Input Area */}
           <div className="border-t bg-background shrink-0">
-            <div className="mx-auto max-w-3xl p-2 sm:p-4">
-              {/* Attached Files Preview */}
+            <div className="mx-auto max-w-4xl p-6">
+              {/* Attached Files Preview (PDFs and other non-image files) */}
               <AnimatePresence>
                 {attachedFiles.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="mb-3 flex flex-wrap gap-2"
+                    className="mb-4"
                   >
-                    {attachedFiles.map((file, index) => (
-                      <Badge
-                        key={index}
-                        variant="secondary"
-                        className="flex items-center gap-2 py-2 pr-1"
-                      >
-                        {file.type.startsWith('image/') ? (
-                          <ImageIcon className="h-3 w-3" />
-                        ) : (
-                          <FileText className="h-3 w-3" />
-                        )}
-                        <span className="text-xs">{file.name}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5"
-                          onClick={() => removeAttachment(index)}
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">
+                        {attachedFiles.length} file(s) attached
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {attachedFiles.map((file, index) => (
+                        <motion.div
+                          key={`attached-${index}`}
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          exit={{ scale: 0 }}
+                          className="flex items-center gap-2 pl-3 pr-2 py-2 rounded-full border-2 border-border hover:border-primary transition-colors bg-muted"
                         >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </Badge>
-                    ))}
+                          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-sm font-medium max-w-[200px] truncate">{file.name}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 rounded-full hover:bg-destructive hover:text-destructive-foreground"
+                            onClick={() => removeAttachment(index)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </motion.div>
+                      ))}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
               {/* Input Box */}
-              <div className="flex gap-2">
+              <div className="relative">
+                <input {...getImageInputProps()} />
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -671,37 +768,72 @@ export default function PageChat() {
                   onChange={handleFileSelect}
                 />
 
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex-shrink-0"
-                >
-                  <Paperclip className="h-5 w-5" />
-                </Button>
+                {/* Drag & Drop Overlay */}
+                {isImageDragActive && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 flex items-center justify-center bg-primary/10 rounded-3xl z-10 pointer-events-none border-2 border-primary border-dashed"
+                  >
+                    <div className="text-center">
+                      <Upload className="h-10 w-10 text-primary mx-auto mb-2" />
+                      <p className="text-sm font-semibold text-primary">Drop your images here</p>
+                    </div>
+                  </motion.div>
+                )}
 
-                <div className="relative flex-1">
+                <div 
+                  {...getImageRootProps()}
+                  className={`flex items-end gap-3 p-4 rounded-3xl border-2 transition-all ${
+                    isImageDragActive
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border bg-muted/30 hover:bg-muted/50'
+                  }`}
+                >
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      fileInputRef.current?.click()
+                    }}
+                    className="flex-shrink-0 h-11 w-11 rounded-2xl hover:bg-background"
+                    title="Attach files"
+                  >
+                    <Paperclip className="h-5 w-5" />
+                  </Button>
+
                   <Textarea
+                    id="chat-input"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyPress}
-                    placeholder="Upload your SOP in the chatbox and explain..."
-                    className="min-h-[50px] sm:min-h-[60px] resize-none pr-10 sm:pr-12 text-sm sm:text-base"
+                    placeholder="Type your message..."
+                    className="min-h-[44px] max-h-[200px] resize-none border-0 focus-visible:ring-0 shadow-none text-base bg-transparent placeholder:text-muted-foreground/60"
+                    onClick={(e) => e.stopPropagation()}
+                    rows={1}
                   />
+
                   <Button
-                    onClick={handleSend}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleSend()
+                    }}
                     size="icon"
                     disabled={!input.trim() && attachedFiles.length === 0 && uploadedImages.length === 0}
-                    className="absolute bottom-1.5 sm:bottom-2 right-1.5 sm:right-2 h-7 w-7 sm:h-8 sm:w-8"
+                    className="flex-shrink-0 h-11 w-11 rounded-2xl"
+                    title="Send message"
                   >
-                    <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <Send className="h-5 w-5" />
                   </Button>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div >
+      </div>
 
       {/* Processing Popup */}
       <AnimatePresence>
