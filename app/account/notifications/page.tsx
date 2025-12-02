@@ -224,7 +224,7 @@ export default function NotificationsPage() {
             <div className="flex items-start justify-between gap-4 border rounded-lg p-4">
               <div className="flex-1">
                 <Label htmlFor="contact-us-response" className="font-medium cursor-pointer">
-                  Response to "Contact us"
+                  Response to &quot;Contact us&quot;
                 </Label>
                 <p className="text-sm text-muted-foreground mt-1">
                   Get notified when you receive a response to your contact us inquiries.
