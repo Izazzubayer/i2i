@@ -21,19 +21,16 @@ import {
   CheckCircle2, 
   XCircle, 
   AlertCircle,
-  ExternalLink,
   MoreVertical,
   Folder,
   Upload,
   Download,
-  Activity,
   Clock,
   Link2,
   Unlink,
-  Edit,
-  Eye,
   Loader2,
-  Cog
+  Cog,
+  Eye
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -43,6 +40,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import DamConnectDialog from '@/components/DamConnectDialog'
+import IntegrationConnectDialog from '@/components/IntegrationConnectDialog'
 
 // Provider logo mapping - using local images
 const providerLogos: Record<string, string> = {
@@ -163,14 +161,17 @@ const availableProviders = [
   { id: 'zapier', name: 'Zapier', description: 'Workflow automation' },
   { id: 'airtable', name: 'Airtable', description: 'Database and spreadsheet' },
   { id: 'notion', name: 'Notion', description: 'Workspace and documentation' },
+  { id: 'custom', name: 'Custom / Other', description: 'Connect to a custom DAM or API' },
 ]
 
 export default function IntegrationsPage() {
   const [integrations, setIntegrations] = useState<Integration[]>(mockIntegrations)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [damDialogOpen, setDamDialogOpen] = useState(false)
+  const [integrationDialogOpen, setIntegrationDialogOpen] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState<typeof availableProviders[0] | null>(null)
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false)
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null)
   const [syncing, setSyncing] = useState<string | null>(null)
 
@@ -209,7 +210,33 @@ export default function IntegrationsPage() {
   const handleSelectProvider = (provider: typeof availableProviders[0]) => {
     setSelectedProvider(provider)
     setAddDialogOpen(false)
-    setDamDialogOpen(true)
+    // Show custom DAM dialog for custom providers, standard dialog for others
+    if (provider.id === 'custom') {
+      setDamDialogOpen(true)
+    } else {
+      setIntegrationDialogOpen(true)
+    }
+  }
+
+  const handleIntegrationConnect = (config: Record<string, string>) => {
+    if (!selectedProvider) return
+
+    const newIntegration: Integration = {
+      id: Date.now().toString(),
+      name: `${selectedProvider.name} Integration`,
+      provider: selectedProvider.name,
+      status: 'connected',
+      lastSync: 'Just now',
+      workspace: config.workspace || 'default-workspace',
+      targetFolder: config.targetFolder || '/uploads',
+      totalUploads: 0,
+      totalDownloads: 0,
+      autoSync: true,
+      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    }
+    setIntegrations(prev => [...prev, newIntegration])
+    setIntegrationDialogOpen(false)
+    setSelectedProvider(null)
   }
 
   const handleDamConnect = () => {
@@ -267,8 +294,6 @@ export default function IntegrationsPage() {
   }
 
   const connectedCount = integrations.filter(i => i.status === 'connected').length
-  const totalUploads = integrations.reduce((sum, i) => sum + i.totalUploads, 0)
-  const totalDownloads = integrations.reduce((sum, i) => sum + i.totalDownloads, 0)
 
   return (
     <div className="min-h-screen bg-background">
@@ -285,62 +310,6 @@ export default function IntegrationsPage() {
             <Plus className="mr-2 h-4 w-4" />
             Add Integration
           </Button>
-        </div>
-
-        {/* Stats Overview */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Connected</p>
-                  <p className="text-2xl font-bold">{connectedCount}</p>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-                  <Link2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Integrations</p>
-                  <p className="text-2xl font-bold">{integrations.length}</p>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                  <Cloud className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Files Uploaded</p>
-                  <p className="text-2xl font-bold">{totalUploads.toLocaleString()}</p>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
-                  <Upload className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Files Downloaded</p>
-                  <p className="text-2xl font-bold">{totalDownloads.toLocaleString()}</p>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
-                  <Download className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Integrations List */}
@@ -373,9 +342,7 @@ export default function IntegrationsPage() {
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-4 flex-1">
-                          <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center p-2">
-                            <ProviderLogo provider={integration.provider} size="lg" />
-                          </div>
+                          <ProviderLogo provider={integration.provider} size="lg" />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <h3 className="font-semibold text-lg leading-tight">{integration.name}</h3>
@@ -430,21 +397,14 @@ export default function IntegrationsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedIntegration(integration)
+                                  setDetailsDialogOpen(true)
+                                }}
+                              >
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Settings
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Activity className="mr-2 h-4 w-4" />
-                                View Activity Log
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                Open in {integration.provider}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
@@ -475,9 +435,7 @@ export default function IntegrationsPage() {
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-4 flex-1">
-                        <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center p-2">
-                          <ProviderLogo provider={integration.provider} size="lg" />
-                        </div>
+                        <ProviderLogo provider={integration.provider} size="lg" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-lg leading-tight">{integration.name}</h3>
@@ -528,9 +486,7 @@ export default function IntegrationsPage() {
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-4 flex-1">
-                          <div className="h-12 w-12 rounded-lg bg-red-100 dark:bg-red-900/20 flex items-center justify-center p-2">
-                            <ProviderLogo provider={integration.provider} size="lg" />
-                          </div>
+                          <ProviderLogo provider={integration.provider} size="lg" />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <h3 className="font-semibold text-lg leading-tight">{integration.name}</h3>
@@ -583,9 +539,7 @@ export default function IntegrationsPage() {
                     }`}
                     onClick={() => !isConnected && handleSelectProvider(provider)}
                   >
-                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-2">
-                      <ProviderLogo provider={provider.name} size="md" />
-                    </div>
+                    <ProviderLogo provider={provider.name} size="md" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-medium">{provider.name}</p>
@@ -631,9 +585,7 @@ export default function IntegrationsPage() {
                       : 'hover:bg-muted/50 hover:border-primary cursor-pointer'
                   }`}
                 >
-                  <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center p-2">
-                    <ProviderLogo provider={provider.name} size="lg" />
-                  </div>
+                  <ProviderLogo provider={provider.name} size="lg" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold">{provider.name}</p>
@@ -653,12 +605,95 @@ export default function IntegrationsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* DAM Connect Dialog */}
+      {/* Standard Integration Connect Dialog */}
+      {selectedProvider && selectedProvider.id !== 'custom' && (
+        <IntegrationConnectDialog
+          open={integrationDialogOpen}
+          onOpenChange={setIntegrationDialogOpen}
+          provider={selectedProvider}
+          onConnect={handleIntegrationConnect}
+        />
+      )}
+
+      {/* DAM Connect Dialog (for Custom/Other) */}
       <DamConnectDialog 
         open={damDialogOpen} 
         onOpenChange={setDamDialogOpen}
         onConnect={handleDamConnect}
       />
+
+      {/* Integration Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              {selectedIntegration && (
+                <>
+                  <ProviderLogo provider={selectedIntegration.provider} size="lg" />
+                  <div>
+                    <h3 className="text-lg font-semibold">{selectedIntegration.name}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedIntegration.provider}</p>
+                  </div>
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              Integration details and configuration
+            </DialogDescription>
+          </DialogHeader>
+          {selectedIntegration && (
+            <div className="space-y-4 py-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Status</Label>
+                  <div>{getStatusBadge(selectedIntegration.status)}</div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Auto-sync</Label>
+                  <div className="text-sm">
+                    {selectedIntegration.autoSync ? (
+                      <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                        Enabled
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary">Disabled</Badge>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Workspace</Label>
+                  <p className="text-sm font-medium">{selectedIntegration.workspace}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Target Folder</Label>
+                  <p className="text-sm font-medium">{selectedIntegration.targetFolder}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Last Sync</Label>
+                  <p className="text-sm font-medium">{selectedIntegration.lastSync}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Created</Label>
+                  <p className="text-sm font-medium">{selectedIntegration.createdAt}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Total Uploads</Label>
+                  <p className="text-sm font-medium">{selectedIntegration.totalUploads.toLocaleString()}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Total Downloads</Label>
+                  <p className="text-sm font-medium">{selectedIntegration.totalDownloads.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailsDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Disconnect Confirmation Dialog */}
       <Dialog open={disconnectDialogOpen} onOpenChange={setDisconnectDialogOpen}>
@@ -675,18 +710,16 @@ export default function IntegrationsPage() {
           {selectedIntegration && (
             <div className="py-4">
               <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/50">
-                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-2">
-                  <ProviderLogo provider={selectedIntegration.provider} size="md" />
-                </div>
+                <ProviderLogo provider={selectedIntegration.provider} size="md" />
                 <div>
                   <p className="font-medium">{selectedIntegration.name}</p>
                   <p className="text-sm text-muted-foreground">{selectedIntegration.provider} • {selectedIntegration.workspace}</p>
                 </div>
               </div>
-              <div className="mt-4 p-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+              <div className="mt-4 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-orange-700 dark:text-orange-300">
+                  <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-700 dark:text-red-300">
                     This will not delete any files already uploaded to your DAM. You can reconnect at any time.
                   </p>
                 </div>

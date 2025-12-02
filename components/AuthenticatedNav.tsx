@@ -16,7 +16,6 @@ import {
   Shield,
   Bell,
   CreditCard,
-  Coins,
   LogOut,
   Menu,
   X,
@@ -185,17 +184,6 @@ export default function AuthenticatedNav() {
                   Billing & Subscription
                 </DropdownMenuItem>
 
-                {/* Token/Coin */}
-                <DropdownMenuItem
-                  onClick={() => router.push('/tokens')}
-                  className="cursor-pointer"
-                >
-                  <Coins className="mr-2 h-4 w-4" />
-                  Token/Coin
-                  <Badge variant="outline" className="ml-auto">
-                    {user.credits}
-                  </Badge>
-                </DropdownMenuItem>
 
                 {/* Integrations */}
                 <DropdownMenuItem

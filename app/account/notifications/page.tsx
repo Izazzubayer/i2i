@@ -4,21 +4,18 @@ import { useState } from 'react'
 import AuthenticatedNav from '@/components/AuthenticatedNav'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { toast } from 'sonner'
 
 export default function NotificationsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true)
-  const [marketing, setMarketing] = useState(false)
-  const [blog, setBlog] = useState(false)
-  const [notificationMethod, setNotificationMethod] = useState('email')
-
-  const handleSave = () => {
-    // In a real app, this would save to the backend
-    toast.success('Notification preferences saved')
-  }
+  const [orderCompleted, setOrderCompleted] = useState(true)
+  const [orderFailed, setOrderFailed] = useState(true)
+  const [releaseUpdates, setReleaseUpdates] = useState(true)
+  const [maintenanceAlerts, setMaintenanceAlerts] = useState(true)
+  const [promotionalNotifications, setPromotionalNotifications] = useState(false)
+  const [blogPublication, setBlogPublication] = useState(false)
+  const [passwordChanges, setPasswordChanges] = useState(true)
+  const [contactUsResponse, setContactUsResponse] = useState(true)
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,7 +42,7 @@ export default function NotificationsPage() {
                   Email Notifications
                 </Label>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Receive email notifications for important updates and activities.
+                  Master toggle for all email notifications. Disable this to turn off all email notifications.
                 </p>
               </div>
               <Switch
@@ -59,41 +56,43 @@ export default function NotificationsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Marketing & Blog Notifications</CardTitle>
+            <CardTitle>Order Notifications</CardTitle>
             <CardDescription>
-              Choose to receive marketing communications and blog updates.
+              Get notified about your order status and processing updates.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-start justify-between gap-4 border rounded-lg p-4">
               <div className="flex-1">
-                <Label htmlFor="marketing" className="font-medium cursor-pointer">
-                  Marketing
+                <Label htmlFor="order-completed" className="font-medium cursor-pointer">
+                  Order Completed
                 </Label>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Product releases, feature updates, promotional offers, and case studies.
+                  Receive notifications when your order is successfully completed.
                 </p>
               </div>
               <Switch
-                id="marketing"
-                checked={marketing}
-                onCheckedChange={setMarketing}
+                id="order-completed"
+                checked={orderCompleted}
+                onCheckedChange={setOrderCompleted}
+                disabled={!emailNotifications}
               />
             </div>
 
             <div className="flex items-start justify-between gap-4 border rounded-lg p-4">
               <div className="flex-1">
-                <Label htmlFor="blog" className="font-medium cursor-pointer">
-                  Blog
+                <Label htmlFor="order-failed" className="font-medium cursor-pointer">
+                  Order Failed/Errors
                 </Label>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Get notified about new blog posts, tutorials, and industry insights.
+                  Get notified immediately when an order fails or encounters errors.
                 </p>
               </div>
               <Switch
-                id="blog"
-                checked={blog}
-                onCheckedChange={setBlog}
+                id="order-failed"
+                checked={orderFailed}
+                onCheckedChange={setOrderFailed}
+                disabled={!emailNotifications}
               />
             </div>
           </CardContent>
@@ -101,34 +100,145 @@ export default function NotificationsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Notification Delivery Method</CardTitle>
+            <CardTitle>System & Updates</CardTitle>
             <CardDescription>
-              Choose how you want to receive notifications.
+              Stay informed about platform updates and system maintenance.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="notification-method">Delivery Method</Label>
-              <Select value={notificationMethod} onValueChange={setNotificationMethod}>
-                <SelectTrigger id="notification-method">
-                  <SelectValue placeholder="Select delivery method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="email">Email</SelectItem>
-                  <SelectItem value="app">In-App</SelectItem>
-                  <SelectItem value="both">Both Email & In-App</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Notifications will be delivered via your selected method.
-              </p>
+            <div className="flex items-start justify-between gap-4 border rounded-lg p-4">
+              <div className="flex-1">
+                <Label htmlFor="release-updates" className="font-medium cursor-pointer">
+                  New Release Updates
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Be notified about new features, improvements, and platform releases.
+                </p>
+              </div>
+              <Switch
+                id="release-updates"
+                checked={releaseUpdates}
+                onCheckedChange={setReleaseUpdates}
+                disabled={!emailNotifications}
+              />
+            </div>
+
+            <div className="flex items-start justify-between gap-4 border rounded-lg p-4">
+              <div className="flex-1">
+                <Label htmlFor="maintenance-alerts" className="font-medium cursor-pointer">
+                  Maintenance Alerts
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Receive alerts about scheduled maintenance and system downtime.
+                </p>
+              </div>
+              <Switch
+                id="maintenance-alerts"
+                checked={maintenanceAlerts}
+                onCheckedChange={setMaintenanceAlerts}
+                disabled={!emailNotifications}
+              />
             </div>
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
-          <Button onClick={handleSave}>Save Preferences</Button>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Marketing & Content</CardTitle>
+            <CardDescription>
+              Choose to receive promotional communications and content updates.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start justify-between gap-4 border rounded-lg p-4">
+              <div className="flex-1">
+                <Label htmlFor="promotional" className="font-medium cursor-pointer">
+                  Promotional Notifications
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Receive special offers, discounts, and promotional announcements.
+                </p>
+              </div>
+              <Switch
+                id="promotional"
+                checked={promotionalNotifications}
+                onCheckedChange={setPromotionalNotifications}
+                disabled={!emailNotifications}
+              />
+            </div>
+
+            <div className="flex items-start justify-between gap-4 border rounded-lg p-4">
+              <div className="flex-1">
+                <Label htmlFor="blog-publication" className="font-medium cursor-pointer">
+                  Publication of Blogs
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Get notified when new blog posts, tutorials, and articles are published.
+                </p>
+              </div>
+              <Switch
+                id="blog-publication"
+                checked={blogPublication}
+                onCheckedChange={setBlogPublication}
+                disabled={!emailNotifications}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Account & Security</CardTitle>
+            <CardDescription>
+              Security-related notifications and account activity alerts.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start justify-between gap-4 border rounded-lg p-4">
+              <div className="flex-1">
+                <Label htmlFor="password-changes" className="font-medium cursor-pointer">
+                  Password Changes
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Receive notifications when your password is changed for security purposes.
+                </p>
+              </div>
+              <Switch
+                id="password-changes"
+                checked={passwordChanges}
+                onCheckedChange={setPasswordChanges}
+                disabled={!emailNotifications}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Support & Communication</CardTitle>
+            <CardDescription>
+              Notifications related to support requests and communications.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start justify-between gap-4 border rounded-lg p-4">
+              <div className="flex-1">
+                <Label htmlFor="contact-us-response" className="font-medium cursor-pointer">
+                  Response to "Contact us"
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Get notified when you receive a response to your contact us inquiries.
+                </p>
+              </div>
+              <Switch
+                id="contact-us-response"
+                checked={contactUsResponse}
+                onCheckedChange={setContactUsResponse}
+                disabled={!emailNotifications}
+              />
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
