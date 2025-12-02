@@ -181,7 +181,7 @@ export default function FAQPage() {
         <div>
           <h1 className="text-3xl font-bold leading-tight">Frequently Asked Questions</h1>
           <p className="text-muted-foreground leading-relaxed mt-2">
-            Find answers to common questions about i2i. If you can't find what you're looking for, please contact our support team.
+            Find answers to common questions about i2i. If you can&apos;t find what you&apos;re looking for, please contact our support team.
           </p>
         </div>
 
@@ -294,7 +294,7 @@ export default function FAQPage() {
         <div className="mt-12 p-6 border rounded-lg bg-muted/50">
           <h3 className="text-lg font-semibold mb-2">Still have questions?</h3>
           <p className="text-muted-foreground mb-4">
-            Can't find the answer you're looking for? Our support team is here to help.
+            Can&apos;t find the answer you&apos;re looking for? Our support team is here to help.
           </p>
           <a 
             href="/support" 

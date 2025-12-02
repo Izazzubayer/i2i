@@ -65,7 +65,7 @@ export default function VerifyEmailPage() {
             </div>
             <CardTitle className="text-2xl">Check your email</CardTitle>
             <CardDescription className="text-base">
-              We've sent a verification link to
+              We&apos;ve sent a verification link to
             </CardDescription>
             {email && (
               <p className="text-sm font-medium text-primary">{email}</p>
@@ -81,7 +81,7 @@ export default function VerifyEmailPage() {
                     <li>Open your email inbox</li>
                     <li>Look for an email from i2i</li>
                     <li>Click the verification link</li>
-                    <li>You'll be redirected to sign in</li>
+                    <li>You&apos;ll be redirected to sign in</li>
                   </ol>
                 </div>
               </div>
@@ -91,7 +91,7 @@ export default function VerifyEmailPage() {
               <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <p className="text-sm font-medium text-orange-800 dark:text-orange-300">
-                  Can't find the email?
+                  Can&apos;t find the email?
                 </p>
                 <ul className="text-sm text-orange-700 dark:text-orange-400 space-y-1">
                   <li>• Check your spam or junk folder</li>
@@ -134,7 +134,7 @@ export default function VerifyEmailPage() {
                 onClick={handleCheckStatus}
               >
                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                I've verified my email
+                I&apos;ve verified my email
               </Button>
 
               <Button

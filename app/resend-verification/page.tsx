@@ -83,7 +83,7 @@ export default function ResendVerificationPage() {
               Resend verification email
             </h1>
             <p className="max-w-xl text-base text-muted-foreground">
-              Didn't receive the verification email? Enter your email address and we'll send you a new one.
+              Didn&apos;t receive the verification email? Enter your email address and we&apos;ll send you a new one.
             </p>
           </div>
           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">

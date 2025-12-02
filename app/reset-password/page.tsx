@@ -139,7 +139,7 @@ export default function ResetPasswordPage() {
               Create new password
             </h1>
             <p className="max-w-xl text-base text-muted-foreground">
-              Enter a new password for your account. Make sure it's strong and secure.
+              Enter a new password for your account. Make sure it&apos;s strong and secure.
             </p>
           </div>
           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
