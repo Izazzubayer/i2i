@@ -625,7 +625,7 @@ export default function SupportPage() {
             <div className="text-center space-y-4">
               <h3 className="text-2xl font-bold">Still need help?</h3>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Our support team is available 24/7 to assist you. Get in touch and we'll respond as quickly as possible.
+                Our support team is available 24/7 to assist you. Get in touch and we&apos;ll respond as quickly as possible.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-4">
                 <Button size="lg" className="gap-2">

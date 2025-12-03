@@ -212,7 +212,7 @@ export default function ApiPage() {
                       <div className="flex-1">
                         <h3 className="font-semibold text-sm mb-1">Generate API Key</h3>
                         <p className="text-sm text-muted-foreground">
-                          Create an API key from the "API Keys" tab and include it in your requests.
+                          Create an API key from the &quot;API Keys&quot; tab and include it in your requests.
                         </p>
                         </div>
                       </div>
