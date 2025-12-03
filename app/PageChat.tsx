@@ -12,7 +12,8 @@ import {
   Upload,
   FileText,
   Image as ImageIcon,
-  X
+  X,
+  Folder
 } from 'lucide-react'
 import Image from 'next/image'
 import Header from '@/components/Header'
@@ -21,9 +22,34 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
 import { formatFileSize } from '@/lib/utils'
+import { 
+  FaFilePdf, 
+  FaFileWord, 
+  FaFileExcel, 
+  FaFileAlt, 
+  FaFileCode,
+  FaFileArchive,
+  FaFileImage,
+  FaFile
+} from 'react-icons/fa'
+import Walkthrough from '@/components/Walkthrough'
 
 /**
  * PageChat - ChatGPT-Style Conversational Interface
@@ -55,15 +81,158 @@ interface Message {
 
 export default function PageChat() {
   const router = useRouter()
-  const { resetBatch, createBatch } = useStore()
+  const { resetBatch, createBatch, batch: storeBatch } = useStore()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [attachedFiles, setAttachedFiles] = useState<File[]>([])
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
   const [isTyping, setIsTyping] = useState(false)
   const [showProcessingPopup, setShowProcessingPopup] = useState(false)
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(true)
+  const [paraphrasedText, setParaphrasedText] = useState('')
+  const [editableText, setEditableText] = useState('')
+  const [showWalkthrough, setShowWalkthrough] = useState(false)
+  const [walkthroughStep, setWalkthroughStep] = useState(0)
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false)
+  const [nudgeTimeout, setNudgeTimeout] = useState<NodeJS.Timeout | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const folderInputRef = useRef<HTMLInputElement>(null)
+  const documentInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const uploadImagesCardRef = useRef<HTMLDivElement>(null)
+  const uploadFolderCardRef = useRef<HTMLDivElement>(null)
+  const addInstructionsCardRef = useRef<HTMLDivElement>(null)
+  const quickSuggestionsRef = useRef<HTMLDivElement>(null)
+  const chatInputRef = useRef<HTMLDivElement>(null)
+
+  // Helper function to truncate file names to 20 characters
+  const truncateFileName = (fileName: string, maxLength: number = 20): string => {
+    if (fileName.length <= maxLength) return fileName
+    return fileName.substring(0, maxLength) + '...'
+  }
+
+  // Helper function to get file type icon and color
+  const getFileIcon = (fileName: string, size: number = 20) => {
+    const extension = fileName.split('.').pop()?.toLowerCase() || ''
+    
+    switch (extension) {
+      case 'pdf':
+        return <FaFilePdf size={size} className="flex-shrink-0 text-red-600 dark:text-red-400" />
+      case 'doc':
+      case 'docx':
+        return <FaFileWord size={size} className="flex-shrink-0 text-blue-600 dark:text-blue-400" />
+      case 'xls':
+      case 'xlsx':
+        return <FaFileExcel size={size} className="flex-shrink-0 text-green-600 dark:text-green-400" />
+      case 'txt':
+      case 'md':
+        return <FaFileAlt size={size} className="flex-shrink-0 text-gray-600 dark:text-gray-400" />
+      case 'js':
+      case 'jsx':
+      case 'ts':
+      case 'tsx':
+      case 'json':
+      case 'xml':
+      case 'html':
+      case 'css':
+        return <FaFileCode size={size} className="flex-shrink-0 text-purple-600 dark:text-purple-400" />
+      case 'zip':
+      case 'rar':
+      case '7z':
+      case 'tar':
+      case 'gz':
+        return <FaFileArchive size={size} className="flex-shrink-0 text-yellow-600 dark:text-yellow-400" />
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
+      case 'svg':
+        return <FaFileImage size={size} className="flex-shrink-0 text-pink-600 dark:text-pink-400" />
+      default:
+        return <FaFile size={size} className="flex-shrink-0 text-gray-500 dark:text-gray-400" />
+    }
+  }
+
+  // Check if first-time user
+  useEffect(() => {
+    const hasSeenWalkthrough = localStorage.getItem('i2i-walkthrough-completed')
+    if (!hasSeenWalkthrough && messages.length === 0) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        setShowWalkthrough(true)
+      }, 500)
+    }
+  }, [])
+
+  // Auto-nudge after 8 seconds of inactivity
+  useEffect(() => {
+    if (showWalkthrough && walkthroughStep < 4) {
+      const timeout = setTimeout(() => {
+        toast.info('Need help? Continue the walkthrough to learn more →', {
+          duration: 3000,
+        })
+      }, 8000)
+      
+      setNudgeTimeout(timeout)
+      
+      return () => {
+        clearTimeout(timeout)
+      }
+    } else {
+      if (nudgeTimeout) {
+        clearTimeout(nudgeTimeout)
+        setNudgeTimeout(null)
+      }
+    }
+  }, [showWalkthrough, walkthroughStep])
+
+  const walkthroughSteps = [
+    {
+      id: 1,
+      title: 'Step 1: Upload Your Images',
+      description: 'Drag & drop, or click to upload a single image or an entire folder. We'll use these images as the basis for your prompts and processing.',
+      targetSelector: '[data-walkthrough="upload-images"]',
+      position: 'bottom' as const,
+      highlight: 'glow' as const,
+    },
+    {
+      id: 2,
+      title: 'Step 2: Add Instructions',
+      description: 'Upload a text file, PDF, docx, or markdown file to tell the system what you want it to do. You can also type instructions later in the chat.',
+      targetSelector: '[data-walkthrough="add-instructions"]',
+      position: 'bottom' as const,
+      highlight: 'spotlight' as const,
+    },
+    {
+      id: 3,
+      title: 'Step 3: Try These Suggestions',
+      description: 'Want ideas? Click one of the suggested prompts to start quickly. You can modify or expand them anytime.',
+      targetSelector: '[data-walkthrough="quick-suggestions"]',
+      position: 'top' as const,
+      highlight: 'glow' as const,
+    },
+    {
+      id: 4,
+      title: 'Step 4: Add Extra Details & Send',
+      description: 'You can add additional instructions or prompts here. When you're ready, press the arrow to send your files and instructions for processing.',
+      targetSelector: '[data-walkthrough="chat-input"]',
+      position: 'top' as const,
+      highlight: 'glow' as const,
+    },
+  ]
+
+  const handleWalkthroughComplete = () => {
+    setShowWalkthrough(false)
+    localStorage.setItem('i2i-walkthrough-completed', 'true')
+  }
+
+  const handleWalkthroughSkip = () => {
+    setShowWalkthrough(false)
+    localStorage.setItem('i2i-walkthrough-completed', 'true')
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -73,51 +242,60 @@ export default function PageChat() {
     scrollToBottom()
   }, [messages, isTyping])
 
+  // Auto-resize textarea
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (textarea) {
+      textarea.style.height = 'auto'
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`
+    }
+  }, [input])
+
+  // Dummy function to paraphrase text
+  const paraphraseInstruction = (text: string): string => {
+    // Simple dummy paraphrasing - in real app this would be an API call
+    const paraphrases: Record<string, string> = {
+      'serene background': 'peaceful and calm setting',
+      'sun is shining': 'natural sunlight',
+      'sun rays': 'sunlight rays',
+      'soft shadows': 'gentle shadow effects',
+      'clean white background': 'pristine white backdrop',
+      'natural lighting': 'organic illumination',
+      'vibrant and saturated': 'rich and vivid',
+      'professional product photography': 'commercial-grade product images',
+      'lifestyle scene': 'real-world environment',
+      'modern interior': 'contemporary indoor space',
+      'warm ambient lighting': 'cozy atmospheric glow'
+    }
+    
+    let paraphrased = text
+    Object.entries(paraphrases).forEach(([key, value]) => {
+      paraphrased = paraphrased.replace(new RegExp(key, 'gi'), value)
+    })
+    
+    // If no replacements were made, add a prefix to make it look paraphrased
+    if (paraphrased === text) {
+      paraphrased = `Transform the images by ${text.toLowerCase()}`
+    }
+    
+    return paraphrased
+  }
+
   const handleSend = async () => {
     if (!input.trim() && attachedFiles.length === 0 && uploadedImages.length === 0) return
 
-    // Combine uploaded images from the middle section with attached files
-    const allFiles = [...uploadedImages, ...attachedFiles]
-
-    // Create user message
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input,
-      timestamp: new Date(),
-      attachments: allFiles.map(file => ({
-        type: file.type.startsWith('image/') ? 'image' : 'pdf',
-        name: file.name,
-        size: file.size,
-        url: URL.createObjectURL(file)
-      })),
-      status: 'sent'
-    }
-
-    setMessages(prev => [...prev, userMessage])
-    setInput('')
-    setAttachedFiles([])
-    setUploadedImages([])
-    setIsTyping(true)
-
-    // Simulate AI response
+    // Show analysis modal
+    setShowAnalysisModal(true)
+    setIsAnalyzing(true)
+    const originalText = input.trim()
+    
+    // After 3 seconds, show paraphrased text
     setTimeout(() => {
-      const responses = getAIResponse(userMessage)
-      setIsTyping(false)
-
-      responses.forEach((response, index) => {
-        setTimeout(() => {
-          setMessages(prev => [...prev, {
-            id: `ai-${Date.now()}-${index}`,
-            role: 'assistant',
-            content: response,
-            timestamp: new Date(),
-            status: 'sent',
-            showActions: index === responses.length - 1 && response.toLowerCase().includes('would you like')
-          }])
-        }, index * 1000)
-      })
-    }, 1500)
+      const paraphrased = paraphraseInstruction(originalText)
+      setParaphrasedText(paraphrased)
+      setEditableText(paraphrased)
+      setIsAnalyzing(false)
+    }, 3000)
   }
 
   const getAIResponse = (userMessage: Message): string[] => {
@@ -181,7 +359,43 @@ export default function PageChat() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    setAttachedFiles(prev => [...prev, ...files])
+    
+    // Separate images from other files
+    const imageFiles = files.filter(file => file.type.startsWith('image/'))
+    const nonImageFiles = files.filter(file => !file.type.startsWith('image/'))
+    
+    // Add images to the sidebar (uploadedImages)
+    if (imageFiles.length > 0) {
+      setUploadedImages(prev => [...prev, ...imageFiles])
+      toast.success(`${imageFiles.length} image(s) added`)
+    }
+    
+    // Add non-image files (PDFs, DOCX, TXT, etc.) to attachments
+    if (nonImageFiles.length > 0) {
+      setAttachedFiles(prev => [...prev, ...nonImageFiles])
+      toast.success(`${nonImageFiles.length} file(s) attached`)
+    }
+    
+    // Reset input to allow selecting the same files again
+    if (e.target) {
+      e.target.value = ''
+    }
+  }
+
+  const handleFolderSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    // Filter to only include image files
+    const imageFiles = files.filter(file => file.type.startsWith('image/'))
+    if (imageFiles.length > 0) {
+      setUploadedImages(prev => [...prev, ...imageFiles])
+      toast.success(`${imageFiles.length} image(s) uploaded from folder`)
+    } else {
+      toast.error('No image files found in the selected folder')
+    }
+    // Reset input to allow selecting the same folder again
+    if (e.target) {
+      e.target.value = ''
+    }
   }
 
   const onDropImages = useCallback((acceptedFiles: File[]) => {
@@ -400,37 +614,45 @@ export default function PageChat() {
                   </p>
                 </div>
 
-                {/* Images List */}
-                <ScrollArea className="flex-1">
-                  <div className="p-3 space-y-2">
-                    <AnimatePresence>
-                      {uploadedImages.map((file, index) => {
-                        const previewUrl = URL.createObjectURL(file)
-                        return (
-                          <motion.div
-                            key={`sidebar-${file.name}-${index}`}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            className="group relative rounded-xl border bg-card hover:shadow-md transition-all overflow-hidden"
-                          >
-                            <div className="flex gap-3 p-3">
-                              {/* Thumbnail */}
-                              <div className="relative h-16 w-16 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
-                                <Image
-                                  src={previewUrl}
-                                  alt={file.name}
-                                  fill
-                                  className="object-cover"
-                                  unoptimized
-                                />
-                              </div>
+                  {/* Images List */}
+                  <ScrollArea className="flex-1">
+                    <TooltipProvider>
+                      <div className="p-3 space-y-2">
+                        <AnimatePresence>
+                          {uploadedImages.map((file, index) => {
+                            const previewUrl = URL.createObjectURL(file)
+                            return (
+                              <motion.div
+                                key={`sidebar-${file.name}-${index}`}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="group relative rounded-xl border bg-card hover:shadow-md transition-all overflow-hidden"
+                              >
+                                <div className="flex gap-3 p-3">
+                                  {/* Thumbnail */}
+                                  <div className="relative h-16 w-16 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+                                    <Image
+                                      src={previewUrl}
+                                      alt={file.name}
+                                      fill
+                                      className="object-cover"
+                                      unoptimized
+                                    />
+                                  </div>
 
-                              {/* Metadata */}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate mb-1">
-                                  {file.name}
-                                </p>
+                                  {/* Metadata */}
+                                  <div className="flex-1 min-w-0">
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <p className="text-sm font-medium mb-1 cursor-default">
+                                          {truncateFileName(file.name)}
+                                        </p>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p className="max-w-xs break-words">{file.name}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
                                 <div className="space-y-1">
                                   <p className="text-xs text-muted-foreground">
                                     {formatFileSize(file.size)}
@@ -454,9 +676,10 @@ export default function PageChat() {
                           </motion.div>
                         )
                       })}
-                    </AnimatePresence>
-                  </div>
-                </ScrollArea>
+                        </AnimatePresence>
+                      </div>
+                    </TooltipProvider>
+                  </ScrollArea>
               </div>
             </motion.div>
           )}
@@ -500,12 +723,14 @@ export default function PageChat() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="grid gap-3 md:grid-cols-2 mt-8"
+                    className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 mt-8"
                   >
                     <Card 
+                      {...getImageRootProps()}
                       className="p-4 hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-primary/50"
-                      onClick={() => fileInputRef.current?.click()}
+                      data-walkthrough="upload-images"
                     >
+                      <input {...getImageInputProps()} />
                       <div className="flex items-start gap-3">
                         <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20">
                           <Upload className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -520,7 +745,27 @@ export default function PageChat() {
                     </Card>
                     <Card 
                       className="p-4 hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-primary/50"
-                      onClick={() => document.getElementById('chat-input')?.focus()}
+                      onClick={() => folderInputRef.current?.click()}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/20">
+                          <Folder className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="font-semibold text-sm mb-1">Upload Folder</h3>
+                          <p className="text-xs text-muted-foreground">
+                            Select a folder to upload all images
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                    <Card 
+                      className="p-4 hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-primary/50"
+                      onClick={() => {
+                        // Trigger document file picker
+                        documentInputRef.current?.click()
+                      }}
+                      data-walkthrough="add-instructions"
                     >
                       <div className="flex items-start gap-3">
                         <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/20">
@@ -529,7 +774,7 @@ export default function PageChat() {
                         <div className="text-left">
                           <h3 className="font-semibold text-sm mb-1">Add Instructions</h3>
                           <p className="text-xs text-muted-foreground">
-                            Describe what you need
+                            Upload PDF, DOCX, XLS, TXT files
                           </p>
                         </div>
                       </div>
@@ -537,38 +782,49 @@ export default function PageChat() {
                   </motion.div>
 
                   {/* Example Prompts */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.6 }}
-                    className="pt-4"
-                  >
-                    <p className="text-xs text-muted-foreground mb-3">Try asking:</p>
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      {[
-                        "Remove background",
-                        "Enhance colors",
-                        "Resize images",
-                        "Add shadows"
-                      ].map((prompt) => (
-                        <Badge
-                          key={prompt}
-                          variant="secondary"
-                          className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                          onClick={() => setInput(prompt)}
-                        >
-                          {prompt}
-                        </Badge>
-                      ))}
-                    </div>
-                  </motion.div>
+                  <AnimatePresence>
+                    {!input && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ delay: 0.6 }}
+                        className="pt-4"
+                        data-walkthrough="quick-suggestions"
+                      >
+                        <div className="space-y-4 max-w-2xl text-left">
+                          <p className="text-sm font-medium text-muted-foreground mb-4 text-left">Try asking:</p>
+                          {[
+                            "Place the image objects in a serene background where sun is shining from the left side with sun rays hitting the objects, soft shadows",
+                            "Remove the background and place products on a clean white background with natural lighting and subtle shadows",
+                            "Enhance the colors to be vibrant and saturated, adjust brightness and contrast for a professional product photography look",
+                            "Create a lifestyle scene with the products placed naturally in a modern interior setting with warm ambient lighting"
+                          ].map((prompt) => (
+                            <div
+                              key={prompt}
+                              className="flex gap-3 items-start cursor-pointer group text-left"
+                              onClick={() => setInput(prompt)}
+                            >
+                              <span className="text-muted-foreground/50 text-sm mt-1 flex-shrink-0">
+                                •
+                              </span>
+                              <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors leading-relaxed text-left">
+                                {prompt}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             ) : (
               /* Messages */
-              <div className="mx-auto max-w-4xl space-y-6 pb-4">
-                <AnimatePresence>
-                  {messages.map((message) => (
+              <TooltipProvider>
+                <div className="mx-auto max-w-4xl space-y-6 pb-4">
+                  <AnimatePresence>
+                    {messages.map((message) => (
                     <motion.div
                       key={message.id}
                       initial={{ opacity: 0, y: 20 }}
@@ -618,11 +874,18 @@ export default function PageChat() {
                                     </div>
                                   ) : (
                                     <div className="h-10 w-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                                      <FileText className="h-5 w-5" />
+                                      {getFileIcon(attachment.name, 20)}
                                     </div>
                                   )}
                                   <div className="flex-1 min-w-0">
-                                    <p className="truncate font-medium">{attachment.name}</p>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <p className="font-medium cursor-default">{truncateFileName(attachment.name)}</p>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p className="max-w-xs break-words">{attachment.name}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
                                     <p className="text-xs opacity-70">
                                       {formatFileSize(attachment.size)}
                                     </p>
@@ -704,11 +967,12 @@ export default function PageChat() {
                         </div>
                       </div>
                     </motion.div>
-                  )}
-                </AnimatePresence>
+                    )}
+                  </AnimatePresence>
 
-                <div ref={messagesEndRef} />
-              </div>
+                  <div ref={messagesEndRef} />
+                </div>
+              </TooltipProvider>
             )}
           </ScrollArea>
 
@@ -725,33 +989,42 @@ export default function PageChat() {
                     className="mb-4"
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <FaFile className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium">
                         {attachedFiles.length} file(s) attached
                       </span>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {attachedFiles.map((file, index) => (
-                        <motion.div
-                          key={`attached-${index}`}
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          exit={{ scale: 0 }}
-                          className="flex items-center gap-2 pl-3 pr-2 py-2 rounded-full border-2 border-border hover:border-primary transition-colors bg-muted"
-                        >
-                          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="text-sm font-medium max-w-[200px] truncate">{file.name}</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 rounded-full hover:bg-destructive hover:text-destructive-foreground"
-                            onClick={() => removeAttachment(index)}
+                    <TooltipProvider>
+                      <div className="flex flex-wrap gap-2">
+                        {attachedFiles.map((file, index) => (
+                          <motion.div
+                            key={`attached-${index}`}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0 }}
+                            className="flex items-center gap-2 pl-3 pr-2 py-2 rounded-full border-2 border-border hover:border-primary transition-colors bg-muted"
                           >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </motion.div>
-                      ))}
-                    </div>
+                            {getFileIcon(file.name, 16)}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-sm font-medium cursor-default">{truncateFileName(file.name)}</span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs break-words">{file.name}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 rounded-full hover:bg-destructive hover:text-destructive-foreground"
+                              onClick={() => removeAttachment(index)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </TooltipProvider>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -767,6 +1040,23 @@ export default function PageChat() {
                   className="hidden"
                   onChange={handleFileSelect}
                 />
+                <input
+                  ref={folderInputRef}
+                  type="file"
+                  webkitdirectory=""
+                  directory=""
+                  multiple
+                  className="hidden"
+                  onChange={handleFolderSelect}
+                />
+                <input
+                  ref={documentInputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
 
                 {/* Drag & Drop Overlay */}
                 {isImageDragActive && (
@@ -774,7 +1064,7 @@ export default function PageChat() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 flex items-center justify-center bg-primary/10 rounded-3xl z-10 pointer-events-none border-2 border-primary border-dashed"
+                    className="absolute inset-0 flex items-center justify-center bg-primary/10 rounded-2xl z-10 pointer-events-none border-2 border-primary border-dashed"
                   >
                     <div className="text-center">
                       <Upload className="h-10 w-10 text-primary mx-auto mb-2" />
@@ -785,33 +1075,21 @@ export default function PageChat() {
 
                 <div 
                   {...getImageRootProps()}
-                  className={`flex items-end gap-3 p-4 rounded-3xl border-2 transition-all ${
+                  className={`flex items-end gap-2 p-3 rounded-2xl border transition-all shadow-sm ${
                     isImageDragActive
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border bg-muted/30 hover:bg-muted/50'
+                      ? 'border-primary bg-primary/5 shadow-primary/20'
+                      : 'border-border/50 bg-background hover:border-border hover:shadow-md'
                   }`}
+                  data-walkthrough="chat-input"
                 >
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      fileInputRef.current?.click()
-                    }}
-                    className="flex-shrink-0 h-11 w-11 rounded-2xl hover:bg-background"
-                    title="Attach files"
-                  >
-                    <Paperclip className="h-5 w-5" />
-                  </Button>
-
                   <Textarea
+                    ref={textareaRef}
                     id="chat-input"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyPress}
                     placeholder="Type your message..."
-                    className="min-h-[44px] max-h-[200px] resize-none border-0 focus-visible:ring-0 shadow-none text-base bg-transparent placeholder:text-muted-foreground/60"
+                    className="flex-1 min-h-[40px] max-h-[200px] resize-none border-0 focus-visible:ring-0 shadow-none text-sm bg-transparent placeholder:text-muted-foreground/50 py-2.5 px-3 leading-relaxed"
                     onClick={(e) => e.stopPropagation()}
                     rows={1}
                   />
@@ -823,10 +1101,10 @@ export default function PageChat() {
                     }}
                     size="icon"
                     disabled={!input.trim() && attachedFiles.length === 0 && uploadedImages.length === 0}
-                    className="flex-shrink-0 h-11 w-11 rounded-2xl"
+                    className="flex-shrink-0 h-9 w-9 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Send message"
                   >
-                    <Send className="h-5 w-5" />
+                    <Send className="h-4 w-4 text-primary-foreground" />
                   </Button>
                 </div>
               </div>
@@ -868,8 +1146,144 @@ export default function PageChat() {
             </motion.div>
           )
         }
-      </AnimatePresence >
-    </main >
+      </AnimatePresence>
+
+      {/* Analysis Modal */}
+      <Dialog open={showAnalysisModal} onOpenChange={setShowAnalysisModal}>
+        <DialogContent className="max-w-2xl">
+          {isAnalyzing ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Analyzing Your Instruction</DialogTitle>
+                <DialogDescription>
+                  Please wait while we process your request...
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col items-center justify-center py-8">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="h-16 w-16 rounded-full border-4 border-primary border-t-transparent mb-4"
+                />
+                <p className="text-sm text-muted-foreground">Analyzing your instruction...</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-xl">Review Your Instruction</DialogTitle>
+                <DialogDescription className="text-sm">
+                  We&apos;ve paraphrased your instruction. You can edit it below if needed.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4 space-y-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Edit your instruction (up to 2000 words)</span>
+                  <span>{editableText.split(/\s+/).filter(Boolean).length} words</span>
+                </div>
+                <div className="relative">
+                  <Textarea
+                    value={editableText}
+                    onChange={(e) => setEditableText(e.target.value)}
+                    className="min-h-[300px] max-h-[500px] text-sm leading-relaxed resize-y font-normal whitespace-pre-wrap"
+                    placeholder="Edit your instruction..."
+                    style={{ 
+                      fontFamily: 'inherit',
+                      lineHeight: '1.8',
+                      padding: '1rem',
+                      letterSpacing: '0.01em',
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Your instruction will be used to process all uploaded images. Make sure it clearly describes what you want to achieve.
+                </p>
+              </div>
+              <DialogFooter className="gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAnalysisModal(false)
+                    setIsAnalyzing(true)
+                    setParaphrasedText('')
+                    setEditableText('')
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    // Get all uploaded images
+                    const allImages = [...uploadedImages, ...attachedFiles.filter(f => f.type.startsWith('image/'))]
+                    
+                    if (allImages.length === 0) {
+                      toast.error('Please upload at least one image')
+                      return
+                    }
+                    
+                    // Create batch with images
+                    const batchId = `batch-${Date.now()}`
+                    const instruction = editableText || input
+                    
+                    // Create ProcessedImage objects from uploaded files
+                    const processedImages = allImages.map((file, index) => ({
+                      id: `img-${Date.now()}-${index}`,
+                      originalName: file.name,
+                      originalUrl: URL.createObjectURL(file),
+                      processedUrl: '', // Will be set when processing completes
+                      status: 'processing' as const,
+                      instruction: instruction,
+                      timestamp: new Date(),
+                    }))
+                    
+                    // Create batch in store
+                    createBatch(batchId, instruction, allImages.length)
+                    
+                    // Update batch with actual images using store's setState
+                    setTimeout(() => {
+                      const { batch } = useStore.getState()
+                      if (batch) {
+                        useStore.setState({
+                          batch: {
+                            ...batch,
+                            images: processedImages,
+                          }
+                        })
+                      }
+                    }, 0)
+                    
+                    // Close modal and clear state
+                    setShowAnalysisModal(false)
+                    setIsAnalyzing(true)
+                    setParaphrasedText('')
+                    setEditableText('')
+                    setInput('')
+                    setUploadedImages([])
+                    setAttachedFiles([])
+                    
+                    // Navigate to homepage where ProcessingPanel will show images appearing gradually
+                    router.push('/')
+                  }}
+                >
+                  Confirm & Process
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Walkthrough */}
+      {showWalkthrough && (
+        <Walkthrough
+          steps={walkthroughSteps}
+          onComplete={handleWalkthroughComplete}
+          onSkip={handleWalkthroughSkip}
+          currentStep={walkthroughStep}
+          onStepChange={setWalkthroughStep}
+        />
+      )}
+    </main>
   )
 }
 
