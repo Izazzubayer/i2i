@@ -203,7 +203,7 @@ export default function ApiPage() {
                   <p className="text-muted-foreground leading-relaxed">
                     i2i provides an AI-powered image processing API that integrates seamlessly into your workflow. 
                     Process images with background removal, enhancement, retouching, and more.
-                  </p>
+                        </p>
                   <div className="space-y-4 mt-4">
                     <div className="flex gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold flex-shrink-0 text-sm">
@@ -214,8 +214,8 @@ export default function ApiPage() {
                         <p className="text-sm text-muted-foreground">
                           Create an API key from the "API Keys" tab and include it in your requests.
                         </p>
+                        </div>
                       </div>
-                    </div>
                     <div className="flex gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold flex-shrink-0 text-sm">
                         2
@@ -225,8 +225,8 @@ export default function ApiPage() {
                         <p className="text-sm text-muted-foreground">
                           Send images via POST request with your processing instructions.
                         </p>
+                        </div>
                       </div>
-                    </div>
                     <div className="flex gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold flex-shrink-0 text-sm">
                         3
@@ -251,10 +251,10 @@ export default function ApiPage() {
                   <div>
                     <p className="text-sm font-semibold mb-2">Base URL</p>
                     <div className="rounded-lg bg-muted p-3 font-mono text-sm">
-                      https://api.i2i.ai/v1
-                    </div>
+                    https://api.i2i.ai/v1
                   </div>
-                  <div>
+                  </div>
+                    <div>
                     <p className="text-sm font-semibold mb-2">Authentication</p>
                     <div className="rounded-lg bg-muted p-3 font-mono text-sm">
                       Authorization: Bearer YOUR_API_KEY
@@ -708,7 +708,7 @@ echo 'Batch ID: ' . $result['batchId'];
               <p className="text-sm text-muted-foreground">
                 Contact our support team at <a href="mailto:api@i2i.ai" className="text-primary hover:underline">api@i2i.ai</a> or 
                 visit our <a href="/support" className="text-primary hover:underline">support center</a> for assistance.
-              </p>
+                </p>
             </CardContent>
           </Card>
         </div>

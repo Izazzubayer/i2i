@@ -230,7 +230,7 @@ export default function SignUpPage() {
               <form className="space-y-4" onSubmit={handleSubmit}>
                 {/* Username */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="username" className="text-sm">Username</Label>
+                  <Label htmlFor="username" className="text-sm">Username <span className="text-destructive">*</span></Label>
                   <div className="relative">
                     <UserPlus className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -252,7 +252,7 @@ export default function SignUpPage() {
 
                 {/* Email */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-sm">Email</Label>
+                  <Label htmlFor="email" className="text-sm">Email <span className="text-destructive">*</span></Label>
                   <div className="relative">
                     <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -301,7 +301,7 @@ export default function SignUpPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="company" className="text-sm">Company name</Label>
+                    <Label htmlFor="company" className="text-sm">Company name <span className="text-destructive">*</span></Label>
                     <div className="relative">
                       <Building className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
@@ -325,7 +325,7 @@ export default function SignUpPage() {
                 {/* Row 3: Password & Confirm Password */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="password" className="text-sm">Password</Label>
+                    <Label htmlFor="password" className="text-sm">Password <span className="text-destructive">*</span></Label>
                     <div className="relative">
                       <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
@@ -364,7 +364,7 @@ export default function SignUpPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="confirmPassword" className="text-sm">Confirm Password</Label>
+                    <Label htmlFor="confirmPassword" className="text-sm">Confirm Password <span className="text-destructive">*</span></Label>
                     <div className="relative">
                       <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input

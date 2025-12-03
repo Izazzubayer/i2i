@@ -85,8 +85,8 @@ const faqs = [
     category: 'Image Processing',
     icon: Upload,
     questions: [
-      {
-        question: 'How do I track processing progress?',
+  {
+    question: 'How do I track processing progress?',
         answer: 'Visit the Orders section and open a job to see live progress and step-by-step logs. You\'ll also receive email notifications when processing is complete.'
       },
       {
@@ -107,15 +107,15 @@ const faqs = [
     category: 'Downloads & Delivery',
     icon: Download,
     questions: [
-      {
-        question: 'Can I re-download completed assets?',
+  {
+    question: 'Can I re-download completed assets?',
         answer: 'Yes. Open any completed order and click "Download All" or select specific assets. Files are stored for 90 days, with extended storage available for Pro and Enterprise plans.'
       },
       {
         question: 'What download formats are available?',
         answer: 'You can download in the original format or convert to JPG, PNG, TIFF, or WebP. Choose your preferred format and quality settings before downloading.'
-      },
-      {
+  },
+  {
         question: 'Do you offer FTP/SFTP delivery?',
         answer: 'Yes! Enterprise plans include automated FTP/SFTP delivery to your servers. Configure your delivery settings in the Integrations page.'
       },
