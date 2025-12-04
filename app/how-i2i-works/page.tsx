@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
+import Header from '@/components/Header'
 
 const steps = [
   {
@@ -124,9 +125,10 @@ const features = [
   }
 ]
 
-export default function ResourcesPage() {
+export default function HowI2IWorksPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900">
+      <Header />
       {/* Hero Section */}
       <section className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="container px-4 py-20 md:py-32">
@@ -150,12 +152,19 @@ export default function ResourcesPage() {
               our AI-powered platform handles everything.
             </p>
 
-            <Button size="lg" asChild>
-              <Link href="/dashboard">
-                Get Started Now
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+            <div className="relative w-full max-w-4xl mx-auto aspect-video rounded-lg overflow-hidden shadow-2xl">
+              <iframe
+                width="100%"
+                height="100%"
+                src="https://www.youtube.com/embed/Xy0r5fKwlVo?si=BxO8rUuTfRCVxdrd"
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
+              />
+            </div>
           </motion.div>
         </div>
       </section>
@@ -315,3 +324,4 @@ export default function ResourcesPage() {
     </div>
   )
 }
+

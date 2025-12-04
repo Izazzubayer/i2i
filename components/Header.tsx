@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Zap, Home, DollarSign, Image, ChevronDown, User, Globe, Code, Mail, HelpCircle, Menu } from 'lucide-react'
+import { Zap, Home, DollarSign, Image, ChevronDown, User, Globe, Code, Mail, HelpCircle, Menu, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -38,12 +38,13 @@ export default function Header() {
   ]
 
   const resourcesItems = [
+    { label: 'How i2i Works', icon: Sparkles, href: '/how-i2i-works' },
     { label: 'API', icon: Code, href: '/api-docs' },
     { label: 'Contact', icon: Mail, href: '/contact' },
     { label: 'FAQ', icon: HelpCircle, href: '/faq' },
   ]
 
-  const isResourcesActive = pathname?.startsWith('/api-docs') || pathname?.startsWith('/contact') || pathname?.startsWith('/faq')
+  const isResourcesActive = pathname?.startsWith('/how-i2i-works') || pathname?.startsWith('/api-docs') || pathname?.startsWith('/contact') || pathname?.startsWith('/faq')
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

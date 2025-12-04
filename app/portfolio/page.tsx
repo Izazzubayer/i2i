@@ -426,7 +426,7 @@ export default function PortfolioPage() {
                 </Link>
               </Button>
               <Button size="lg" variant="outline" asChild className="border-zinc-300 dark:border-zinc-700">
-                <Link href="/resources">
+                <Link href="/how-i2i-works">
                   See How It Works
                 </Link>
               </Button>

@@ -217,7 +217,7 @@ const resources = [
     icon: FileText,
     title: 'Blog & Articles',
     description: 'Tips, tricks, and best practices',
-    link: '/resources',
+    link: '/how-i2i-works',
     color: 'bg-green-500'
   },
   {
