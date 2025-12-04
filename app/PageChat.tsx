@@ -49,7 +49,6 @@ import {
   FaFileImage,
   FaFile
 } from 'react-icons/fa'
-import Walkthrough from '@/components/Walkthrough'
 
 /**
  * PageChat - ChatGPT-Style Conversational Interface
@@ -92,10 +91,7 @@ export default function PageChat() {
   const [isAnalyzing, setIsAnalyzing] = useState(true)
   const [paraphrasedText, setParaphrasedText] = useState('')
   const [editableText, setEditableText] = useState('')
-  const [showWalkthrough, setShowWalkthrough] = useState(false)
-  const [walkthroughStep, setWalkthroughStep] = useState(0)
   const [showConfirmationModal, setShowConfirmationModal] = useState(false)
-  const [nudgeTimeout, setNudgeTimeout] = useState<NodeJS.Timeout | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)
@@ -156,83 +152,6 @@ export default function PageChat() {
     }
   }
 
-  // Check if first-time user
-  useEffect(() => {
-    const hasSeenWalkthrough = localStorage.getItem('i2i-walkthrough-completed')
-    if (!hasSeenWalkthrough && messages.length === 0) {
-      // Small delay to ensure DOM is ready
-      setTimeout(() => {
-        setShowWalkthrough(true)
-      }, 500)
-    }
-  }, [])
-
-  // Auto-nudge after 8 seconds of inactivity
-  useEffect(() => {
-    if (showWalkthrough && walkthroughStep < 4) {
-      const timeout = setTimeout(() => {
-        toast.info('Need help? Continue the walkthrough to learn more →', {
-          duration: 3000,
-        })
-      }, 8000)
-      
-      setNudgeTimeout(timeout)
-      
-      return () => {
-        clearTimeout(timeout)
-      }
-    } else {
-      if (nudgeTimeout) {
-        clearTimeout(nudgeTimeout)
-        setNudgeTimeout(null)
-      }
-    }
-  }, [showWalkthrough, walkthroughStep])
-
-  const walkthroughSteps = [
-    {
-      id: 1,
-      title: 'Step 1: Upload Your Images',
-      description: 'Drag & drop, or click to upload a single image or an entire folder. We'll use these images as the basis for your prompts and processing.',
-      targetSelector: '[data-walkthrough="upload-images"]',
-      position: 'bottom' as const,
-      highlight: 'glow' as const,
-    },
-    {
-      id: 2,
-      title: 'Step 2: Add Instructions',
-      description: 'Upload a text file, PDF, docx, or markdown file to tell the system what you want it to do. You can also type instructions later in the chat.',
-      targetSelector: '[data-walkthrough="add-instructions"]',
-      position: 'bottom' as const,
-      highlight: 'spotlight' as const,
-    },
-    {
-      id: 3,
-      title: 'Step 3: Try These Suggestions',
-      description: 'Want ideas? Click one of the suggested prompts to start quickly. You can modify or expand them anytime.',
-      targetSelector: '[data-walkthrough="quick-suggestions"]',
-      position: 'top' as const,
-      highlight: 'glow' as const,
-    },
-    {
-      id: 4,
-      title: 'Step 4: Add Extra Details & Send',
-      description: 'You can add additional instructions or prompts here. When you're ready, press the arrow to send your files and instructions for processing.',
-      targetSelector: '[data-walkthrough="chat-input"]',
-      position: 'top' as const,
-      highlight: 'glow' as const,
-    },
-  ]
-
-  const handleWalkthroughComplete = () => {
-    setShowWalkthrough(false)
-    localStorage.setItem('i2i-walkthrough-completed', 'true')
-  }
-
-  const handleWalkthroughSkip = () => {
-    setShowWalkthrough(false)
-    localStorage.setItem('i2i-walkthrough-completed', 'true')
-  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -728,7 +647,6 @@ export default function PageChat() {
                     <Card 
                       {...getImageRootProps()}
                       className="p-4 hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-primary/50"
-                      data-walkthrough="upload-images"
                     >
                       <input {...getImageInputProps()} />
                       <div className="flex items-start gap-3">
@@ -765,7 +683,6 @@ export default function PageChat() {
                         // Trigger document file picker
                         documentInputRef.current?.click()
                       }}
-                      data-walkthrough="add-instructions"
                     >
                       <div className="flex items-start gap-3">
                         <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/20">
@@ -790,7 +707,6 @@ export default function PageChat() {
                         exit={{ opacity: 0 }}
                         transition={{ delay: 0.6 }}
                         className="pt-4"
-                        data-walkthrough="quick-suggestions"
                       >
                         <div className="space-y-4 max-w-2xl text-left">
                           <p className="text-sm font-medium text-muted-foreground mb-4 text-left">Try asking:</p>
@@ -1080,7 +996,6 @@ export default function PageChat() {
                       ? 'border-primary bg-primary/5 shadow-primary/20'
                       : 'border-border/50 bg-background hover:border-border hover:shadow-md'
                   }`}
-                  data-walkthrough="chat-input"
                 >
                   <Textarea
                     ref={textareaRef}
@@ -1273,16 +1188,6 @@ export default function PageChat() {
         </DialogContent>
       </Dialog>
 
-      {/* Walkthrough */}
-      {showWalkthrough && (
-        <Walkthrough
-          steps={walkthroughSteps}
-          onComplete={handleWalkthroughComplete}
-          onSkip={handleWalkthroughSkip}
-          currentStep={walkthroughStep}
-          onStepChange={setWalkthroughStep}
-        />
-      )}
     </main>
   )
 }
