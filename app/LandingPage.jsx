@@ -320,12 +320,12 @@ export default function LandingPage() {
               <div className="mb-4 flex items-center gap-2">
                 <Image
                   src="/logo.png"
-                  alt="Rosetta Logo"
+                  alt="i2i Logo"
                   width={32}
                   height={32}
                   className="h-8 w-8 object-contain"
                 />
-                <span className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Rosetta</span>
+                <span className="text-lg font-bold text-zinc-900 dark:text-zinc-50">i2i</span>
               </div>
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 AI-powered image processing for modern businesses

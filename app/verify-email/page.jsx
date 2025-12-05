@@ -80,8 +80,9 @@ function VerifyEmailContent() {
                   <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground ml-2">
                     <li>Open your email inbox</li>
                     <li>Look for an email from i2i</li>
-                    <li>Click the verification link</li>
-                    <li>You&apos;ll be redirected to sign in</li>
+                    <li>Click the verification link in the email</li>
+                    <li>You&apos;ll see a verification page with a loader</li>
+                    <li>Once verified, you&apos;ll be automatically redirected to your workspace</li>
                   </ol>
                 </div>
               </div>
