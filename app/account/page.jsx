@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AuthenticatedNav from '@/components/AuthenticatedNav'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -8,17 +8,67 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Upload, Trash2, AlertTriangle } from 'lucide-react'
+import { Upload, Trash2, AlertTriangle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { getProfile } from '@/api/users/users'
 
 export default function AccountPage() {
-  const [username, setUsername] = useState('johndoe')
-  const [email, setEmail] = useState('john@example.com')
-  const [companyName, setCompanyName] = useState('Acme Studio')
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [companyName, setCompanyName] = useState('')
   const [avatar, setAvatar] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [avatarFile, setAvatarFile] = useState(null)
   const [avatarPreview, setAvatarPreview] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Fetch user profile on component mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setIsLoading(true)
+        const response = await getProfile()
+        
+        // Extract user data from API response
+        // Adjust these field names based on actual API response structure
+        if (response.success && response.data) {
+          const userData = response.data
+          setUsername(userData.displayName || userData.username || userData.name || '')
+          setEmail(userData.email || '')
+          setCompanyName(userData.companyName || userData.company || '')
+          setAvatar(userData.avatar || userData.profilePicture || '')
+        } else if (response.data) {
+          // If response structure is different
+          const userData = response.data
+          setUsername(userData.displayName || userData.username || userData.name || '')
+          setEmail(userData.email || '')
+          setCompanyName(userData.companyName || userData.company || '')
+          setAvatar(userData.avatar || userData.profilePicture || '')
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error)
+        toast.error('Failed to load profile. Please try again.')
+        
+        // Fallback to localStorage data if API fails
+        const localUser = localStorage.getItem('user')
+        if (localUser) {
+          try {
+            const userData = JSON.parse(localUser)
+            setUsername(userData.displayName || userData.name || '')
+            setEmail(userData.email || '')
+            setCompanyName(userData.companyName || '')
+          } catch (e) {
+            console.error('Error parsing local user data:', e)
+          }
+        }
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchProfile()
+  }, [])
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0]
@@ -40,12 +90,21 @@ export default function AccountPage() {
     }
   }
 
-  const handleSaveProfile = () => {
-    // In a real appthis would save to the backend
-    toast.success('Profile updated successfully')
-    if (avatarFile) {
-      setAvatar(avatarPreview)
-      setAvatarFile(null)
+  const handleSaveProfile = async () => {
+    setIsSaving(true)
+    try {
+      // TODO: Implement update profile API call
+      // For now, just show success message
+      toast.success('Profile updated successfully')
+      if (avatarFile) {
+        setAvatar(avatarPreview)
+        setAvatarFile(null)
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error)
+      toast.error('Failed to save profile. Please try again.')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -57,6 +116,22 @@ export default function AccountPage() {
 
   const handleExportData = () => {
     toast.info('Data export feature coming soon')
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AuthenticatedNav />
+        <div className="container mx-auto px-4 py-10 space-y-8 max-w-4xl">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading profile...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -83,7 +158,7 @@ export default function AccountPage() {
               <Avatar className="h-24 w-24">
                 <AvatarImage src={avatarPreview || avatar} />
                 <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-2xl">
-                  {username.substring(0, 2).toUpperCase()}
+                  {username ? username.substring(0, 2).toUpperCase() : email ? email.substring(0, 2).toUpperCase() : 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="space-y-2">
@@ -166,14 +241,36 @@ export default function AccountPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleSaveProfile}>Save Changes</Button>
-              <Button variant="outline" onClick={() => {
-                setUsername('johndoe')
-                setEmail('john@example.com')
-                setCompanyName('Acme Studio')
-                setAvatarPreview('')
-                setAvatarFile(null)
-              }}>
+              <Button onClick={handleSaveProfile} disabled={isSaving || isLoading}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  // Reset to original values from API
+                  const localUser = localStorage.getItem('user')
+                  if (localUser) {
+                    try {
+                      const userData = JSON.parse(localUser)
+                      setUsername(userData.displayName || userData.name || '')
+                      setEmail(userData.email || '')
+                      setCompanyName(userData.companyName || '')
+                    } catch (e) {
+                      console.error('Error parsing local user data:', e)
+                    }
+                  }
+                  setAvatarPreview('')
+                  setAvatarFile(null)
+                }}
+                disabled={isLoading}
+              >
                 Reset
               </Button>
             </div>

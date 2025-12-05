@@ -6,16 +6,35 @@ import apiClient from '../config'
  */
 
 /**
- * Get current user profile
+ * Get user profile
+ * Requires Authorization Bearer token
+ * @returns {Promise} API response
+ */
+export const getProfile = async () => {
+  try {
+    console.log('👤 Get User Profile API Call')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    const response = await apiClient.get('/api/v1/Users/profile')
+    
+    console.log('✅ Profile Response received')
+    console.log('📥 Response Status:', response.status)
+    console.log('📥 Response Data:', JSON.stringify(response.data, null, 2))
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    return response.data
+  } catch (error) {
+    console.error('❌ Get Profile API error:', error)
+    throw error
+  }
+}
+
+/**
+ * Get current user profile (alias for getProfile)
  * @returns {Promise} API response
  */
 export const getCurrentUser = async () => {
-  try {
-    const response = await apiClient.get('/api/v1/Users/me')
-    return response.data
-  } catch (error) {
-    throw error
-  }
+  return getProfile()
 }
 
 /**
@@ -85,6 +104,7 @@ export const uploadAvatar = async (avatarFile) => {
 
 // Export all user functions as default object
 export default {
+  getProfile,
   getCurrentUser,
   getUserById,
   updateUser,
