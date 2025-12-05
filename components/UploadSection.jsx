@@ -1,12 +1,12 @@
 'use client'
 
-import { useStateuseCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
-import { UploadXLoader2ArrowRightImageageIconHardDriveSparklesEditCoinsDollarSign } from 'lucide-react'
+import { Upload, X, Loader2, ArrowRight, Image as ImageIcon, HardDrive, Sparkles, Edit, Coins, DollarSign } from 'lucide-react'
 import Image from 'next/image'
-import { motionAnimatePresence } from 'framer-motion'
-import { CardCardContentCardDescriptionCardHeaderCardTitle } from '@/components/ui/card'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Textarea } from '@/components/ui/textarea'
@@ -21,7 +21,7 @@ import {
 import { useStore } from '@/lib/store'
 import { apiClient } from '@/lib/api'
 import { toast } from 'sonner'
-import { formatFileSizegenerateId } from '@/lib/utils'
+import { formatFileSize, generateId } from '@/lib/utils'
 import InstructionChat from './InstructionChat'
 
 export default function UploadSection() {
@@ -32,9 +32,9 @@ export default function UploadSection() {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [collapsed, setCollapsed] = useState(false)
-  const [showSummaryDialogsetShowSummaryDialog] = useState(false)
-  const [projectSummarysetProjectSummary] = useState('')
-  const [isEditingeSummarysetIsEditingSummary] = useState(false)
+  const [showSummaryDialog, setShowSummaryDialog] = useState(false)
+  const [projectSummary, setProjectSummary] = useState('')
+  const [isEditingSummary, setIsEditingSummary] = useState(false)
 
   const { batch, createBatch } = useStore()
 
