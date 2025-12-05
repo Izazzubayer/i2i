@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { UserPlus, Mail, Lock, Building, ArrowRight, Loader2, Sparkles, Phone, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { UserPlus, Mail, Lock, Building, ArrowRight, Loader2, Sparkles, Phone, CheckCircle2, XCircle, AlertCircle, ArrowLeft } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -211,6 +211,14 @@ export default function SignUpPage() {
         transition={{ duration: 0.4 }}
         className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-16 lg:flex-row lg:items-center"
       >
+        {/* Back Button */}
+        <Link
+          href="/"
+          className="absolute top-4 left-4 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors z-10"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to home
+        </Link>
         <section className="flex-1 space-y-6">
           <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
             <Sparkles className="h-4 w-4" />
