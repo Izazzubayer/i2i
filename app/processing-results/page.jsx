@@ -56,7 +56,7 @@ const STATUSES = {
 
 export default function ProcessingResultsPage() {
   const router = useRouter()
-  const { batch, updateImageStatus } = useStore()
+  const { batch, updateImageStatus, addOrder } = useStore()
   const [images, setImages] = useState([])
   const [selectedImages, setSelectedImages] = useState(new Set())
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all')
@@ -588,6 +588,38 @@ export default function ProcessingResultsPage() {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // Calculate order statistics
+      const totalSize = images.reduce((acc, img) => {
+        // Estimate size (in real app, this would come from actual file sizes)
+        return acc + 2.5 // MB per image estimate
+      }, 0)
+      const sizeInGB = (totalSize / 1024).toFixed(1)
+      
+      // Save order to store
+      const orderData = {
+        name: batch?.name || `Order ${new Date().toLocaleDateString()}`,
+        images: images.length,
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+        credits: processedImages.length,
+        size: `${sizeInGB} GB`,
+        instructions: batch?.instruction || batch?.instructions || '',
+        processedCount: processedImages.length,
+        approvedCount: processedImages.length,
+        retouchCount: 0,
+        failedCount: images.filter(img => img.status === STATUSES.DELETED).length,
+        imagesData: images.map(img => ({
+          id: img.id,
+          originalName: img.originalName,
+          originalUrl: img.originalUrl,
+          processedUrl: img.processedUrl,
+          status: img.status,
+          versions: img.versions || [],
+        })),
+      }
+      
+      addOrder(orderData)
       
       toast.success(`Order confirmed! ${processedImages.length} image(s) ready.`)
       // Navigate to orders page or show success
