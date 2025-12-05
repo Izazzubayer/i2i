@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
+import { requestPasswordReset } from '@/api/auth/auth'
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
@@ -28,13 +29,39 @@ export default function ForgotPasswordPage() {
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      toast.success('Password reset email sent!')
-      setIsSubmitted(true)
+      // Call forgot password API
+      const response = await requestPasswordReset({
+        email: email.trim(),
+      })
+
+      // Check if request was successful
+      if (response.success || response.status === 200) {
+        toast.success(response.message || 'Password reset email sent! Check your inbox.')
+        setIsSubmitted(true)
+      } else {
+        throw new Error(response.message || 'Failed to send password reset email')
+      }
     } catch (error) {
-      toast.error('Something went wrong. Please try again.')
+      console.error('Forgot password error:', error)
+      
+      // Handle different error cases
+      let errorMessage = 'Something went wrong. Please try again.'
+      
+      if (error?.status === 404) {
+        errorMessage = error?.message || 'Email not found. Please check your email address.'
+      } else if (error?.status === 400) {
+        errorMessage = error?.message || 'Invalid email address. Please try again.'
+      } else if (error?.status === 429) {
+        errorMessage = error?.message || 'Too many requests. Please wait a moment and try again.'
+      } else if (error?.message) {
+        errorMessage = error.message
+      } else if (error?.data?.Message) {
+        errorMessage = error.data.Message
+      } else if (error?.data?.message) {
+        errorMessage = error.data.message
+      }
+      
+      toast.error(errorMessage)
       setIsLoading(false)
     }
   }

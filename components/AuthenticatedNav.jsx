@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { signout } from '@/api/auth/auth'
+import { toast } from 'sonner'
 import {
   Home,
   Package,
@@ -37,21 +39,140 @@ import { Badge } from '@/components/ui/badge'
 export default function AuthenticatedNav() {
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [user, setUser] = useState(null)
 
-  // Mock user data - replace with actual auth state
-  const user = {
-    name: 'John Doe',
-    email: 'john@example.com',
-    avatar: '',
-    initials: 'JD',
-    credits: 250,
-    plan: 'Pro'
+  // Get user data from localStorage
+  useEffect(() => {
+    const getUserData = () => {
+      try {
+        const userData = localStorage.getItem('user')
+        const token = localStorage.getItem('authToken')
+        
+        // User is authenticated if they have user data OR token
+        if (userData) {
+          const parsedUser = JSON.parse(userData)
+          setUser(parsedUser)
+        } else if (token) {
+          // If only token exists, create minimal user object
+          setUser({
+            name: 'User',
+            email: '',
+            avatar: '',
+            initials: 'U',
+            credits: 0,
+            plan: 'Free'
+          })
+        } else {
+          // No user data or token
+          setUser(null)
+        }
+      } catch (error) {
+        console.error('Error parsing user data:', error)
+        setUser(null)
+      }
+    }
+
+    // Initial load
+    getUserData()
+    
+    // Listen for storage changes (works across tabs)
+    const handleStorageChange = (e) => {
+      if (e.key === 'user' || e.key === 'authToken') {
+        getUserData()
+      }
+    }
+    
+    // Custom event for same-tab storage changes
+    const handleCustomStorageChange = () => {
+      getUserData()
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('localStorageChange', handleCustomStorageChange)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('localStorageChange', handleCustomStorageChange)
+    }
+  }, [])
+
+  // Get user initials from name or email
+  const getUserInitials = (userData) => {
+    if (!userData) return 'U'
+    if (userData.displayName) {
+      const names = userData.displayName.split(' ')
+      if (names.length >= 2) {
+        return (names[0][0] + names[1][0]).toUpperCase()
+      }
+      return names[0][0].toUpperCase()
+    }
+    if (userData.name) {
+      const names = userData.name.split(' ')
+      if (names.length >= 2) {
+        return (names[0][0] + names[1][0]).toUpperCase()
+      }
+      return names[0][0].toUpperCase()
+    }
+    if (userData.email) {
+      return userData.email[0].toUpperCase()
+    }
+    return 'U'
   }
 
-  const handleSignOut = () => {
-    // Add actual sign out logic here
-    console.log('Signing out...')
-    router.push('/')
+  const handleSignOut = async () => {
+    try {
+      // Call signout API
+      await signout()
+      
+      // Clear all local storage
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+      
+      // Trigger storage change event to update UI
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('localStorageChange'))
+      }
+      
+      toast.success('Signed out successfully')
+      
+      // Redirect to home page with hard navigation to ensure UI updates
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Sign out error:', error)
+      
+      // Clear storage anyway even if API call fails
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+      
+      // Trigger storage change event
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('localStorageChange'))
+      }
+      
+      toast.error('Signed out (API call failed, but local session cleared)')
+      
+      // Redirect to home page
+      window.location.href = '/'
+    }
+  }
+
+  // Use user data or fallback
+  const userData = user ? {
+    name: user.displayName || user.name || user.email?.split('@')[0] || 'User',
+    email: user.email || '',
+    avatar: user.avatar || '',
+    initials: getUserInitials(user),
+    credits: user.credits || 0,
+    plan: user.plan || 'Free'
+  } : {
+    name: 'User',
+    email: '',
+    avatar: '',
+    initials: 'U',
+    credits: 0,
+    plan: 'Free'
   }
 
   const navItems = [
@@ -66,7 +187,7 @@ export default function AuthenticatedNav() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/processing" className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center gap-2 group">
             <motion.div
               className="relative"
               whileHover={{ scale: 1.05 }}
@@ -120,12 +241,12 @@ export default function AuthenticatedNav() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-2 px-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatar} />
+                    <AvatarImage src={userData.avatar} />
                     <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white">
-                      {user.initials}
+                      {userData.initials}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden md:inline text-sm font-medium">{user.name}</span>
+                  <span className="hidden md:inline text-sm font-medium">{userData.name}</span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
@@ -135,14 +256,14 @@ export default function AuthenticatedNav() {
                 <DropdownMenuLabel>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={user.avatar} />
+                      <AvatarImage src={userData.avatar} />
                       <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-lg">
-                        {user.initials}
+                        {userData.initials}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold truncate">{user.name}</div>
-                      <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+                      <div className="font-semibold truncate">{userData.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{userData.email}</div>
                     </div>
                   </div>
                 </DropdownMenuLabel>

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
+import { resetPassword } from '@/api/auth/auth'
 
 function ResetPasswordContent() {
   const router = useRouter()
@@ -91,24 +92,53 @@ function ResetPasswordContent() {
     }
 
     if (!token) {
-      toast.error('Invalid or expired reset link')
+      toast.error('Invalid or expired reset link. Please request a new password reset email.')
       return
     }
 
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      toast.success('Password reset successfully!')
-      
-      // Redirect to sign in after a short delay
-      setTimeout(() => {
-        router.push('/sign-in?passwordReset=true')
-      }, 1000)
+      // Call reset password API
+      const response = await resetPassword({
+        resetToken: token,
+        newPassword: formState.password,
+      })
+
+      // Check if reset was successful
+      if (response.success || response.status === 200) {
+        toast.success(response.message || 'Password reset successfully!')
+        
+        // Redirect to sign in after a short delay
+        setTimeout(() => {
+          router.push('/sign-in?passwordReset=true')
+        }, 1000)
+      } else {
+        throw new Error(response.message || 'Failed to reset password')
+      }
     } catch (error) {
-      toast.error('Failed to reset password. Please try again.')
+      console.error('Reset password error:', error)
+      
+      // Handle different error cases
+      let errorMessage = 'Failed to reset password. Please try again.'
+      
+      if (error?.code === 'INVALID_RESET_TOKEN' || error?.data?.Code === 'INVALID_RESET_TOKEN') {
+        errorMessage = error?.message || error?.data?.Message || 'Invalid or expired reset token. Please request a new password reset email.'
+      } else if (error?.status === 400) {
+        errorMessage = error?.message || error?.data?.Message || 'Invalid request. Please check your password and try again.'
+      } else if (error?.status === 404) {
+        errorMessage = error?.message || error?.data?.Message || 'Reset token not found. Please request a new password reset email.'
+      } else if (error?.status === 410) {
+        errorMessage = error?.message || error?.data?.Message || 'Reset token has expired. Please request a new password reset email.'
+      } else if (error?.message) {
+        errorMessage = error.message
+      } else if (error?.data?.Message) {
+        errorMessage = error.data.Message
+      } else if (error?.data?.message) {
+        errorMessage = error.data.message
+      }
+      
+      toast.error(errorMessage)
       setIsLoading(false)
     }
   }
