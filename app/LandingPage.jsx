@@ -176,6 +176,71 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Partnerships Section */}
+      <section className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30">
+        <div className="container px-4 py-20 md:py-28">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="mx-auto max-w-3xl text-center mb-16"
+          >
+            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-4">
+              Trusted by Industry Leaders
+            </p>
+            <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 md:text-4xl mb-3">
+              In partnership with the world&apos;s most innovative companies
+            </h2>
+            <p className="text-base text-zinc-600 dark:text-zinc-400">
+              Join thousands of leading brands that trust us with their image processing needs
+            </p>
+          </motion.div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 md:gap-8 items-center justify-items-center max-w-6xl mx-auto">
+            {[
+              { name: 'Shopify', slug: 'shopify', color: '96BF48' },
+              { name: 'IKEA', slug: 'ikea', color: '0058A3' },
+              { name: 'Adidas', slug: 'adidas', color: '000000' },
+              { name: 'H&M', slug: 'handm', color: 'DA291C', fallback: 'https://upload.wikimedia.org/wikipedia/commons/5/53/H%26M-Logo.svg' },
+              { name: 'Microsoft', slug: 'microsoft', color: '0078D4', fallback: 'https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg' },
+              { name: 'Oracle', slug: 'oracle', color: 'F80000', fallback: 'https://upload.wikimedia.org/wikipedia/commons/5/50/Oracle_logo.svg' },
+              { name: 'Amazon', slug: 'amazonaws', color: 'FF9900', fallback: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg' },
+              { name: 'Meta', slug: 'meta', color: '0081FB' },
+              { name: 'Netflix', slug: 'netflix', color: 'E50914' },
+              { name: 'Spotify', slug: 'spotify', color: '1DB954' },
+              { name: 'Formula 1', slug: 'formula1', color: 'E10600', fallback: 'https://upload.wikimedia.org/wikipedia/commons/3/33/F1.svg' },
+              { name: 'Tesla', slug: 'tesla', color: 'CC0000' },
+              { name: 'Nike', slug: 'nike', color: '000000' },
+              { name: 'Toyota', slug: 'toyota', color: 'EB0A1E', fallback: 'https://upload.wikimedia.org/wikipedia/commons/9/9d/Toyota_carlogo.svg' },
+              { name: 'Zara', slug: 'zara', color: '000000', fallback: 'https://upload.wikimedia.org/wikipedia/commons/f/fd/Zara_Logo.svg' },
+            ].map((company, index) => (
+              <motion.div
+                key={company.slug}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: index * 0.03 }}
+                whileHover={{ scale: 1.1, y: -4 }}
+                className="group flex items-center justify-center h-20 md:h-24 w-full p-4 rounded-xl bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 shadow-sm hover:shadow-md transition-all duration-300 grayscale hover:grayscale-0 opacity-70 hover:opacity-100"
+              >
+                <img
+                  src={company.fallback || `https://cdn.simpleicons.org/${company.slug}/${company.color}`}
+                  alt={`${company.name} logo`}
+                  className="h-10 md:h-12 w-auto object-contain max-w-[120px]"
+                  loading="lazy"
+                  onError={(e) => {
+                    if (company.fallback && e.target.src !== company.fallback) {
+                      e.target.src = company.fallback
+                    }
+                  }}
+                />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="container px-4 py-20 md:py-32">
