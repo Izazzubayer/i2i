@@ -56,16 +56,16 @@ export default function Header() {
         <Link href="/" className="flex items-center gap-2">
           <NextImage
             src="/logo.png"
-            alt="Rosetta Logo"
+            alt="i2i Logo"
             width={40}
             height={40}
             className="h-10 w-10 object-contain"
           />
           <div className="hidden sm:block">
-            <h1 className="text-xl font-bold">Rosetta</h1>
+            <h1 className="text-xl font-bold">i2i</h1>
           </div>
           <div className="sm:hidden">
-            <h1 className="text-lg font-bold">Rosetta</h1>
+            <h1 className="text-lg font-bold">i2i</h1>
           </div>
         </Link>
 

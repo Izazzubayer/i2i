@@ -74,14 +74,14 @@ export default function AuthenticatedNav() {
             >
               <Image
                 src="/logo.png"
-                alt="Rosetta Logo"
+                alt="i2i Logo"
                 width={40}
                 height={40}
                 className="h-10 w-10 object-contain"
               />
             </motion.div>
             <span className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-              Rosetta
+              i2i
             </span>
           </Link>
 
