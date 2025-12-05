@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Paperclip, Bot, User, X, FileText } from 'lucide-react'
+import { useStateuseRefuseEffectuseCallback } from 'react'
+import { motionAnimatePresence } from 'framer-motion'
+import { SendPaperclipBotUserXFileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -24,9 +24,9 @@ export default function InstructionChat({ onInstructionChange, onFileChange }) {
   ])
   const [input, setInput] = useState('')
   const [attachedFiles, setAttachedFiles] = useState([])
-  const [isTyping, setIsTyping] = useState(false)
-  const messagesEndRef = useRef(null)
-  const fileInputRef = useRef(null)
+  const [isTypingsetIsTyping] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

@@ -1,7 +1,7 @@
 "use client"
 
 import AuthenticatedNav from '@/components/AuthenticatedNav'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CardCardContentCardHeaderCardTitle } from '@/components/ui/card'
 
 const policies = [
   {

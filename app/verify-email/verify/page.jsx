@@ -137,7 +137,7 @@ function VerifyEmailHandler() {
                         Your account is now active!
                       </p>
                       <p className="text-sm text-green-700 dark:text-green-400">
-                        You&apos;ll be redirected to your workspace in a moment...
+                        You'll be redirected to your workspace in a moment...
                       </p>
                     </div>
                   </div>
