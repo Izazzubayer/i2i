@@ -53,16 +53,49 @@ export const getUserById = async (userId) => {
 
 /**
  * Update user profile
+ * Requires Authorization Bearer token
+ * @param {Object} userData - Updated user data
+ * @param {string} userData.displayName - User display name
+ * @param {string} userData.phoneNo - User phone number
+ * @param {string} userData.companyName - Company name
+ * @returns {Promise} API response
+ */
+export const updateProfile = async (userData) => {
+  try {
+    console.log('📝 Update Profile API Call')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('📤 Profile Data:', {
+      displayName: userData.displayName,
+      phoneNo: userData.phoneNo || '(empty)',
+      companyName: userData.companyName,
+    })
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    const response = await apiClient.put('/api/v1/Users/profile', {
+      displayName: userData.displayName,
+      phoneNo: userData.phoneNo || '', // Send empty string if not provided
+      companyName: userData.companyName,
+    })
+    
+    console.log('✅ Update Profile Response received')
+    console.log('📥 Response Status:', response.status)
+    console.log('📥 Response Data:', JSON.stringify(response.data, null, 2))
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    return response.data
+  } catch (error) {
+    console.error('❌ Update Profile API error:', error)
+    throw error
+  }
+}
+
+/**
+ * Update user profile (alias for updateProfile)
  * @param {Object} userData - Updated user data
  * @returns {Promise} API response
  */
 export const updateUser = async (userData) => {
-  try {
-    const response = await apiClient.put('/api/v1/Users/me', userData)
-    return response.data
-  } catch (error) {
-    throw error
-  }
+  return updateProfile(userData)
 }
 
 /**
@@ -83,21 +116,37 @@ export const changePassword = async (passwordData) => {
 
 /**
  * Upload user avatar
+ * Requires Authorization Bearer token
  * @param {File} avatarFile - Avatar image file
  * @returns {Promise} API response
  */
 export const uploadAvatar = async (avatarFile) => {
   try {
-    const formData = new FormData()
-    formData.append('avatar', avatarFile)
+    console.log('📤 Upload Avatar API Call')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('📤 File name:', avatarFile.name)
+    console.log('📤 File size:', avatarFile.size, 'bytes')
+    console.log('📤 File type:', avatarFile.type)
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     
-    const response = await apiClient.post('/api/v1/Users/avatar', formData, {
+    const formData = new FormData()
+    formData.append('AvatarFile', avatarFile) // Field name must be 'AvatarFile' as per API
+    
+    const response = await apiClient.put('/api/v1/Users/avatar', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
+        'Accept': 'text/plain',
       },
     })
+    
+    console.log('✅ Upload Avatar Response received')
+    console.log('📥 Response Status:', response.status)
+    console.log('📥 Response Data:', JSON.stringify(response.data, null, 2))
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
     return response.data
   } catch (error) {
+    console.error('❌ Upload Avatar API error:', error)
     throw error
   }
 }
@@ -107,6 +156,7 @@ export default {
   getProfile,
   getCurrentUser,
   getUserById,
+  updateProfile,
   updateUser,
   changePassword,
   uploadAvatar,

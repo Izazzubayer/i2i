@@ -162,7 +162,7 @@ export default function AuthenticatedNav() {
   const userData = user ? {
     name: user.displayName || user.name || user.email?.split('@')[0] || 'User',
     email: user.email || '',
-    avatar: user.avatar || '',
+    avatar: user.avatarUrl || user.avatar || '', // Prioritize avatarUrl
     initials: getUserInitials(user),
     credits: user.credits || 0,
     plan: user.plan || 'Free'
