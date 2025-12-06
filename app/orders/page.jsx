@@ -299,27 +299,39 @@ export default function OrdersPage() {
   const handleConnectDAM = useCallback((order) => {
     setSelectedOrderForDAM(order)
     
-    // If no DAM connections, show connect dialog
+    // If no DAM connections, redirect to integrations page in new tab
     if (!damConnections || damConnections.length === 0) {
-      setDamDialogOpen(true)
+      // Open integrations page in new tab so user can connect DAM
+      window.open('/integrations', '_blank')
+      toast.info(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+            <Cloud className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Connect DAM First
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Opening integrations page in a new tab. Connect a DAM and return here to upload.
+            </p>
+          </div>
+        </div>
+      )
       return
     }
     
-    // If only one DAM connection, use it directly
-    if (damConnections.length === 1) {
-      handleUploadToDAM(order, damConnections[0])
-      return
-    }
-    
-    // If multiple DAM connections, show selection modal
+    // Show selection modal with connected DAMs
     setDamSelectModalOpen(true)
   }, [damConnections])
 
   const handleDamConnect = useCallback(async (config) => {
-    addDamConnection(config)
+    const newConnection = addDamConnection(config)
     setDamDialogOpen(false)
     if (selectedOrderForDAM) {
-      await handleUploadToDAM(selectedOrderForDAM, config)
+      // After connecting new DAM, show selection modal so user can choose
+      // This allows them to see all available options including the new one
+      setDamSelectModalOpen(true)
     }
   }, [selectedOrderForDAM, addDamConnection])
 
@@ -835,53 +847,59 @@ export default function OrdersPage() {
         onConnect={handleDamConnect}
       />
 
-      {/* DAM Selection Modal - When multiple DAM connections exist */}
+      {/* DAM Selection Modal - Shows all connected DAMs in grid */}
       <Dialog open={damSelectModalOpen} onOpenChange={setDamSelectModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Cloud className="h-5 w-5 text-primary" />
-              Select DAM Platform
-            </DialogTitle>
+            <DialogTitle>Select DAM Platform</DialogTitle>
             <DialogDescription>
-              Choose which Digital Asset Management platform to upload your images to
+              {selectedOrderForDAM 
+                ? `Choose a DAM platform to upload ${selectedOrderForDAM.images || 0} image${selectedOrderForDAM.images !== 1 ? 's' : ''} from "${selectedOrderForDAM.name}"`
+                : 'Choose which Digital Asset Management platform to upload your images to'
+              }
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-3 py-4">
-            {damConnections && damConnections.map((connection) => (
-              <motion.div
-                key={connection.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.02 }}
-                className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                  activeDamConnection?.id === connection.id
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border bg-background hover:border-primary/50'
-                }`}
-                onClick={() => {
-                  if (selectedOrderForDAM) {
-                    handleUploadToDAM(selectedOrderForDAM, connection)
-                  }
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 flex items-center justify-center">
-                    <Cloud className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <div className="py-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {damConnections && damConnections.map((connection) => (
+                <motion.div
+                  key={connection.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`flex items-center gap-4 p-4 border rounded-lg transition-all cursor-pointer ${
+                    activeDamConnection?.id === connection.id
+                      ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20 shadow-md'
+                      : 'border-border bg-background hover:bg-muted/50 hover:border-primary/50'
+                  }`}
+                  onClick={() => {
+                    if (selectedOrderForDAM) {
+                      handleUploadToDAM(selectedOrderForDAM, connection)
+                    }
+                  }}
+                >
+                  <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 flex items-center justify-center">
+                    <Cloud className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <div>
-                    <p className="font-semibold text-sm">{connection.name}</p>
-                    <p className="text-xs text-muted-foreground">{connection.provider}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm truncate">{connection.name}</p>
+                      {activeDamConnection?.id === connection.id && (
+                        <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{connection.provider}</p>
+                    {connection.workspace && (
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {connection.workspace}
+                      </p>
+                    )}
                   </div>
-                </div>
-                {activeDamConnection?.id === connection.id && (
-                  <Badge variant="outline" className="bg-primary/10 border-primary/20">
-                    Active
-                  </Badge>
-                )}
-              </motion.div>
-            ))}
+                </motion.div>
+              ))}
+            </div>
           </div>
 
           <DialogFooter>
@@ -897,7 +915,8 @@ export default function OrdersPage() {
             <Button 
               onClick={() => {
                 setDamSelectModalOpen(false)
-                setDamDialogOpen(true)
+                // Open integrations page in new tab to connect new DAM
+                window.open('/integrations', '_blank')
               }}
             >
               <Cloud className="mr-2 h-4 w-4" />

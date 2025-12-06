@@ -1410,6 +1410,8 @@ export default function ProcessingResultsPage() {
                       // Get the selected version's processed URL
                       const selectedVersion = image.versions?.find(v => v.id === image.selectedVersionId)
                       const displayProcessedUrl = selectedVersion?.processedUrl || image.processedUrl
+                      // Fallback to original image if processed image not available
+                      const displayImageUrl = displayProcessedUrl || image.originalUrl
                       
                       return image.status === STATUSES.IN_PROGRESS ? (
                       <motion.div 
@@ -1423,7 +1425,20 @@ export default function ProcessingResultsPage() {
                           ease: "easeInOut"
                         }}
                       >
+                        {/* Show original image as background when processing */}
+                        {image.originalUrl && (
+                          <div className="absolute inset-0 opacity-30">
+                            <Image
+                              src={image.originalUrl}
+                              alt={image.originalName}
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            />
+                          </div>
+                        )}
                         <motion.div
+                          className="relative z-10"
                           animate={{ 
                             scale: [1, 1.15, 1],
                             rotate: 360
@@ -1446,21 +1461,39 @@ export default function ProcessingResultsPage() {
                       </motion.div>
                     ) : image.status === STATUSES.DELETED ? (
                       <div className="absolute inset-0 flex items-center justify-center bg-muted/80">
-                        <Trash2 className="h-12 w-12 text-muted-foreground" />
+                        {/* Show original image faded when deleted */}
+                        {image.originalUrl && (
+                          <div className="absolute inset-0 opacity-20">
+                            <Image
+                              src={image.originalUrl}
+                              alt={image.originalName}
+                              fill
+                              className="object-cover grayscale"
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            />
+                          </div>
+                        )}
+                        <Trash2 className="h-12 w-12 text-muted-foreground relative z-10" />
                       </div>
-                    ) : displayProcessedUrl ? (
+                    ) : displayImageUrl ? (
                       <motion.div
-                        whileHover={{ scale: 1.1 }}
+                        whileHover={{ scale: 1.05 }}
                         transition={{ duration: 0.3 }}
                         className="relative w-full h-full"
                       >
                         <Image
-                          src={displayProcessedUrl}
+                          src={displayImageUrl}
                           alt={image.originalName}
                           fill
                           className="object-cover"
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
+                        {/* Badge indicating if showing original vs processed */}
+                        {!displayProcessedUrl && displayImageUrl && (
+                          <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-muted-foreground">
+                            Original
+                          </div>
+                        )}
                       </motion.div>
                     ) : (
                       <motion.div 
