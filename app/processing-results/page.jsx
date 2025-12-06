@@ -785,7 +785,8 @@ export default function ProcessingResultsPage() {
         images: images.length,
         status: 'completed',
         completedAt: new Date().toISOString(),
-        credits: processedImages.length,
+        images: processedImages.length,
+        tokens: processedImages.length * 20, // Assuming 20 tokens per image
         size: `${sizeInGB} GB`,
         instructions: batch?.instruction || batch?.instructions || '',
         processedCount: processedImages.length,

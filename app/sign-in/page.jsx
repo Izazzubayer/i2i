@@ -117,7 +117,7 @@ function SignInContent() {
               Sign in to your i2i workspace
             </h1>
             <p className="max-w-xl text-base text-muted-foreground">
-              Manage batches, review results, and track credit usage from a single dashboard. Use your work email to continue.
+              Manage batches, review results, and track image and token usage from a single dashboard. Use your work email to continue.
             </p>
           </div>
           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">

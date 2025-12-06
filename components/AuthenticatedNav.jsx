@@ -59,7 +59,8 @@ export default function AuthenticatedNav() {
             email: '',
             avatar: '',
             initials: 'U',
-            credits: 0,
+            images: 0,
+            tokens: 0,
             plan: 'Free'
           })
         } else {
@@ -164,7 +165,8 @@ export default function AuthenticatedNav() {
     email: user.email || '',
     avatar: user.avatarUrl || user.avatar || '', // Prioritize avatarUrl
     initials: getUserInitials(user),
-    credits: user.credits || 0,
+    images: user.images || 0,
+    tokens: user.tokens || 0,
     plan: user.plan || 'Free'
   } : {
     name: 'User',

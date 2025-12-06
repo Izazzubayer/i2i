@@ -65,7 +65,7 @@ const SORT_OPTIONS = {
   NAME: 'name',
   IMAGES: 'images',
   SIZE: 'size',
-  CREDITS: 'credits',
+  IMAGES: 'images',
 }
 
 export default function OrdersPage() {
@@ -93,7 +93,8 @@ export default function OrdersPage() {
           status: 'completed',
           createdAt: '2024-11-10T14:30:00',
           completedAt: '2024-11-10T15:45:00',
-          credits: 120,
+          images: 120,
+          tokens: 2400,
           size: '4.2 GB',
           instructions: 'Remove background, enhance colors, resize to 1920x1080',
           processedCount: 120,
@@ -108,7 +109,8 @@ export default function OrdersPage() {
           status: 'processing',
           createdAt: '2024-11-10T16:00:00',
           progress: 67,
-          credits: 45,
+          images: 45,
+          tokens: 900,
           size: '1.8 GB',
           instructions: 'Enhance contrast, remove noise, optimize for web',
           processedCount: 30,
@@ -123,7 +125,8 @@ export default function OrdersPage() {
           status: 'completed',
           createdAt: '2024-11-09T10:15:00',
           completedAt: '2024-11-09T12:30:00',
-          credits: 85,
+          images: 85,
+          tokens: 1700,
           size: '3.1 GB',
           instructions: 'Color correction, background removal, smart cropping',
           processedCount: 85,
@@ -138,7 +141,8 @@ export default function OrdersPage() {
           status: 'failed',
           createdAt: '2024-11-08T09:00:00',
           error: 'Processing timeout',
-          credits: 15,
+          images: 15,
+          tokens: 300,
           size: '890 MB',
           instructions: 'Resize to social media formats, add branding',
           processedCount: 15,
@@ -153,7 +157,8 @@ export default function OrdersPage() {
           status: 'completed',
           createdAt: '2024-11-07T08:00:00',
           completedAt: '2024-11-07T11:20:00',
-          credits: 200,
+          images: 200,
+          tokens: 4000,
           size: '6.8 GB',
           instructions: 'White background, consistent lighting, product isolation',
           processedCount: 200,
@@ -167,7 +172,8 @@ export default function OrdersPage() {
           images: 15,
           status: 'queued',
           createdAt: '2024-11-10T17:00:00',
-          credits: 15,
+          images: 15,
+          tokens: 300,
           size: '520 MB',
           instructions: 'Optimize for web, compress without quality loss',
           processedCount: 0,
@@ -231,8 +237,8 @@ export default function OrdersPage() {
           const sizeA = parseFloat(a.size || '0')
           const sizeB = parseFloat(b.size || '0')
           return sizeB - sizeA
-        case SORT_OPTIONS.CREDITS:
-          return (b.credits || 0) - (a.credits || 0)
+        case SORT_OPTIONS.IMAGES:
+          return (b.images || 0) - (a.images || 0)
         case SORT_OPTIONS.NEWEST:
         default:
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -531,7 +537,6 @@ export default function OrdersPage() {
                         <SelectItem value={SORT_OPTIONS.NAME}>Name (A-Z)</SelectItem>
                         <SelectItem value={SORT_OPTIONS.IMAGES}>Most Images</SelectItem>
                         <SelectItem value={SORT_OPTIONS.SIZE}>Largest Size</SelectItem>
-                        <SelectItem value={SORT_OPTIONS.CREDITS}>Most Credits</SelectItem>
                       </SelectContent>
                     </Select>
                     <Button
@@ -686,8 +691,8 @@ export default function OrdersPage() {
                             <div className="flex items-center gap-2">
                               <Sparkles className="h-4 w-4 text-muted-foreground" />
                               <div>
-                                <p className="text-xs text-muted-foreground">Credits</p>
-                                <p className="text-sm font-semibold">{order.credits || 0}</p>
+                                <p className="text-xs text-muted-foreground">Images</p>
+                                <p className="text-sm font-semibold">{order.images || 0}</p>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">

@@ -79,7 +79,8 @@ export default function OrderDetailPage() {
       approvedCount: 14,
       retouchCount: 2,
       failedCount: 0,
-      credits: 16,
+      images: 16,
+      tokens: 320,
       size: '4.2 GB',
       imagesData: Array.from({ length: 16 }, (_, i) => ({
         id: `img-${i}`,
@@ -375,8 +376,15 @@ export default function OrderDetailPage() {
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Credits</p>
-                    <p className="text-sm font-semibold">{displayOrder.credits || 0}</p>
+                    <p className="text-xs text-muted-foreground">Images</p>
+                    <p className="text-sm font-semibold">{displayOrder.images || 0}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Tokens</p>
+                    <p className="text-sm font-semibold">{displayOrder.tokens || 0}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

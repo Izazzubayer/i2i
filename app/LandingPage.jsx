@@ -58,7 +58,8 @@ const plans = [
     period: '/month',
     description: 'Perfect for individuals',
     features: [
-      '500 credits/month',
+      '500 images/month',
+      '10,000 tokens/month',
       'Basic processing',
       'Email support',
       'API access'
@@ -71,7 +72,8 @@ const plans = [
     period: '/month',
     description: 'Best for growing teams',
     features: [
-      '1,000 credits/month',
+      '1,000 images/month',
+      '25,000 tokens/month',
       'Advanced processing',
       'Priority support',
       'Full API access',
@@ -86,7 +88,8 @@ const plans = [
     period: '',
     description: 'For large organizations',
     features: [
-      'Unlimited credits',
+      'Unlimited images',
+      'Unlimited tokens',
       'Premium processing',
       'Dedicated support',
       'SLA guarantee',

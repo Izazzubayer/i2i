@@ -233,7 +233,7 @@ export default function SignUpPage() {
             </p>
           </div>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>✓ 2,000 free credits on day one</li>
+            <li>✓ 100 free images and 2,000 tokens on day one</li>
             <li>✓ Collaboration-ready workspaces</li>
             <li>✓ SOC2 & GDPR compliant infrastructure</li>
           </ul>

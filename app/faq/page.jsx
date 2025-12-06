@@ -68,7 +68,7 @@ const faqData = {
     },
     {
       question: "What happens if my order fails?",
-      answer: "If an order fails, you'll receive a notification with error details. Common issues include unsupported file formats, corrupted files, or processing errors. You can retry the order or contact support for assistance. Credits are typically refunded for failed orders."
+      answer: "If an order fails, you'll receive a notification with error details. Common issues include unsupported file formats, corrupted files, or processing errors. You can retry the order or contact support for assistance. Images and tokens are typically refunded for failed orders."
     },
     {
       question: "Can I cancel an order?",
@@ -94,7 +94,7 @@ const faqData = {
     },
     {
       question: "What happens if I exceed my plan limits?",
-      answer: "If you exceed your plan's processing limits, you'll need to upgrade your plan or purchase additional credits. You'll receive notifications when approaching your limits to help you plan accordingly."
+      answer: "If you exceed your plan's processing limits, you'll need to upgrade your plan or purchase additional images and tokens. You'll receive notifications when approaching your limits to help you plan accordingly."
     },
     {
       question: "How do I update my payment method?",
@@ -102,7 +102,7 @@ const faqData = {
     },
     {
       question: "Can I get a refund?",
-      answer: "Refunds are available for unused portions of subscriptions within 30 days of purchase, subject to our refund policy. Processing credits are generally non-refundable once used, but failed orders are automatically refunded."
+      answer: "Refunds are available for unused portions of subscriptions within 30 days of purchase, subject to our refund policy. Images and tokens are generally non-refundable once used, but failed orders are automatically refunded."
     }
   ],
   notifications: [
