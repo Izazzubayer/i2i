@@ -458,14 +458,12 @@ export default function OrdersPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid gap-4 mb-8 sm:grid-cols-2 lg:grid-cols-5"
+          className="grid gap-4 mb-8 sm:grid-cols-2 lg:grid-cols-3"
         >
           {[
             { label: 'All Orders', value: ordersByStatus.all, icon: Package },
             { label: 'Completed', value: ordersByStatus.completed, icon: CheckCircle2 },
             { label: 'Processing', value: ordersByStatus.processing, icon: Loader2 },
-            { label: 'Queued', value: ordersByStatus.queued, icon: Clock },
-            { label: 'Failed', value: ordersByStatus.failed, icon: XCircle },
           ].map((stat) => (
             <motion.div
               key={stat.label}
@@ -686,13 +684,6 @@ export default function OrdersPage() {
                               <div>
                                 <p className="text-xs text-muted-foreground">Size</p>
                                 <p className="text-sm font-semibold">{order.size || 'N/A'}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Sparkles className="h-4 w-4 text-muted-foreground" />
-                              <div>
-                                <p className="text-xs text-muted-foreground">Images</p>
-                                <p className="text-sm font-semibold">{order.images || 0}</p>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">

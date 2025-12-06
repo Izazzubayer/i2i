@@ -351,11 +351,11 @@ export default function OrderDetailPage() {
         >
           <Card className="border-border">
             <CardContent className="p-6">
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
                 <div className="flex items-center gap-2">
                   <ImageIcon className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Total</p>
+                    <p className="text-xs text-muted-foreground">Total Images</p>
                     <p className="text-sm font-semibold">{displayOrder.images || 0}</p>
                   </div>
                 </div>
@@ -371,13 +371,6 @@ export default function OrderDetailPage() {
                   <div>
                     <p className="text-xs text-muted-foreground">Amendments</p>
                     <p className="text-sm font-semibold">{displayOrder.retouchCount || 0}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Images</p>
-                    <p className="text-sm font-semibold">{displayOrder.images || 0}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
