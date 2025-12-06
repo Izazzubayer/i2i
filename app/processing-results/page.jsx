@@ -764,7 +764,7 @@ export default function ProcessingResultsPage() {
                       <p className="text-xs text-muted-foreground">In Progress</p>
                     </div>
                   </div>
-                  <Loader2 className="h-5 w-5 animate-spin text-foreground" />
+                  <Loader2 className={`h-5 w-5 text-foreground ${statusCounts.in_progress > 0 ? 'animate-spin' : ''}`} />
                 </div>
               </CardContent>
             </Card>
