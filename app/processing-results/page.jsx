@@ -138,7 +138,22 @@ export default function ProcessingResultsPage() {
               prompt: img.instruction || batch?.instruction || '',
             }
             
-            toast.success(`${img.originalName || 'Image'} processed`, { duration: 2000 })
+            toast.success(
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm text-black dark:text-white">
+                    {img.originalName || 'Image'} processed
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                    Processing completed successfully
+                  </p>
+                </div>
+              </div>,
+              { duration: 2000 }
+            )
             return prev.map((i) =>
               i.id === img.id
                 ? {
@@ -295,12 +310,40 @@ export default function ProcessingResultsPage() {
         return prev
       })
       
-      toast.success('Image reprocessed successfully')
+      toast.success(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <RotateCcw className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Image reprocessed
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Processing completed successfully
+            </p>
+          </div>
+        </div>
+      )
       setReprocessModalOpen(false)
       setReprocessPrompt('')
       setReprocessImageId(null)
     } catch (error) {
-      toast.error('Failed to reprocess image')
+      toast.error(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Reprocessing failed
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Please try again later
+            </p>
+          </div>
+        </div>
+      )
     } finally {
       setIsReprocessing(false)
     }
@@ -318,7 +361,21 @@ export default function ProcessingResultsPage() {
         }) : [])
     
     if (imagesToDelete.length === 0) {
-      toast.error('Please select at least one image to delete')
+      toast.error(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              No images selected
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Please select at least one image to delete
+            </p>
+          </div>
+        </div>
+      )
       return
     }
 
@@ -347,9 +404,37 @@ export default function ProcessingResultsPage() {
         imagesToDelete.forEach(id => newSet.delete(id))
         return newSet
       })
-      toast.success(`${imagesToDelete.length} images deleted`)
+      toast.success(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <Trash2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              {imagesToDelete.length} images deleted
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              You can undo this action
+            </p>
+          </div>
+        </div>
+      )
     } else {
-      toast.success('Image deleted')
+      toast.success(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <Trash2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Image deleted
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              You can undo this action
+            </p>
+          </div>
+        </div>
+      )
     }
     setContextMenu(null)
   }, [images, selectedImages])
@@ -371,7 +456,21 @@ export default function ProcessingResultsPage() {
         )
       )
       imageHistoryRef.current.delete(imageId)
-      toast.success('Action undone')
+      toast.success(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <Undo2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Action undone
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Previous state restored
+            </p>
+          </div>
+        </div>
+      )
     }
     setContextMenu(null)
   }, [])
@@ -408,7 +507,21 @@ export default function ProcessingResultsPage() {
     const targetImageId = imageId || (selectedImages.size > 0 ? Array.from(selectedImages)[0] : null)
     
     if (!targetImageId) {
-      toast.error('Please select at least one image to amend')
+      toast.error(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <FileEdit className="h-4 w-4 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              No images selected
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Please select at least one image to amend
+            </p>
+          </div>
+        </div>
+      )
       return
     }
     
@@ -421,7 +534,21 @@ export default function ProcessingResultsPage() {
   // Apply amendment - support single or bulk, handle all state transitions
   const handleApplyAmendment = useCallback(async () => {
     if (!amendmentImageId || !amendmentInstruction.trim()) {
-      toast.error('Please enter amendment instructions')
+      toast.error(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <FileEdit className="h-4 w-4 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Instructions required
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Please enter amendment instructions
+            </p>
+          </div>
+        </div>
+      )
       return
     }
 
@@ -490,16 +617,58 @@ export default function ProcessingResultsPage() {
           imagesToAmend.forEach(id => newSet.delete(id))
           return newSet
         })
-        toast.success(`${imagesToAmend.length} images amended successfully`)
+        toast.success(
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <FileEdit className="h-4 w-4 text-green-600 dark:text-green-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-black dark:text-white">
+                {imagesToAmend.length} images amended
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                Amendment applied successfully
+              </p>
+            </div>
+          </div>
+        )
       } else {
-        toast.success('Amendment applied successfully')
+        toast.success(
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <FileEdit className="h-4 w-4 text-green-600 dark:text-green-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-black dark:text-white">
+                Amendment applied
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                Your changes have been saved
+              </p>
+            </div>
+          </div>
+        )
       }
       
       setAmendmentModalOpen(false)
       setAmendmentInstruction('')
       setAmendmentImageId(null)
     } catch (error) {
-      toast.error('Failed to apply amendment')
+      toast.error(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Amendment failed
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Please try again later
+            </p>
+          </div>
+        </div>
+      )
     } finally {
       setIsApplyingAmendment(false)
     }
@@ -580,7 +749,21 @@ export default function ProcessingResultsPage() {
     const processedImages = images.filter(img => img.status === STATUSES.PROCESSED || img.status === STATUSES.AMENDMENT)
     
     if (processedImages.length === 0) {
-      toast.error('No processed images to confirm')
+      toast.error(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <CheckCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              No images to confirm
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              No processed images available
+            </p>
+          </div>
+        </div>
+      )
       return
     }
 
@@ -621,13 +804,41 @@ export default function ProcessingResultsPage() {
       
       addOrder(orderData)
       
-      toast.success(`Order confirmed! ${processedImages.length} image(s) ready.`)
+      toast.success(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Order confirmed!
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              {processedImages.length} image(s) ready
+            </p>
+          </div>
+        </div>
+      )
       // Navigate to orders page or show success
       setTimeout(() => {
         router.push('/orders')
       }, 1500)
     } catch (error) {
-      toast.error('Failed to confirm order')
+      toast.error(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Order confirmation failed
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Please try again later
+            </p>
+          </div>
+        </div>
+      )
     } finally {
       setIsConfirmingOrder(false)
     }

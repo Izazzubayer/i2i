@@ -22,7 +22,18 @@ export default function RootLayout({ children }) {
         <ThemeProvider>
           <TooltipProvider>
             {children}
-            <Toaster position="bottom-right" richColors />
+            <Toaster 
+              position="bottom-right" 
+              richColors
+              toastOptions={{
+                className: 'toast-class',
+                style: {
+                  borderRadius: '12px',
+                  padding: '16px',
+                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                },
+              }}
+            />
           </TooltipProvider>
         </ThemeProvider>
       </body>

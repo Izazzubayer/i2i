@@ -273,20 +273,21 @@ export default function PageChat() {
     if (imageFiles.length > 0) {
       setUploadedImages(prev => [...prev, ...imageFiles])
       toast.success(
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground/10">
-            <ImageIcon className="h-4 w-4 text-foreground" />
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <ImageIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
           </div>
-          <div className="flex flex-col">
-            <p className="font-semibold text-sm">Images Added</p>
-            <p className="text-xs text-muted-foreground">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Images Added
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
               {imageFiles.length} {imageFiles.length === 1 ? 'image' : 'images'} ready for processing
             </p>
           </div>
         </div>,
         {
           duration: 3000,
-          className: 'border-border',
         }
       )
     }
@@ -295,20 +296,21 @@ export default function PageChat() {
     if (nonImageFiles.length > 0) {
       setAttachedFiles(prev => [...prev, ...nonImageFiles])
       toast.success(
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground/10">
-            <FileText className="h-4 w-4 text-foreground" />
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
           </div>
-          <div className="flex flex-col">
-            <p className="font-semibold text-sm">Files Attached</p>
-            <p className="text-xs text-muted-foreground">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Files Attached
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
               {nonImageFiles.length} {nonImageFiles.length === 1 ? 'file' : 'files'} attached successfully
             </p>
           </div>
         </div>,
         {
           duration: 3000,
-          className: 'border-border',
         }
       )
     }
@@ -326,38 +328,40 @@ export default function PageChat() {
     if (imageFiles.length > 0) {
       setUploadedImages(prev => [...prev, ...imageFiles])
       toast.success(
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground/10">
-            <Folder className="h-4 w-4 text-foreground" />
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <Folder className="h-4 w-4 text-green-600 dark:text-green-400" />
           </div>
-          <div className="flex flex-col">
-            <p className="font-semibold text-sm">Folder Imported</p>
-            <p className="text-xs text-muted-foreground">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Folder Imported
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
               {imageFiles.length} {imageFiles.length === 1 ? 'image' : 'images'} imported from folder
             </p>
           </div>
         </div>,
         {
           duration: 3000,
-          className: 'border-border',
         }
       )
     } else {
       toast.error(
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-destructive/10">
-            <X className="h-4 w-4 text-destructive" />
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <X className="h-4 w-4 text-red-600 dark:text-red-400" />
           </div>
-          <div className="flex flex-col">
-            <p className="font-semibold text-sm">No Images Found</p>
-            <p className="text-xs text-muted-foreground">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              No Images Found
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
               The selected folder does not contain any image files
             </p>
           </div>
         </div>,
         {
           duration: 3000,
-          className: 'border-border',
         }
       )
     }
@@ -369,23 +373,24 @@ export default function PageChat() {
 
   const onDropImages = useCallback((acceptedFiles) => {
     setUploadedImages(prev => [...prev, ...acceptedFiles])
-    toast.success(
-      <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground/10">
-          <CheckCircle2 className="h-4 w-4 text-foreground" />
-        </div>
-        <div className="flex flex-col">
-          <p className="font-semibold text-sm">Images Uploaded Successfully</p>
-          <p className="text-xs text-muted-foreground">
-            {acceptedFiles.length} {acceptedFiles.length === 1 ? 'image' : 'images'} ready for processing
-          </p>
-        </div>
-      </div>,
-      {
-        duration: 3000,
-        className: 'border-border',
-      }
-    )
+      toast.success(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Images Uploaded Successfully
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              {acceptedFiles.length} {acceptedFiles.length === 1 ? 'image' : 'images'} ready for processing
+            </p>
+          </div>
+        </div>,
+        {
+          duration: 3000,
+        }
+      )
   }, [])
 
   const {
@@ -1198,7 +1203,21 @@ export default function PageChat() {
                     const allImages = [...uploadedImages, ...attachedFiles.filter(f => f.type.startsWith('image/'))]
                     
                     if (allImages.length === 0) {
-                      toast.error('Please upload at least one image')
+                      toast.error(
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                            <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm text-black dark:text-white">
+                              No images selected
+                            </p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                              Please upload at least one image
+                            </p>
+                          </div>
+                        </div>
+                      )
                       return
                     }
                     

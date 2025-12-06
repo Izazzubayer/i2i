@@ -3,7 +3,7 @@
 import { useStateuseCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
-import { UploadXLoader2ArrowRightImageageIconHardDriveSparklesEditCoinsDollarSign } from 'lucide-react'
+import { Upload, X, Loader2, ArrowRight, Image as ImageIcon, HardDrive, Sparkles, Edit, Coins, DollarSign, CheckCircle2 } from 'lucide-react'
 import Image from 'next/image'
 import { motionAnimatePresence } from 'framer-motion'
 import { CardCardContentCardDescriptionCardHeaderCardTitle } from '@/components/ui/card'
@@ -127,13 +127,41 @@ All processed images will maintain original quality while applying the requested
 
       setTimeout(() => {
         setCollapsed(true)
-        toast.success('Upload complete! Processing started...')
+        toast.success(
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-black dark:text-white">
+                Upload complete!
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                Processing started...
+              </p>
+            </div>
+          </div>
+        )
         // Navigate to processing page
         router.push('/processing')
       }, 500)
     } catch (error) {
       console.error('Upload failed:', error)
-      toast.error('Upload failed. Please try again.')
+      toast.error(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Upload failed
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Please try again
+            </p>
+          </div>
+        </div>
+      )
       setUploadProgress(0)
     } finally {
       setUploading(false)
