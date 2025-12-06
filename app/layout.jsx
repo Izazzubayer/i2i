@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ThemeProvider from "@/components/ThemeProvider";
 import NavigationProgress from "@/components/NavigationProgress";
+import Footer from "@/components/Footer";
 
 const plusJakartaSans = Plus_Jakarta_Sans({ 
   subsets: ["latin"],
@@ -23,7 +24,10 @@ export default function RootLayout({ children }) {
         <ThemeProvider>
           <TooltipProvider>
             <NavigationProgress />
-            {children}
+            <div className="flex flex-col min-h-screen">
+              {children}
+              <Footer />
+            </div>
             <Toaster 
               position="bottom-right" 
               richColors
