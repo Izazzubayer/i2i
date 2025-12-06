@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -40,6 +40,19 @@ export default function AuthenticatedNav() {
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [user, setUser] = useState(null)
+  const [navigatingTo, setNavigatingTo] = useState(null)
+
+  const handleNavigation = useCallback((path) => {
+    setNavigatingTo(path)
+    // Prefetch immediately
+    router.prefetch(path)
+    // Navigate with minimal delay to allow prefetch to start
+    requestAnimationFrame(() => {
+      router.push(path)
+      // Reset navigating state after navigation
+      setTimeout(() => setNavigatingTo(null), 300)
+    })
+  }, [router])
 
   // Get user data from localStorage
   useEffect(() => {
@@ -211,7 +224,7 @@ export default function AuthenticatedNav() {
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => (
-              <Link key={item.href} href={item.href}>
+              <Link key={item.href} href={item.href} prefetch={true}>
                 <Button variant="ghost" className="gap-2">
                   <item.icon className="h-4 w-4" />
                   {item.label}
@@ -274,8 +287,9 @@ export default function AuthenticatedNav() {
 
                 {/* Account */}
                 <DropdownMenuItem
-                  onClick={() => router.push('/account')}
+                  onClick={() => handleNavigation('/account')}
                   className="cursor-pointer"
+                  disabled={navigatingTo === '/account'}
                 >
                   <User className="mr-2 h-4 w-4" />
                   Account
@@ -283,8 +297,9 @@ export default function AuthenticatedNav() {
 
                 {/* Login & Security */}
                 <DropdownMenuItem
-                  onClick={() => router.push('/account/security')}
+                  onClick={() => handleNavigation('/account/security')}
                   className="cursor-pointer"
+                  disabled={navigatingTo === '/account/security'}
                 >
                   <Shield className="mr-2 h-4 w-4" />
                   Login & Security
@@ -292,8 +307,9 @@ export default function AuthenticatedNav() {
 
                 {/* Notifications */}
                 <DropdownMenuItem
-                  onClick={() => router.push('/account/notifications')}
+                  onClick={() => handleNavigation('/account/notifications')}
                   className="cursor-pointer"
+                  disabled={navigatingTo === '/account/notifications'}
                 >
                   <Bell className="mr-2 h-4 w-4" />
                   Notifications
@@ -303,8 +319,9 @@ export default function AuthenticatedNav() {
 
                 {/* Billing & Subscription */}
                 <DropdownMenuItem
-                  onClick={() => router.push('/billing')}
+                  onClick={() => handleNavigation('/billing')}
                   className="cursor-pointer"
+                  disabled={navigatingTo === '/billing'}
                 >
                   <CreditCard className="mr-2 h-4 w-4" />
                   Billing & Subscription
@@ -313,8 +330,9 @@ export default function AuthenticatedNav() {
 
                 {/* Integrations */}
                 <DropdownMenuItem
-                  onClick={() => router.push('/integrations')}
+                  onClick={() => handleNavigation('/integrations')}
                   className="cursor-pointer"
+                  disabled={navigatingTo === '/integrations'}
                 >
                   <Cloud className="mr-2 h-4 w-4" />
                   Integrations
@@ -359,6 +377,7 @@ export default function AuthenticatedNav() {
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={true}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <Button variant="ghost" className="w-full justify-start gap-2">

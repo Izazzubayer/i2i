@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ThemeProvider from "@/components/ThemeProvider";
+import NavigationProgress from "@/components/NavigationProgress";
 
 const plusJakartaSans = Plus_Jakarta_Sans({ 
   subsets: ["latin"],
@@ -21,6 +22,7 @@ export default function RootLayout({ children }) {
       <body className={plusJakartaSans.className}>
         <ThemeProvider>
           <TooltipProvider>
+            <NavigationProgress />
             {children}
             <Toaster 
               position="bottom-right" 

@@ -73,16 +73,14 @@ export default function Header() {
         <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
           {navigationItems.map((item) => {
             return (
-              <Button 
-                key={item.href}
-                variant={pathname === item.path ? 'secondary' : 'ghost'} 
-                size="sm" 
-                asChild
-              >
-                <a href={item.href}>
+              <Link key={item.href} href={item.href} prefetch={true}>
+                <Button 
+                  variant={pathname === item.path ? 'secondary' : 'ghost'} 
+                  size="sm"
+                >
                   {item.label}
-                </a>
-              </Button>
+                </Button>
+              </Link>
             )
           })}
           
@@ -101,8 +99,10 @@ export default function Header() {
             <DropdownMenuContent align="center">
               {resourcesItems.map((item) => {
                 return (
-                  <DropdownMenuItem key={item.href} onClick={() => router.push(item.href)}>
-                    {item.label}
+                  <DropdownMenuItem key={item.href} asChild>
+                    <Link href={item.href} prefetch={true}>
+                      {item.label}
+                    </Link>
                   </DropdownMenuItem>
                 )
               })}
