@@ -762,7 +762,7 @@ export default function ProcessingOverviewPage() {
         </div>
 
         <footer className="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
-          <p>Project ABC · Last synched 15:25 PM · Demo workspace</p>
+          <p>Project ABC · Demo workspace</p>
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" asChild>
               <Link href="/orders">Back to orders</Link>

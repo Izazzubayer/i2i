@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import AuthenticatedNav from '@/components/AuthenticatedNav'
+import Header from '@/components/Header'
 import {
   Accordion,
   AccordionContent,
@@ -176,7 +176,7 @@ const faqData = {
 export default function FAQPage() {
   return (
     <div className="min-h-screen bg-background">
-      <AuthenticatedNav />
+      <Header />
       <div className="container mx-auto px-4 py-10 space-y-8 max-w-4xl">
         <div>
           <h1 className="text-3xl font-bold leading-tight">Frequently Asked Questions</h1>

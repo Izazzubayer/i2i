@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { signout } from '@/api/auth/auth'
 import { toast } from 'sonner'
@@ -22,7 +22,10 @@ import {
   Menu,
   X,
   Trash2,
-  Cloud
+  Cloud,
+  DollarSign,
+  Code,
+  Mail
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -38,6 +41,7 @@ import { Badge } from '@/components/ui/badge'
 
 export default function AuthenticatedNav() {
   const router = useRouter()
+  const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [user, setUser] = useState(null)
   const [navigatingTo, setNavigatingTo] = useState(null)
@@ -194,7 +198,9 @@ export default function AuthenticatedNav() {
     { label: 'Home', href: '/', icon: Home },
     { label: 'Orders', href: '/orders', icon: Package },
     { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
-    { label: 'Support', href: '/support', icon: HelpCircle },
+    { label: 'Pricing', href: '/pricing', icon: DollarSign },
+    { label: 'API', href: '/api-docs', icon: Code },
+    { label: 'Contact', href: '/contact', icon: Mail },
   ]
 
   return (
@@ -222,15 +228,22 @@ export default function AuthenticatedNav() {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-1">
-            {navItems.map((item) => (
-              <Link key={item.href} href={item.href} prefetch={true}>
-                <Button variant="ghost" className="gap-2">
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Button>
-              </Link>
-            ))}
+          <div className="hidden lg:flex items-center gap-1 flex-1 justify-center max-w-5xl mx-auto">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href))
+              return (
+                <Link key={item.href} href={item.href} prefetch={true}>
+                  <Button 
+                    variant={isActive ? 'secondary' : 'ghost'} 
+                    size="sm"
+                    className="gap-1.5"
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </Button>
+                </Link>
+              )
+            })}
           </div>
 
           {/* Right Side: Language, Profile */}
@@ -373,19 +386,25 @@ export default function AuthenticatedNav() {
               className="lg:hidden border-t"
             >
               <div className="py-4 space-y-2">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    prefetch={true}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Button variant="ghost" className="w-full justify-start gap-2">
-                      <item.icon className="h-4 w-4" />
-                      {item.label}
-                    </Button>
-                  </Link>
-                ))}
+                {navItems.map((item) => {
+                  const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href))
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      prefetch={true}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Button 
+                        variant={isActive ? 'secondary' : 'ghost'} 
+                        className="w-full justify-start gap-2"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                      </Button>
+                    </Link>
+                  )
+                })}
               </div>
             </motion.div>
           )}
