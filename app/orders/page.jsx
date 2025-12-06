@@ -70,7 +70,7 @@ const SORT_OPTIONS = {
 
 export default function OrdersPage() {
   const router = useRouter()
-  const { orders, deleteOrder, addDamConnection, activeDamConnection } = useStore()
+  const { orders, deleteOrder, addDamConnection, activeDamConnection, damConnections } = useStore()
   
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState(STATUSES.ALL)
@@ -78,6 +78,7 @@ export default function OrdersPage() {
   const [dateRange, setDateRange] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
   const [damDialogOpen, setDamDialogOpen] = useState(false)
+  const [damSelectModalOpen, setDamSelectModalOpen] = useState(false)
   const [selectedOrderForDAM, setSelectedOrderForDAM] = useState(null)
   const [uploadingToDAM, setUploadingToDAM] = useState(false)
   const [downloadingOrder, setDownloadingOrder] = useState(null)
@@ -297,12 +298,22 @@ export default function OrdersPage() {
 
   const handleConnectDAM = useCallback((order) => {
     setSelectedOrderForDAM(order)
-    if (activeDamConnection) {
-      handleUploadToDAM(order)
-    } else {
+    
+    // If no DAM connections, show connect dialog
+    if (!damConnections || damConnections.length === 0) {
       setDamDialogOpen(true)
+      return
     }
-  }, [activeDamConnection])
+    
+    // If only one DAM connection, use it directly
+    if (damConnections.length === 1) {
+      handleUploadToDAM(order, damConnections[0])
+      return
+    }
+    
+    // If multiple DAM connections, show selection modal
+    setDamSelectModalOpen(true)
+  }, [damConnections])
 
   const handleDamConnect = useCallback(async (config) => {
     addDamConnection(config)
@@ -312,9 +323,9 @@ export default function OrdersPage() {
     }
   }, [selectedOrderForDAM, addDamConnection])
 
-  const handleUploadToDAM = useCallback(async (order, damConfig = null) => {
-    const config = damConfig || activeDamConnection?.config
-    if (!config) {
+  const handleUploadToDAM = useCallback(async (order, damConnection = null) => {
+    const connection = damConnection || activeDamConnection
+    if (!connection) {
       toast.error('No DAM connection configured')
       setDamDialogOpen(true)
       return
@@ -326,6 +337,7 @@ export default function OrdersPage() {
     }
 
     setUploadingToDAM(true)
+    setDamSelectModalOpen(false)
     try {
       // Get processed images (not deleted)
       const processedImages = order.imagesData.filter(img => 
@@ -344,7 +356,7 @@ export default function OrdersPage() {
       await new Promise(resolve => setTimeout(resolve, 2000))
 
       toast.dismiss()
-      toast.success(`Successfully uploaded ${processedImages.length} images to ${activeDamConnection?.name || 'DAM'}`)
+      toast.success(`Successfully uploaded ${processedImages.length} images to ${connection.name || 'DAM'}`)
     } catch (error) {
       toast.dismiss()
       toast.error('Failed to upload images to DAM')
@@ -822,6 +834,78 @@ export default function OrdersPage() {
         }}
         onConnect={handleDamConnect}
       />
+
+      {/* DAM Selection Modal - When multiple DAM connections exist */}
+      <Dialog open={damSelectModalOpen} onOpenChange={setDamSelectModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Cloud className="h-5 w-5 text-primary" />
+              Select DAM Platform
+            </DialogTitle>
+            <DialogDescription>
+              Choose which Digital Asset Management platform to upload your images to
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 py-4">
+            {damConnections && damConnections.map((connection) => (
+              <motion.div
+                key={connection.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileHover={{ scale: 1.02 }}
+                className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                  activeDamConnection?.id === connection.id
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-background hover:border-primary/50'
+                }`}
+                onClick={() => {
+                  if (selectedOrderForDAM) {
+                    handleUploadToDAM(selectedOrderForDAM, connection)
+                  }
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 flex items-center justify-center">
+                    <Cloud className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{connection.name}</p>
+                    <p className="text-xs text-muted-foreground">{connection.provider}</p>
+                  </div>
+                </div>
+                {activeDamConnection?.id === connection.id && (
+                  <Badge variant="outline" className="bg-primary/10 border-primary/20">
+                    Active
+                  </Badge>
+                )}
+              </motion.div>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setDamSelectModalOpen(false)
+                setSelectedOrderForDAM(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                setDamSelectModalOpen(false)
+                setDamDialogOpen(true)
+              }}
+            >
+              <Cloud className="mr-2 h-4 w-4" />
+              Connect New Platform
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

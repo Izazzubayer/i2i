@@ -22,6 +22,15 @@ import {
   Sparkles,
   CheckCircle,
   Undo2,
+  ArrowRight,
+  Zap,
+  Rocket,
+  Building2,
+  AlertTriangle,
+  Cloud,
+  Upload,
+  Link2,
+  Sparkles as SparklesIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -56,7 +65,7 @@ const STATUSES = {
 
 export default function ProcessingResultsPage() {
   const router = useRouter()
-  const { batch, updateImageStatus, addOrder } = useStore()
+  const { batch, updateImageStatus, addOrder, damConnections, activeDamConnection } = useStore()
   const [images, setImages] = useState([])
   const [selectedImages, setSelectedImages] = useState(new Set())
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all')
@@ -71,9 +80,45 @@ export default function ProcessingResultsPage() {
   const [reprocessImageId, setReprocessImageId] = useState(null)
   const [reprocessPrompt, setReprocessPrompt] = useState('')
   const [isReprocessing, setIsReprocessing] = useState(false)
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
+  const [reloadWarningModalOpen, setReloadWarningModalOpen] = useState(false)
+  const [navigationIntent, setNavigationIntent] = useState(null) // Track navigation intent: 'back', 'reload', 'close', 'navigate'
+  const [damConnectModalOpen, setDamConnectModalOpen] = useState(false)
+  const [confirmedOrderData, setConfirmedOrderData] = useState(null)
+  const [isUploadingToDAM, setIsUploadingToDAM] = useState(false)
   const contextMenuRef = useRef(null)
   const processingStartedRef = useRef(false)
   const imageHistoryRef = useRef(new Map()) // Store previous states for undo
+  const allowLeaveRef = useRef(false) // Track if user confirmed leaving
+
+  // Get user's current plan from localStorage (default to Starter)
+  const getUserPlan = useCallback(() => {
+    if (typeof window === 'undefined') return 'Starter'
+    try {
+      const userData = localStorage.getItem('user')
+      if (userData) {
+        const user = JSON.parse(userData)
+        return user.plan || 'Starter'
+      }
+    } catch (error) {
+      console.error('Error getting user plan:', error)
+    }
+    return 'Starter'
+  }, [])
+
+  // Get reprocess limit based on plan
+  const getReprocessLimit = useCallback((plan) => {
+    switch (plan) {
+      case 'Starter':
+        return 3
+      case 'Pro':
+        return 10
+      case 'Enterprise':
+        return Infinity // Unlimited
+      default:
+        return 3
+    }
+  }, [])
 
   // Initialize images from batch
   useEffect(() => {
@@ -251,6 +296,20 @@ export default function ProcessingResultsPage() {
   // Handle open reprocess modal
   const handleOpenReprocess = useCallback((imageId) => {
     const image = images.find(img => img.id === imageId)
+    if (!image) return
+
+    // Check reprocess limit
+    const userPlan = getUserPlan()
+    const reprocessLimit = getReprocessLimit(userPlan)
+    const currentReprocessCount = (image.versions || []).filter(v => v.isReprocess).length
+
+    // If limit exceeded, show upgrade modal
+    if (currentReprocessCount >= reprocessLimit) {
+      setUpgradeModalOpen(true)
+      setContextMenu(null)
+      return
+    }
+
     // Pre-fill with the last reprocess prompt if available, or original prompt
     const lastReprocess = image?.versions?.filter(v => v.isReprocess).slice(-1)[0]
     const initialPrompt = lastReprocess?.prompt || image?.instruction || batch?.instruction || ''
@@ -259,7 +318,7 @@ export default function ProcessingResultsPage() {
     setReprocessPrompt(initialPrompt)
     setReprocessModalOpen(true)
     setContextMenu(null)
-  }, [images, batch])
+  }, [images, batch, getUserPlan, getReprocessLimit])
 
   // Handle reprocess with prompt
   const handleReprocess = useCallback(async () => {
@@ -803,27 +862,11 @@ export default function ProcessingResultsPage() {
         })),
       }
       
-      addOrder(orderData)
+      const savedOrder = addOrder(orderData)
+      setConfirmedOrderData(savedOrder)
       
-      toast.success(
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-black dark:text-white">
-              Order confirmed!
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-              {processedImages.length} image(s) ready
-            </p>
-          </div>
-        </div>
-      )
-      // Navigate to orders page or show success
-      setTimeout(() => {
-        router.push('/orders')
-      }, 1500)
+      // Navigate immediately to orders page without showing toast
+      router.push('/orders')
     } catch (error) {
       toast.error(
         <div className="flex items-start gap-3">
@@ -850,9 +893,202 @@ export default function ProcessingResultsPage() {
     return images.filter(img => img.status === STATUSES.PROCESSED || img.status === STATUSES.AMENDMENT).length
   }, [images])
 
+  // Handle upload to DAM
+  const handleUploadToDAM = useCallback(async (damConnection) => {
+    if (!confirmedOrderData) return
+
+    setIsUploadingToDAM(true)
+    try {
+      const processedImages = confirmedOrderData.imagesData?.filter(img => 
+        img.status !== STATUSES.DELETED && img.processedUrl
+      ) || []
+
+      if (processedImages.length === 0) {
+        toast.error(
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-black dark:text-white">
+                No images to upload
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                No processed images available
+              </p>
+            </div>
+          </div>
+        )
+        return
+      }
+
+      // Simulate upload API call
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      toast.success(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <Cloud className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Upload successful!
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              {processedImages.length} image{processedImages.length !== 1 ? 's' : ''} uploaded to {damConnection.name}
+            </p>
+          </div>
+        </div>
+      )
+
+      setDamConnectModalOpen(false)
+    } catch (error) {
+      toast.error(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Upload failed
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Please try again later
+            </p>
+          </div>
+        </div>
+      )
+    } finally {
+      setIsUploadingToDAM(false)
+    }
+  }, [confirmedOrderData, router])
+
+  // Check if there are unconfirmed orders (images ready to confirm)
+  const hasUnconfirmedOrder = useMemo(() => {
+    return confirmableImagesCount > 0
+  }, [confirmableImagesCount])
+
+  // Handle page reload, back button, and tab close warnings
+  useEffect(() => {
+    if (!hasUnconfirmedOrder) {
+      allowLeaveRef.current = false
+      setNavigationIntent(null)
+      return
+    }
+
+    // Push a state entry when there are unconfirmed orders to intercept back button
+    const statePushed = { hasUnconfirmedOrder: true, timestamp: Date.now() }
+    window.history.pushState(statePushed, '', window.location.href)
+
+    const handleBeforeUnload = (e) => {
+      // If user already confirmed leaving, allow it
+      if (allowLeaveRef.current) {
+        return
+      }
+      
+      // Standard browser warning for tab close/refresh
+      // This shows the browser's native confirmation dialog
+      // Note: Modern browsers ignore custom messages for security reasons
+      e.preventDefault()
+      e.returnValue = '' // Required for some browsers
+      return e.returnValue
+    }
+
+    // Handle browser back button
+    const handlePopState = (e) => {
+      if (allowLeaveRef.current) {
+        // User confirmed, allow navigation
+        allowLeaveRef.current = false // Reset for next time
+        setNavigationIntent(null)
+        return
+      }
+
+      // Check if this is our pushed state (prevent infinite loop)
+      if (e.state && e.state.hasUnconfirmedOrder && e.state.timestamp === statePushed.timestamp) {
+        return
+      }
+
+      // Prevent back navigation by pushing state back immediately
+      window.history.pushState(statePushed, '', window.location.href)
+      setNavigationIntent('back')
+      setReloadWarningModalOpen(true)
+    }
+
+    // Also detect refresh key combinations and navigation shortcuts
+    const handleKeyDown = (e) => {
+      if (allowLeaveRef.current) return
+
+      // F5 or Ctrl+R / Cmd+R for reload
+      if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && e.key === 'r')) {
+        if (hasUnconfirmedOrder) {
+          e.preventDefault()
+          setNavigationIntent('reload')
+          setReloadWarningModalOpen(true)
+        }
+      }
+      // Backspace key when not in input field (browser back)
+      if (e.key === 'Backspace' && 
+          !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName) &&
+          !document.activeElement?.isContentEditable) {
+        if (hasUnconfirmedOrder) {
+          e.preventDefault()
+          setNavigationIntent('back')
+          setReloadWarningModalOpen(true)
+        }
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    window.addEventListener('popstate', handlePopState)
+    window.addEventListener('keydown', handleKeyDown, true) // Use capture phase
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener('popstate', handlePopState)
+      window.removeEventListener('keydown', handleKeyDown, true)
+    }
+  }, [hasUnconfirmedOrder])
+
   return (
-    <div className="min-h-screen bg-background">
-      <AuthenticatedNav />
+    <div className="min-h-screen bg-background relative">
+      {/* Page Lock Overlay - Shows when confirming order */}
+      <AnimatePresence>
+        {isConfirmingOrder && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] bg-background/80 backdrop-blur-sm flex items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="flex flex-col items-center gap-4"
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-16 h-16 rounded-full border-4 border-primary border-t-transparent"
+              />
+              <div className="text-center">
+                <p className="font-semibold text-lg">Confirming Order...</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Please wait while we process your order
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Disable interactions when confirming */}
+      {isConfirmingOrder && (
+        <div className="fixed inset-0 z-[9998] pointer-events-none" />
+      )}
+
+      <div className={isConfirmingOrder ? "pointer-events-none opacity-50" : ""}>
+        <AuthenticatedNav />
 
       {/* Sticky Header */}
       <div className="sticky top-16 z-40 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b shadow-sm">
@@ -1780,7 +2016,161 @@ export default function ProcessingResultsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Upgrade Plan Modal */}
+      <Dialog open={upgradeModalOpen} onOpenChange={setUpgradeModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Rocket className="h-5 w-5 text-primary" />
+              Reprocess Limit Reached
+            </DialogTitle>
+            <DialogDescription>
+              You've reached the maximum number of reprocesses allowed for your current {getUserPlan()} plan.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg bg-muted p-4 space-y-3">
+              <div className={`flex items-start gap-3 ${getUserPlan() === 'Starter' ? 'opacity-50' : ''}`}>
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-sm">Starter Plan</p>
+                    {getUserPlan() === 'Starter' && (
+                      <Badge variant="outline" className="text-xs">Current</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">3 reprocesses per image</p>
+                </div>
+              </div>
+              
+              <div className={`flex items-start gap-3 ${getUserPlan() === 'Pro' ? 'opacity-50' : ''}`}>
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                  <Rocket className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-sm">Pro Plan</p>
+                    {getUserPlan() === 'Pro' && (
+                      <Badge variant="outline" className="text-xs">Current</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">10 reprocesses per image</p>
+                </div>
+              </div>
+              
+              <div className={`flex items-start gap-3 ${getUserPlan() === 'Enterprise' ? 'opacity-50' : ''}`}>
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30 flex items-center justify-center">
+                  <Building2 className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-sm">Enterprise Plan</p>
+                    {getUserPlan() === 'Enterprise' && (
+                      <Badge variant="outline" className="text-xs">Current</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Unlimited reprocesses</p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              {getUserPlan() === 'Enterprise' 
+                ? 'You already have unlimited reprocesses. Please contact support if you need assistance.'
+                : 'Upgrade your plan to unlock more reprocesses per image and access additional features.'
+              }
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUpgradeModalOpen(false)}>
+              Cancel
+            </Button>
+            {getUserPlan() !== 'Enterprise' && (
+              <Button onClick={() => {
+                setUpgradeModalOpen(false)
+                router.push('/pricing')
+              }}>
+                Upgrade Plan
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reload Warning Modal */}
+      <Dialog open={reloadWarningModalOpen} onOpenChange={setReloadWarningModalOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              Unconfirmed Order
+            </DialogTitle>
+            <DialogDescription>
+              You have {confirmableImagesCount} image{confirmableImagesCount !== 1 ? 's' : ''} ready to confirm. If you leave this page, you'll need to come back to confirm your order.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              {navigationIntent === 'back' 
+                ? 'Are you sure you want to go back? We recommend confirming your order before leaving this page.'
+                : navigationIntent === 'reload'
+                ? 'Are you sure you want to reload? We recommend confirming your order before refreshing this page.'
+                : 'Are you sure you want to leave? We recommend confirming your order before navigating away.'
+              }
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setReloadWarningModalOpen(false)
+                setNavigationIntent(null)
+              }}
+            >
+              Stay on Page
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={() => {
+                allowLeaveRef.current = true
+                const intent = navigationIntent
+                setReloadWarningModalOpen(false)
+                setNavigationIntent(null)
+                
+                // Execute the intended action based on what triggered the modal
+                setTimeout(() => {
+                  if (intent === 'reload') {
+                    window.location.reload()
+                  } else if (intent === 'back') {
+                    // Allow back navigation
+                    window.history.back()
+                  } else {
+                    // Default: go to home
+                    router.push('/')
+                  }
+                  // Reset after a delay to allow navigation to complete
+                  setTimeout(() => {
+                    allowLeaveRef.current = false
+                  }, 500)
+                }, 100)
+              }}
+            >
+              Leave Anyway
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      </div>
     </div>
   )
 }
+
 
