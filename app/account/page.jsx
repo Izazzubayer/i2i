@@ -1092,6 +1092,7 @@ export default function AccountPage() {
                   minHeight={50}
                   className="max-h-[60vh]"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     ref={imgRef}
                     alt="Crop me"
