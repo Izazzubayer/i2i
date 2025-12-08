@@ -75,28 +75,27 @@ function VerifyEmailHandler() {
         
         // Check if verification was successful
         if (response.success && response.data) {
-          // User data is already stored in localStorage by the API function
-          // Verify it was stored
-          const storedUser = localStorage.getItem('user')
-          console.log('✅ Verification successful - User data in localStorage:', storedUser)
-          
           // Success
           if (isMounted) {
             setStatus('success')
-            setMessage(response.message || 'Email verified successfully! Redirecting to your workspace...')
+            setMessage(response.message || 'Email verified successfully! Redirecting to sign in...')
             toast.success(response.message || 'Email verified successfully!')
             
-            // Redirect to home page after 2 seconds
+            // Clear user data and tokens - user needs to sign in manually after verification
+            // This ensures they go through the sign-in flow
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('user')
+              localStorage.removeItem('authToken')
+              localStorage.removeItem('refreshToken')
+              window.dispatchEvent(new Event('localStorageChange'))
+              console.log('🧹 Cleared user data - redirecting to sign-in page')
+            }
+            
+            // Redirect to sign-in page after 2 seconds
             setTimeout(() => {
-              // Trigger storage change event to update navbar
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new Event('localStorageChange'))
-                console.log('🔄 Triggered localStorageChange event')
-              }
-              
-              // Force a hard navigation to ensure state updates
-              console.log('🔄 Redirecting to home page...')
-              window.location.href = '/'
+              // Force a hard navigation to sign-in page
+              console.log('🔄 Redirecting to sign-in page...')
+              window.location.href = '/sign-in'
             }, 2000)
           }
         } else {
@@ -115,6 +114,15 @@ function VerifyEmailHandler() {
           code: error?.code,
           data: error?.data,
         })
+        
+        // Clear localStorage when verification fails
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('user')
+          localStorage.removeItem('authToken')
+          localStorage.removeItem('refreshToken')
+          window.dispatchEvent(new Event('localStorageChange'))
+          console.log('🧹 Cleared user data - verification failed')
+        }
         
         setStatus('error')
         

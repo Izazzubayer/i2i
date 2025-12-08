@@ -24,32 +24,50 @@ export default function Navbar() {
       const user = localStorage.getItem('user')
       const authToken = localStorage.getItem('authToken')
       
-      // If user has a valid token, they should be authenticated
-      // Token is only given after email verification, so trust it
-      if (user) {
+      // STRICT CHECK: User must have BOTH verified status AND token
+      // This prevents showing account when verification fails
+      if (user && authToken) {
         try {
           const userData = JSON.parse(user)
           const isVerified = userData.isVerified === true
           
-          // If token exists, user is authenticated (token = verified)
-          // Only clear if explicitly not verified AND no token exists
-          if (isVerified || authToken) {
-            // User is verified (either by flag or by having a token)
+          // ONLY show authenticated nav if BOTH conditions are true:
+          // 1. User is explicitly verified (isVerified === true)
+          // 2. User has a valid auth token
+          if (isVerified && authToken) {
             setIsAuthenticated(true)
           } else {
-            // Only clear if explicitly not verified AND no token
+            // If not verified OR no token, clear everything and show unauthenticated
+            if (!isVerified) {
+              // Clear localStorage if user is not verified
+              localStorage.removeItem('user')
+              localStorage.removeItem('authToken')
+              localStorage.removeItem('refreshToken')
+              window.dispatchEvent(new Event('localStorageChange'))
+              console.log('🧹 Cleared user data - email not verified')
+            }
             setIsAuthenticated(false)
           }
         } catch (error) {
           console.error('Error parsing user data:', error)
+          // Clear corrupted data
+          localStorage.removeItem('user')
+          localStorage.removeItem('authToken')
+          localStorage.removeItem('refreshToken')
           setIsAuthenticated(false)
         }
-      } else if (authToken) {
-        // Token exists but no user data - might be from another session
-        // Don't clear token, but don't show authenticated nav without user data
-        setIsAuthenticated(false)
       } else {
-        // No user data and no token - not authenticated
+        // No user data OR no token - not authenticated
+        // Clear any orphaned data
+        if (user && !authToken) {
+          localStorage.removeItem('user')
+          window.dispatchEvent(new Event('localStorageChange'))
+        }
+        if (authToken && !user) {
+          localStorage.removeItem('authToken')
+          localStorage.removeItem('refreshToken')
+          window.dispatchEvent(new Event('localStorageChange'))
+        }
         setIsAuthenticated(false)
       }
     }
