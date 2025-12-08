@@ -7,17 +7,7 @@
 
 'use client'
 
-import dynamic from 'next/dynamic'
-
-// Dynamically import LandingPage to avoid SSR issues
-const LandingPage = dynamic(() => import('./LandingPage'), {
-  ssr: true,
-  loading: () => (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground"></div>
-    </div>
-  ),
-})
+import LandingPage from './LandingPage'
 
 export default function Home() {
   return <LandingPage />
