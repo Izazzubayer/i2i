@@ -15,19 +15,30 @@ import {
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
 import DamConnectDialog from '@/components/DamConnectDialog'
+import DamSelectionDialog from '@/components/DamSelectionDialog'
 import { apiClient } from '@/lib/api'
 
 // Type removed 'grid' | 'list'
 // Type removed 'all' | 'approved' | 'needs-retouch' | 'completed' | 'processing'
 
 export default function ImageGallery() {
-  const { batch, approveImage, openRetouchDrawer, markForRetouch, addDamConnection, activeDamConnection } = useStore()
+  const { 
+    batch, 
+    approveImage, 
+    openRetouchDrawer, 
+    markForRetouch, 
+    addDamConnection, 
+    activeDamConnection,
+    damConnections,
+    setActiveDamConnection,
+    removeDamConnection,
+  } = useStore()
   const [hoveredImage, setHoveredImage] = useState(null)
   const [selectedImages, setSelectedImages] = useState(new Set())
   const [viewMode, setViewMode] = useState('grid')
   const [filterMode, setFilterMode] = useState('all')
-  const [damDialogOpensetDamDialogOpen] = useState(false)
-  const [uploadingToDAMsetUploadingToDAM] = useState(false)
+  const [damSelectionDialogOpen, setDamSelectionDialogOpen] = useState(false)
+  const [uploadingToDAM, setUploadingToDAM] = useState(false)
 
   // Filter images based on selected filter - must be before early return
   const filteredImages = useMemo(() => {
@@ -82,21 +93,19 @@ export default function ImageGallery() {
   }
 
   const handleConnectDam = () => {
-    setDamDialogOpen(true)
+    setDamSelectionDialogOpen(true)
   }
 
-  const handleDamConnect = async (config) => {
-    addDamConnection(config)
-    toast.success(`Connected to ${config.provider}`, {
-      description: 'Connection saved successfully',
-    })
+  const handleSelectDam = (connection) => {
+    setActiveDamConnection(connection)
+  }
 
-    // If images are selectedoffer to upload them immediately
-    if (selectedImages.size > 0) {
-      setTimeout(() => {
-        handleUploadToDAM(config)
-      }, 500)
-    }
+  const handleAddDam = (connection) => {
+    addDamConnection(connection.config || connection)
+  }
+
+  const handleRemoveDam = (connectionId) => {
+    removeDamConnection(connectionId)
   }
 
   const handleUploadToDAM = async (damConfig) => {
@@ -542,11 +551,15 @@ export default function ImageGallery() {
         </div>
       </div>
 
-      {/* DAM Connection Dialog */}
-      <DamConnectDialog
-        open={damDialogOpen}
-        onOpenChange={setDamDialogOpen}
-        onConnect={handleDamConnect}
+      {/* DAM Selection Dialog */}
+      <DamSelectionDialog
+        open={damSelectionDialogOpen}
+        onOpenChange={setDamSelectionDialogOpen}
+        damConnections={damConnections}
+        activeDamConnection={activeDamConnection}
+        onSelectDam={handleSelectDam}
+        onAddDam={handleAddDam}
+        onRemoveDam={handleRemoveDam}
       />
     </motion.section>
   )
