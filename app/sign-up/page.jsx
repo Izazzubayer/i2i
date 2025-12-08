@@ -19,6 +19,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { signup } from '@/api/auth/auth'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -42,6 +50,7 @@ export default function SignUpPage() {
     number: false,
     special: false,
   })
+  const [openModal, setOpenModal] = useState(null) // 'terms' or 'privacy' or null
 
   const handleChange = (field) => (event) => {
     const value = event.target.value
@@ -461,13 +470,27 @@ export default function SignUpPage() {
                     />
                     <span className="text-xs leading-tight">
                       I agree to the{' '}
-                      <Link href="/legal" className="font-semibold text-primary hover:underline">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setOpenModal('terms')
+                        }}
+                        className="font-semibold text-primary hover:underline"
+                      >
                         Terms
-                      </Link>
+                      </button>
                       {' '}&{' '}
-                      <Link href="/legal" className="font-semibold text-primary hover:underline">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setOpenModal('privacy')
+                        }}
+                        className="font-semibold text-primary hover:underline"
+                      >
                         Privacy
-                      </Link>
+                      </button>
                     </span>
                   </label>
                   {errors.terms && (
@@ -569,6 +592,308 @@ export default function SignUpPage() {
           </Card>
         </section>
       </motion.main>
+
+      {/* Terms and Privacy Modal */}
+      <Dialog open={openModal !== null} onOpenChange={(open) => !open && setOpenModal(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>
+              {openModal === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
+            </DialogTitle>
+            <DialogDescription>
+              {openModal === 'terms' 
+                ? 'Please read these terms carefully before using the i2i platform.'
+                : 'How we collect, process, and store your data.'}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-120px)] pr-4">
+            <div className="space-y-6 text-sm text-muted-foreground">
+              {openModal === 'terms' ? (
+                <>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">1. Acceptance of Terms</h3>
+                    <p className="leading-relaxed">
+                      These Terms of Service (&quot;Terms&quot;) govern your access to and use of the i2i platform 
+                      (&quot;Service&quot;), operated by i2i Inc. By creating an account, accessing our API, or using 
+                      any part of the Service, you agree to comply with these Terms.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">2. Description of Service</h3>
+                    <p className="leading-relaxed mb-2">
+                      i2i is an enterprise-grade AI-powered image processing platform that provides:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li>AI-driven image enhancement, background removal, and retouching services</li>
+                      <li>Batch processing capabilities for multiple images</li>
+                      <li>Integration with Digital Asset Management (DAM) platforms</li>
+                      <li>RESTful API access for programmatic image processing</li>
+                      <li>Cloud storage integration (AWS S3, Cloudinary)</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">3. User Accounts and Registration</h3>
+                    <p className="leading-relaxed mb-2">
+                      To use the Service, you must create an account by providing accurate and complete information. 
+                      You are responsible for maintaining the confidentiality of your account credentials and for all 
+                      activities that occur under your account.
+                    </p>
+                    <p className="leading-relaxed">
+                      You must be at least 18 years old to use the Service.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">4. Subscription Plans and Billing</h3>
+                    <p className="leading-relaxed mb-2">
+                      Subscriptions are billed monthly or annually in advance. By providing payment information, 
+                      you authorize us to charge your payment method for all fees incurred. All subscription fees 
+                      are non-refundable except as required by law.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">5. Acceptable Use Policy</h3>
+                    <p className="leading-relaxed mb-2">You agree NOT to:</p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li>Upload images containing illegal, harmful, or offensive content</li>
+                      <li>Process images you do not own or have permission to use</li>
+                      <li>Violate any intellectual property rights</li>
+                      <li>Reverse engineer, decompile, or attempt to extract the source code</li>
+                      <li>Exceed rate limits or abuse API access</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">6. Intellectual Property Rights</h3>
+                    <p className="leading-relaxed mb-2">
+                      You retain all ownership rights to the images you upload. By uploading content, you grant us 
+                      a limited, non-exclusive license to store, process, and display Your Content as necessary to 
+                      provide the Service.
+                    </p>
+                    <p className="leading-relaxed">
+                      You own all processed images generated by the Service. The Service, including its software and 
+                      algorithms, is owned by i2i Inc. and protected by intellectual property laws.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">7. Privacy and Data Protection</h3>
+                    <p className="leading-relaxed">
+                      Your privacy is important to us. Our collection, use, and protection of your personal 
+                      information is governed by our Privacy Policy. We implement industry-standard security measures 
+                      including encryption, security audits, and SOC 2 compliance.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">8. Termination</h3>
+                    <p className="leading-relaxed">
+                      You may terminate your account at any time. We may suspend or terminate your account if you 
+                      violate these Terms. Upon termination, you will lose access to the Service and your data will 
+                      be deleted according to our retention policy.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">9. Disclaimers and Limitations</h3>
+                    <p className="leading-relaxed mb-2">
+                      THE SERVICE IS PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; WITHOUT WARRANTIES OF ANY KIND. 
+                      We disclaim all warranties, including warranties of merchantability, fitness for a particular 
+                      purpose, and non-infringement.
+                    </p>
+                    <p className="leading-relaxed">
+                      TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, 
+                      SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">10. Changes to Terms</h3>
+                    <p className="leading-relaxed">
+                      We reserve the right to modify these Terms at any time. We will notify you of material changes 
+                      by posting the updated Terms on our website and updating the &quot;Last Updated&quot; date. Your 
+                      continued use of the Service after changes are posted constitutes your acceptance of the updated Terms.
+                    </p>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <p className="text-xs text-muted-foreground">
+                      Last Updated: November 27, 2025 | Version 1.0
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      For questions about these Terms, contact us at{' '}
+                      <a href="mailto:legal@i2i.ai" className="text-primary hover:underline">legal@i2i.ai</a>
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">1. Introduction</h3>
+                    <p className="leading-relaxed">
+                      This Privacy Policy explains how i2i Inc. (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) collects, 
+                      uses, and protects your personal information when you use the i2i platform. We are committed to 
+                      protecting your privacy and handling your data with care.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">2. Information We Collect</h3>
+                    <p className="leading-relaxed mb-2">We collect the following types of information:</p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li><strong>Account Information:</strong> Email address, name, phone number, company name, and payment details</li>
+                      <li><strong>Content:</strong> Images you upload and processing instructions you provide</li>
+                      <li><strong>Usage Data:</strong> How you interact with the Service, API usage, and analytics</li>
+                      <li><strong>Device Information:</strong> IP address, browser type, device identifiers, and operating system</li>
+                      <li><strong>Cookies and Tracking:</strong> We use cookies and similar technologies to improve your experience</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">3. How We Use Your Information</h3>
+                    <p className="leading-relaxed mb-2">We use your information to:</p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li>Provide and improve the Service</li>
+                      <li>Process images using AI models according to your instructions</li>
+                      <li>Communicate with you about your account, billing, and the Service</li>
+                      <li>Send you updates, newsletters, and marketing communications (with your consent)</li>
+                      <li>Detect and prevent fraud, abuse, and security threats</li>
+                      <li>Comply with legal obligations and enforce our Terms of Service</li>
+                      <li>Analyze usage patterns to improve our services</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">4. Data Sharing and Disclosure</h3>
+                    <p className="leading-relaxed mb-2">
+                      We do not sell your personal information. We may share your information only in the following circumstances:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li><strong>Service Providers:</strong> With trusted third-party service providers who help us operate the Service (e.g., cloud storage, payment processing)</li>
+                      <li><strong>Legal Requirements:</strong> When required by law, court order, or government regulation</li>
+                      <li><strong>Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets</li>
+                      <li><strong>With Your Consent:</strong> When you explicitly authorize us to share your information</li>
+                      <li><strong>To Protect Rights:</strong> To protect our rights, property, or safety, or that of our users</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">5. Data Retention</h3>
+                    <p className="leading-relaxed mb-2">
+                      We retain your data according to your subscription tier:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li><strong>Free Tier:</strong> Images and processed results retained for 7 days</li>
+                      <li><strong>Pro Tier:</strong> Images and processed results retained for 90 days</li>
+                      <li><strong>Enterprise Tier:</strong> Unlimited retention until account deletion</li>
+                    </ul>
+                    <p className="leading-relaxed mt-2">
+                      Account information is retained until you delete your account. You can request deletion of your 
+                      data at any time by contacting support.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">6. Data Security</h3>
+                    <p className="leading-relaxed mb-2">
+                      We implement industry-standard security measures to protect your data:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li>End-to-end encryption for data in transit (TLS/SSL)</li>
+                      <li>Encryption at rest for stored images and sensitive data</li>
+                      <li>Regular security audits and penetration testing</li>
+                      <li>SOC 2 compliance</li>
+                      <li>Role-based access controls</li>
+                      <li>Secure authentication and API key management</li>
+                    </ul>
+                    <p className="leading-relaxed mt-2">
+                      However, no method of transmission over the Internet or electronic storage is 100% secure. 
+                      While we strive to protect your data, we cannot guarantee absolute security.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">7. Your Rights and Choices</h3>
+                    <p className="leading-relaxed mb-2">You have the right to:</p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li><strong>Access:</strong> Request a copy of your personal information</li>
+                      <li><strong>Correction:</strong> Update or correct inaccurate information</li>
+                      <li><strong>Deletion:</strong> Request deletion of your account and data</li>
+                      <li><strong>Portability:</strong> Request your data in a portable format</li>
+                      <li><strong>Opt-Out:</strong> Unsubscribe from marketing communications</li>
+                      <li><strong>Restrict Processing:</strong> Request limitations on how we process your data</li>
+                    </ul>
+                    <p className="leading-relaxed mt-2">
+                      To exercise these rights, contact us at{' '}
+                      <a href="mailto:privacy@i2i.ai" className="text-primary hover:underline">privacy@i2i.ai</a> or 
+                      use the settings in your account.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">8. Cookies and Tracking Technologies</h3>
+                    <p className="leading-relaxed">
+                      We use cookies, web beacons, and similar technologies to enhance your experience, analyze usage, 
+                      and provide personalized content. You can control cookies through your browser settings, but 
+                      disabling cookies may affect the functionality of the Service.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">9. International Data Transfers</h3>
+                    <p className="leading-relaxed">
+                      Your information may be transferred to and processed in countries other than your country of 
+                      residence. These countries may have different data protection laws. We ensure appropriate 
+                      safeguards are in place to protect your data in accordance with this Privacy Policy.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">10. Children&apos;s Privacy</h3>
+                    <p className="leading-relaxed">
+                      The Service is not intended for individuals under 18 years of age. We do not knowingly collect 
+                      personal information from children. If we become aware that we have collected information from 
+                      a child, we will delete it immediately.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">11. Changes to This Privacy Policy</h3>
+                    <p className="leading-relaxed">
+                      We may update this Privacy Policy from time to time. We will notify you of material changes by 
+                      posting the updated policy on our website, updating the &quot;Last Updated&quot; date, and sending an 
+                      email notification to your registered email address.
+                    </p>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Contact Us</h3>
+                    <p className="leading-relaxed mb-2">
+                      If you have questions or concerns about this Privacy Policy or our data practices, please contact us:
+                    </p>
+                    <ul className="list-none space-y-1 ml-4">
+                      <li>
+                        <strong>Email:</strong>{' '}
+                        <a href="mailto:privacy@i2i.ai" className="text-primary hover:underline">privacy@i2i.ai</a>
+                      </li>
+                      <li>
+                        <strong>Legal:</strong>{' '}
+                        <a href="mailto:legal@i2i.ai" className="text-primary hover:underline">legal@i2i.ai</a>
+                      </li>
+                    </ul>
+                    <p className="text-xs text-muted-foreground mt-4">
+                      Last Updated: November 27, 2025 | Version 1.0
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
