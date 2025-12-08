@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffectuseState } from 'react'
-import { useParamsuseRouter } from 'next/navigation'
-import { motionAnimatePresence } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/lib/store'
 import {
   ArrowLeft,
@@ -13,7 +13,7 @@ import {
   Send,
   X,
   Loader2,
-  ImageageIcon,
+  Image as ImageIcon,
   Clock,
   User,
   AlertCircle,

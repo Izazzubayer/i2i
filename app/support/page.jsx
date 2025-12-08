@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from 'react'
-import Header from '@/components/Header'
+import Navbar from '@/components/Navbar'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -55,7 +55,7 @@ const faqs = [
       },
       {
         question: 'Can I try i2i before purchasing?',
-        answer: 'Yes! Sign up for a free account and get 10 free image credits to test our service. No credit card required for the trial.'
+        answer: 'Yes! Sign up for a free account and get 10 free images and 200 tokens to test our service. No credit card required for the trial.'
       }
     ]
   },
@@ -72,12 +72,12 @@ const faqs = [
         answer: 'Yes, you can upgrade or downgrade your plan anytime from the Billing page. Changes take effect immediately, and we\'ll prorate any charges or credits.'
       },
       {
-        question: 'Do unused credits roll over?',
-        answer: 'Yes, with annual plans, unused credits roll over to the next month. Monthly plan credits expire at the end of each billing cycle. Enterprise plans have custom rollover policies.'
+        question: 'Do unused images and tokens roll over?',
+        answer: 'Yes, with annual plans, unused images and tokens roll over to the next month. Monthly plan images and tokens expire at the end of each billing cycle. Enterprise plans have custom rollover policies.'
       },
       {
         question: 'What is your refund policy?',
-        answer: 'We offer a 30-day money-back guarantee for new customers. If you\'re not satisfied, contact support for a full refund. Credits already used will be deducted from the refund amount.'
+        answer: 'We offer a 30-day money-back guarantee for new customers. If you\'re not satisfied, contact support for a full refund. Images and tokens already used will be deducted from the refund amount.'
       }
     ]
   },
@@ -271,7 +271,7 @@ export default function SupportPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Navbar />
       
       <div className="container mx-auto px-4 py-10 space-y-12 max-w-7xl">
         {/* Hero Section */}

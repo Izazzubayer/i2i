@@ -13,10 +13,11 @@ import {
   FileText,
   Image as ImageIcon,
   X,
-  Folder
+  Folder,
+  CheckCircle2
 } from 'lucide-react'
 import Image from 'next/image'
-import Header from '@/components/Header'
+import Navbar from '@/components/Navbar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -271,13 +272,47 @@ export default function PageChat() {
     // Add images to the sidebar (uploadedImages)
     if (imageFiles.length > 0) {
       setUploadedImages(prev => [...prev, ...imageFiles])
-      toast.success(`${imageFiles.length} image(s) added`)
+      toast.success(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <ImageIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Images Added
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              {imageFiles.length} {imageFiles.length === 1 ? 'image' : 'images'} ready for processing
+            </p>
+          </div>
+        </div>,
+        {
+          duration: 3000,
+        }
+      )
     }
     
     // Add non-image files (PDFs, DOCX, TXT, etc.) to attachments
     if (nonImageFiles.length > 0) {
       setAttachedFiles(prev => [...prev, ...nonImageFiles])
-      toast.success(`${nonImageFiles.length} file(s) attached`)
+      toast.success(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Files Attached
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              {nonImageFiles.length} {nonImageFiles.length === 1 ? 'file' : 'files'} attached successfully
+            </p>
+          </div>
+        </div>,
+        {
+          duration: 3000,
+        }
+      )
     }
     
     // Reset input to allow selecting the same files again
@@ -292,9 +327,43 @@ export default function PageChat() {
     const imageFiles = files.filter(file => file.type.startsWith('image/'))
     if (imageFiles.length > 0) {
       setUploadedImages(prev => [...prev, ...imageFiles])
-      toast.success(`${imageFiles.length} image(s) uploaded from folder`)
+      toast.success(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <Folder className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Folder Imported
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              {imageFiles.length} {imageFiles.length === 1 ? 'image' : 'images'} imported from folder
+            </p>
+          </div>
+        </div>,
+        {
+          duration: 3000,
+        }
+      )
     } else {
-      toast.error('No image files found in the selected folder')
+      toast.error(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              No Images Found
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              The selected folder does not contain any image files
+            </p>
+          </div>
+        </div>,
+        {
+          duration: 3000,
+        }
+      )
     }
     // Reset input to allow selecting the same folder again
     if (e.target) {
@@ -304,7 +373,24 @@ export default function PageChat() {
 
   const onDropImages = useCallback((acceptedFiles) => {
     setUploadedImages(prev => [...prev, ...acceptedFiles])
-    toast.success(`${acceptedFiles.length} image(s) uploaded`)
+      toast.success(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Images Uploaded Successfully
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              {acceptedFiles.length} {acceptedFiles.length === 1 ? 'image' : 'images'} ready for processing
+            </p>
+          </div>
+        </div>,
+        {
+          duration: 3000,
+        }
+      )
   }, [])
 
   const {
@@ -489,7 +575,7 @@ export default function PageChat() {
 
   return (
     <main className="flex h-screen flex-col bg-gradient-to-b from-background to-muted/20 overflow-hidden">
-      <Header />
+      <Navbar />
 
       <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Left Sidebar - Uploaded Images */}
@@ -1117,7 +1203,21 @@ export default function PageChat() {
                     const allImages = [...uploadedImages, ...attachedFiles.filter(f => f.type.startsWith('image/'))]
                     
                     if (allImages.length === 0) {
-                      toast.error('Please upload at least one image')
+                      toast.error(
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                            <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm text-black dark:text-white">
+                              No images selected
+                            </p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                              Please upload at least one image
+                            </p>
+                          </div>
+                        </div>
+                      )
                       return
                     }
                     
@@ -1161,8 +1261,8 @@ export default function PageChat() {
                     setUploadedImages([])
                     setAttachedFiles([])
                     
-                    // Navigate to homepage where ProcessingPanel will show images appearing gradually
-                    router.push('/')
+                    // Navigate to processing results page
+                    router.push('/processing-results')
                   }}
                 >
                   Confirm & Process

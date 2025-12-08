@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
+import { signin } from '@/api/auth/auth'
 
 function SignInContent() {
   const router = useRouter()
@@ -29,16 +30,64 @@ function SignInContent() {
     }
   }, [searchParams])
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
+    
+    if (!email || !password) {
+      toast.error('Please enter both email and password')
+      return
+    }
+    
     setIsLoading(true)
     setMessage('Authenticating with i2i...')
 
-    setTimeout(() => {
+    try {
+      // Call signin API
+      const response = await signin({
+        email: email.trim(),
+        password: password,
+      })
+
+      // Check if signin was successful
+      if (response.success && response.data) {
+        // User data and tokens are already stored in localStorage by the API function
+        console.log('✅ Signin successful - User data stored')
+        
+        setMessage('Success! Redirecting to your workspace...')
+        toast.success('Signed in successfully!')
+        
+        // Redirect to home page (or processing page)
+        setTimeout(() => {
+          router.push('/')
+          router.refresh() // Refresh to update navbar
+        }, 1000)
+      } else {
+        throw new Error(response.message || 'Sign in failed')
+      }
+    } catch (error) {
+      console.error('Sign in error:', error)
       setIsLoading(false)
-      setMessage('Success! Redirecting to processing...')
-      router.push('/processing')
-    }, 1200)
+      
+      // Handle different error cases
+      let errorMessage = 'Sign in failed. Please check your credentials and try again.'
+      
+      if (error?.status === 401) {
+        errorMessage = error?.message || 'Invalid email or password. Please try again.'
+      } else if (error?.status === 403) {
+        errorMessage = error?.message || 'Your account is not verified. Please check your email.'
+      } else if (error?.status === 404) {
+        errorMessage = error?.message || 'Account not found. Please check your email address.'
+      } else if (error?.message) {
+        errorMessage = error.message
+      } else if (error?.data?.Message) {
+        errorMessage = error.data.Message
+      } else if (error?.data?.message) {
+        errorMessage = error.data.message
+      }
+      
+      setMessage('')
+      toast.error(errorMessage)
+    }
   }
 
   return (
@@ -68,7 +117,7 @@ function SignInContent() {
               Sign in to your i2i workspace
             </h1>
             <p className="max-w-xl text-base text-muted-foreground">
-              Manage batches, review results, and track credit usage from a single dashboard. Use your work email to continue.
+              Manage batches, review results, and track image and token usage from a single dashboard. Use your work email to continue.
             </p>
           </div>
           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">

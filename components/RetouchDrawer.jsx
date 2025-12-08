@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { SparklesLoader2 } from 'lucide-react'
+import { Sparkles, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import {
   Drawer,
@@ -20,9 +20,9 @@ import { apiClient } from '@/lib/api'
 import { toast } from 'sonner'
 
 export default function RetouchDrawer() {
-  const { retouchDrawerOpenselectedImageForRetouchcloseRetouchDrawerupdateImageStatusaddLog } = useStore()
-  const [instructionsetInstruction] = useState('')
-  const [processingsetProcessing] = useState(false)
+  const { retouchDrawerOpen, selectedImageForRetouch, closeRetouchDrawer, updateImageStatus, addLog } = useStore()
+  const [instruction, setInstruction] = useState('')
+  const [processing, setProcessing] = useState(false)
 
   const handleApply = async () => {
     if (!selectedImageForRetouch || !instruction.trim()) {

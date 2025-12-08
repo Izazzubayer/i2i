@@ -14,6 +14,10 @@ import { NextResponse } from 'next/server'
  * - 410: Token expired
  * - 500: Server error
  */
+
+// Mark this route as dynamic since it uses request.url
+export const dynamic = 'force-dynamic'
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)

@@ -18,17 +18,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { signup } from '@/api/auth/auth'
 
 export default function SignUpPage() {
   const router = useRouter()
   const [formState, setFormState] = useState({
-    username: '',
+    displayName: '',
     email: '',
-    phone: '',
-    company: '',
+    phoneNo: '',
+    companyName: '',
     password: '',
     confirmPassword: '',
-    agree: false,
+    termsAndCondition: false,
     captcha: false,
   })
   const [errors, setErrors] = useState({})
@@ -94,13 +95,11 @@ export default function SignUpPage() {
   const validateForm = () => {
     const newErrors = {}
 
-    // Username validation
-    if (!formState.username.trim()) {
-      newErrors.username = 'Username is required'
-    } else if (formState.username.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters'
-    } else if (!/^[a-zA-Z0-9_]+$/.test(formState.username)) {
-      newErrors.username = 'Username can only contain letters, numbers, and underscores'
+    // Display Name validation
+    if (!formState.displayName.trim()) {
+      newErrors.displayName = 'Display name is required'
+    } else if (formState.displayName.length < 2) {
+      newErrors.displayName = 'Display name must be at least 2 characters'
     }
 
     // Email validation
@@ -111,13 +110,13 @@ export default function SignUpPage() {
     }
 
     // Phone validation (optional)
-    if (formState.phone && !validatePhone(formState.phone)) {
-      newErrors.phone = 'Please enter a valid phone number'
+    if (formState.phoneNo && !validatePhone(formState.phoneNo)) {
+      newErrors.phoneNo = 'Please enter a valid phone number'
     }
 
     // Company validation
-    if (!formState.company.trim()) {
-      newErrors.company = 'Company name is required'
+    if (!formState.companyName.trim()) {
+      newErrors.companyName = 'Company name is required'
     }
 
     // Password validation
@@ -140,7 +139,7 @@ export default function SignUpPage() {
     }
 
     // Terms validation
-    if (!formState.agree) {
+    if (!formState.termsAndCondition) {
       newErrors.terms = 'You must agree to the terms and conditions'
     }
 
@@ -160,21 +159,44 @@ export default function SignUpPage() {
     setMessage('Creating your account...')
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // Prepare signup data according to API requirements
+      const signupData = {
+        email: formState.email.trim(),
+        password: formState.password,
+        displayName: formState.displayName.trim(),
+        phoneNo: formState.phoneNo.trim() || '', // Send empty string if not provided
+        companyName: formState.companyName.trim(),
+        termsAndCondition: formState.termsAndCondition,
+      }
 
-      // Simulate sending verification email
-      setMessage('Verification email sent! Please check your inbox.')
-      toast.success('Account created! Verification email sent to ' + formState.email)
+      // Call signup API
+      const response = await signup(signupData)
 
-      // Redirect to verify email page
-      setTimeout(() => {
-        router.push(`/verify-email?email=${encodeURIComponent(formState.email)}`)
-      }, 2000)
+      // Check if signup was successful
+      if (response.success && response.data) {
+        // User data and tokens are already stored in localStorage by the API function
+        console.log('✅ Signup successful - User data stored')
+        
+        // Success
+        setMessage('Verification email sent! Please check your inbox.')
+        toast.success('Account created successfully! Verification email sent to ' + formState.email)
+
+        // Redirect to check email page
+        setTimeout(() => {
+          router.push(`/check-email?email=${encodeURIComponent(formState.email)}`)
+        }, 2000)
+      } else {
+        throw new Error(response.message || 'Signup failed')
+      }
     } catch (error) {
+      // Handle API errors
       setMessage('')
-      toast.error('Something went wrong. Please try again.')
+      const errorMessage = error?.message || error?.data?.message || 'Something went wrong. Please try again.'
+      toast.error(errorMessage)
       setIsLoading(false)
+      
+      // Log error for debugging
+      console.error('Signup error:', error)
     }
   }
 
@@ -207,11 +229,11 @@ export default function SignUpPage() {
               Create your i2i account
             </h1>
             <p className="max-w-xl text-base text-muted-foreground">
-              Upload, process, and deliver production-ready visuals at scale. We'll spin up a workspace so your team can collaborate instantly.
+              Upload, process, and deliver production-ready visuals at scale. Well spin up a workspace so your team can collaborate instantly.
             </p>
           </div>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>✓ 2,000 free credits on day one</li>
+            <li>✓ 100 free images and 2,000 tokens on day one</li>
             <li>✓ Collaboration-ready workspaces</li>
             <li>✓ SOC2 & GDPR compliant infrastructure</li>
           </ul>
@@ -225,24 +247,24 @@ export default function SignUpPage() {
             </CardHeader>
             <CardContent className="pt-0">
               <form className="space-y-4" onSubmit={handleSubmit}>
-                {/* Username */}
+                {/* Display Name */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="username" className="text-sm">Username <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="displayName" className="text-sm">Display Name <span className="text-destructive">*</span></Label>
                   <div className="relative">
                     <UserPlus className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      id="username"
-                      placeholder="johndoe"
-                      className={`pl-9 h-9 text-sm ${errors.username ? 'border-destructive' : ''}`}
-                      value={formState.username}
-                      onChange={handleChange('username')}
+                      id="displayName"
+                      placeholder="John Doe"
+                      className={`pl-9 h-9 text-sm ${errors.displayName ? 'border-destructive' : ''}`}
+                      value={formState.displayName}
+                      onChange={handleChange('displayName')}
                       required
                     />
                   </div>
-                  {errors.username && (
+                  {errors.displayName && (
                     <p className="text-xs text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
-                      {errors.username}
+                      {errors.displayName}
                     </p>
                   )}
                 </div>
@@ -280,40 +302,40 @@ export default function SignUpPage() {
                     <div className="relative">
                       <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
-                        id="phone"
+                        id="phoneNo"
                         type="tel"
                         autoComplete="tel"
                         placeholder="+1 (555) 123-4567"
-                        className={`pl-9 h-9 text-sm ${errors.phone ? 'border-destructive' : ''}`}
-                        value={formState.phone}
-                        onChange={handleChange('phone')}
+                        className={`pl-9 h-9 text-sm ${errors.phoneNo ? 'border-destructive' : ''}`}
+                        value={formState.phoneNo}
+                        onChange={handleChange('phoneNo')}
                       />
                     </div>
-                    {errors.phone && (
+                    {errors.phoneNo && (
                       <p className="text-xs text-destructive flex items-center gap-1">
                         <AlertCircle className="h-3 w-3" />
-                        {errors.phone}
+                        {errors.phoneNo}
                       </p>
                     )}
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="company" className="text-sm">Company name <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="companyName" className="text-sm">Company name <span className="text-destructive">*</span></Label>
                     <div className="relative">
                       <Building className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
-                        id="company"
+                        id="companyName"
                         placeholder="Acme Studio"
-                        className={`pl-9 h-9 text-sm ${errors.company ? 'border-destructive' : ''}`}
-                        value={formState.company}
-                        onChange={handleChange('company')}
+                        className={`pl-9 h-9 text-sm ${errors.companyName ? 'border-destructive' : ''}`}
+                        value={formState.companyName}
+                        onChange={handleChange('companyName')}
                         required
                       />
                     </div>
-                    {errors.company && (
+                    {errors.companyName && (
                       <p className="text-xs text-destructive flex items-center gap-1">
                         <AlertCircle className="h-3 w-3" />
-                        {errors.company}
+                        {errors.companyName}
                       </p>
                     )}
                   </div>
@@ -432,9 +454,9 @@ export default function SignUpPage() {
                 <div className="space-y-1.5">
                   <label className={`flex items-center gap-2 text-sm p-2.5 rounded-md border ${errors.terms ? 'border-destructive' : 'border-muted'}`}>
                     <Checkbox
-                      id="agree"
-                      checked={formState.agree}
-                      onCheckedChange={(checked) => handleCheckboxChange('agree')(Boolean(checked))}
+                      id="termsAndCondition"
+                      checked={formState.termsAndCondition}
+                      onCheckedChange={(checked) => handleCheckboxChange('termsAndCondition')(Boolean(checked))}
                       required
                     />
                     <span className="text-xs leading-tight">
