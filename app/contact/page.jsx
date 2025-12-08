@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import Header from '@/components/Header'
+import Navbar from '@/components/Navbar'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -155,7 +155,7 @@ export default function ContactPage() {
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        <Navbar />
         <div className="container mx-auto px-4 py-20 max-w-2xl">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -182,7 +182,7 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Navbar />
 
       <div className="container mx-auto px-4 py-12 max-w-6xl">
         {/* Header */}

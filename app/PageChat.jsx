@@ -17,7 +17,7 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import Image from 'next/image'
-import Header from '@/components/Header'
+import Navbar from '@/components/Navbar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -570,7 +570,7 @@ export default function PageChat() {
 
   return (
     <main className="flex h-screen flex-col bg-gradient-to-b from-background to-muted/20 overflow-hidden">
-      <Header />
+      <Navbar />
 
       <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Left Sidebar - Uploaded Images */}

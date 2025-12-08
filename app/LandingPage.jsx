@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRight, Check, Zap, Shield, Clock, Users, Star, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -8,8 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import Image from 'next/image'
-import Header from '@/components/Header'
-import AuthenticatedNav from '@/components/AuthenticatedNav'
+import Navbar from '@/components/Navbar'
 
 const features = [
   {
@@ -101,50 +99,9 @@ const plans = [
 ]
 
 export default function LandingPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-
-  useEffect(() => {
-    // Check if user is authenticated
-    const checkAuth = () => {
-      if (typeof window === 'undefined') return
-      
-      const token = localStorage.getItem('authToken')
-      const user = localStorage.getItem('user')
-      
-      // User is authenticated if they have either a token OR user data (for verified users)
-      setIsAuthenticated(!!(token || user))
-    }
-
-    // Initial check
-    checkAuth()
-
-    // Listen for storage changes (works across tabs)
-    const handleStorageChange = (e) => {
-      if (e.key === 'authToken' || e.key === 'user') {
-        checkAuth()
-      }
-    }
-
-    // Custom event for same-tab storage changes
-    const handleCustomStorageChange = () => {
-      checkAuth()
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('localStorageChange', handleCustomStorageChange)
-    // Also check on focus (in case user logged in another tab)
-    window.addEventListener('focus', checkAuth)
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('localStorageChange', handleCustomStorageChange)
-      window.removeEventListener('focus', checkAuth)
-    }
-  }, [])
-
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950">
-      {isAuthenticated ? <AuthenticatedNav /> : <Header />}
+      <Navbar />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden border-b border-zinc-200 dark:border-zinc-800">

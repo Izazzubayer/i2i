@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import AuthenticatedNav from '@/components/AuthenticatedNav'
+import Navbar from '@/components/Navbar'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -92,22 +92,28 @@ export default function AccountPage() {
             // Prioritize avatarUrl from API, fallback to avatar or profilePicture
             setAvatar(userData.avatarUrl || userData.avatar || userData.profilePicture || '')
             
-            // Update localStorage with avatarUrl if it exists
-            if (userData.avatarUrl && localUserData) {
-              localUserData.avatar = userData.avatarUrl
-              localUserData.avatarUrl = userData.avatarUrl
-              localStorage.setItem('user', JSON.stringify(localUserData))
-              
-              // Trigger storage change event to update navbar
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new Event('localStorageChange'))
-              }
+            // IMPORTANT: Update localStorage with ALL profile data from API
+            // This ensures companyName, phoneNo, and other fields are stored
+            const updatedUserData = {
+              ...(localUserData || {}),
+              userId: userData.userId || localUserData?.userId,
+              email: userData.email || localUserData?.email,
+              displayName: userData.displayName || userData.username || userData.name || localUserData?.displayName,
+              companyName: userData.companyName || userData.company || localUserData?.companyName || '',
+              phoneNo: userData.phoneNo || userData.phone || localUserData?.phoneNo || '',
+              avatar: userData.avatarUrl || userData.avatar || userData.profilePicture || localUserData?.avatar || '',
+              avatarUrl: userData.avatarUrl || userData.avatar || userData.profilePicture || localUserData?.avatarUrl || '',
+              isVerified: apiIsVerified !== undefined ? apiIsVerified : (localUserData?.isVerified || true),
+              companyId: userData.CompanyId || userData.companyId || localUserData?.companyId,
+              expiresAt: userData.expiresAt || localUserData?.expiresAt,
             }
             
-            // Update localStorage with verification status if API confirms it
-            if (apiIsVerified && localUserData) {
-              localUserData.isVerified = true
-              localStorage.setItem('user', JSON.stringify(localUserData))
+            localStorage.setItem('user', JSON.stringify(updatedUserData))
+            console.log('💾 Updated localStorage with full profile data:', JSON.stringify(updatedUserData, null, 2))
+            
+            // Trigger storage change event to update navbar
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('localStorageChange'))
             }
           } else {
             // If API doesn't return data, use localStorage
@@ -129,6 +135,27 @@ export default function AccountPage() {
         } catch (apiError) {
           console.error('Error fetching profile from API:', apiError)
           
+          // Check if it's an auth error
+          if (apiError?.status === 401) {
+            // Token might be invalid or expired
+            console.warn('⚠️ 401 Unauthorized - checking token')
+            const currentToken = localStorage.getItem('authToken')
+            if (!currentToken) {
+              toast.error('Please sign in to view your profile')
+              router.push('/sign-in')
+              return
+            } else {
+              // Token exists but API rejected it - might be expired
+              toast.error('Session expired. Please sign in again.')
+              // Clear invalid token
+              localStorage.removeItem('authToken')
+              localStorage.removeItem('refreshToken')
+              localStorage.removeItem('user')
+              router.push('/sign-in')
+              return
+            }
+          }
+          
           // If API fails but user has token or localStorage says verified, still show profile
           if (localIsVerified || authToken) {
             console.log('⚠️ API failed but user is verified, using localStorage data')
@@ -138,6 +165,8 @@ export default function AccountPage() {
               setCompanyName(localUserData.companyName || '')
               setPhoneNo(localUserData.phoneNo || localUserData.phone || '')
               setAvatar(localUserData.avatarUrl || localUserData.avatar || '')
+              // Show warning but don't block the user
+              toast.warning('Using cached profile data. Some information may be outdated.')
             }
           } else {
             // Only show error if not verified
@@ -275,7 +304,27 @@ export default function AccountPage() {
       if (error?.status === 400) {
         errorMessage = error?.message || error?.data?.Message || 'Invalid data. Please check your input and try again.'
       } else if (error?.status === 401) {
-        errorMessage = error?.message || 'Unauthorized. Please sign in again.'
+        // Check if token exists
+        const currentToken = localStorage.getItem('authToken')
+        if (!currentToken) {
+          errorMessage = 'Please sign in to update your profile'
+          // Clear user data and redirect to sign in
+          localStorage.removeItem('user')
+          localStorage.removeItem('authToken')
+          localStorage.removeItem('refreshToken')
+          setTimeout(() => {
+            router.push('/sign-in')
+          }, 2000)
+        } else {
+          errorMessage = error?.message || 'Session expired. Please sign in again.'
+          // Clear invalid token and redirect
+          localStorage.removeItem('authToken')
+          localStorage.removeItem('refreshToken')
+          localStorage.removeItem('user')
+          setTimeout(() => {
+            router.push('/sign-in')
+          }, 2000)
+        }
       } else if (error?.status === 403) {
         errorMessage = error?.message || 'You do not have permission to update this profile.'
       } else if (error?.message) {
@@ -305,7 +354,7 @@ export default function AccountPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <AuthenticatedNav />
+        <Navbar />
         <div className="container mx-auto px-4 py-10 space-y-8 max-w-4xl">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="flex flex-col items-center gap-4">
@@ -322,7 +371,7 @@ export default function AccountPage() {
   if (!isVerified) {
     return (
       <div className="min-h-screen bg-background">
-        <AuthenticatedNav />
+        <Navbar />
         <div className="container mx-auto px-4 py-10 space-y-8 max-w-4xl">
           <Card>
             <CardHeader className="text-center">
@@ -374,7 +423,7 @@ export default function AccountPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AuthenticatedNav />
+      <Navbar />
       <div className="container mx-auto px-4 py-10 space-y-8 max-w-4xl">
         <div>
           <h1 className="text-3xl font-bold">Account</h1>

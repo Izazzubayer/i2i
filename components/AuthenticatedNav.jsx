@@ -45,6 +45,7 @@ export default function AuthenticatedNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [user, setUser] = useState(null)
   const [navigatingTo, setNavigatingTo] = useState(null)
+  const [mounted, setMounted] = useState(false)
 
   const handleNavigation = useCallback((path) => {
     setNavigatingTo(path)
@@ -60,33 +61,60 @@ export default function AuthenticatedNav() {
 
   // Get user data from localStorage
   useEffect(() => {
+    // Mark component as mounted to prevent hydration mismatch
+    setMounted(true)
+    
     const getUserData = () => {
       try {
         const userData = localStorage.getItem('user')
-        const token = localStorage.getItem('authToken')
+        const authToken = localStorage.getItem('authToken')
         
-        // User is authenticated if they have user data OR token
+        // If user has a valid token, they should be authenticated
+        // Token is only given after email verification, so trust it
         if (userData) {
           const parsedUser = JSON.parse(userData)
-          setUser(parsedUser)
-        } else if (token) {
-          // If only token exists, create minimal user object
-          setUser({
-            name: 'User',
-            email: '',
-            avatar: '',
-            initials: 'U',
-            images: 0,
-            tokens: 0,
-            plan: 'Free'
-          })
+          
+          // Check if email is verified
+          const isVerified = parsedUser.isVerified === true
+          
+          // If token exists, user is authenticated (token = verified)
+          // Only clear if explicitly not verified AND no token exists
+          if (isVerified || authToken) {
+            // User is verified (either by flag or by having a token)
+            // Show user account - token presence means they're authenticated
+            console.log('✅ User authenticated - showing account', { isVerified, hasToken: !!authToken })
+            setUser(parsedUser)
+          } else {
+            // Only clear if explicitly not verified AND no token
+            // This prevents clearing on reload for verified users
+            console.log('⚠️ User email not verified and no token - clearing localStorage')
+            localStorage.removeItem('user')
+            localStorage.removeItem('authToken')
+            localStorage.removeItem('refreshToken')
+            setUser(null)
+            window.dispatchEvent(new Event('localStorageChange'))
+          }
+        } else if (authToken) {
+          // Token exists but no user data - might be from another session
+          // Don't clear token, but don't show account without user data
+          console.log('⚠️ Token exists but no user data')
+          setUser(null)
         } else {
-          // No user data or token
+          // No user data and no token - not authenticated
           setUser(null)
         }
       } catch (error) {
-        console.error('Error parsing user data:', error)
+        console.error('❌ Error parsing user data:', error)
+        // Only clear on parse error if we can't recover
+        const authToken = localStorage.getItem('authToken')
+        if (!authToken) {
+          // No token, safe to clear corrupted data
+          localStorage.removeItem('user')
+          localStorage.removeItem('authToken')
+          localStorage.removeItem('refreshToken')
+        }
         setUser(null)
+        window.dispatchEvent(new Event('localStorageChange'))
       }
     }
 
@@ -264,20 +292,21 @@ export default function AuthenticatedNav() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Profile Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-2 px-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={userData.avatar} />
-                    <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white">
-                      {userData.initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="hidden md:inline text-sm font-medium">{userData.name}</span>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
+            {/* Profile Dropdown - Only show if user is verified and mounted */}
+            {mounted && user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="gap-2 px-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={userData.avatar} />
+                      <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white">
+                        {userData.initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="hidden md:inline text-sm font-medium">{userData.name}</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
 
               <DropdownMenuContent align="end" className="w-64">
                 {/* Account Section - Header */}
@@ -363,6 +392,7 @@ export default function AuthenticatedNav() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            )}
 
             {/* Mobile Menu Button */}
             <Button

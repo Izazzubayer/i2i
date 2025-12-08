@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
-import AuthenticatedNav from '@/components/AuthenticatedNav'
+import Navbar from '@/components/Navbar'
 import { BeforeAfterSliderImproved } from '@/components/BeforeAfterSliderImproved'
 import {
   CheckCircle2,
@@ -912,7 +912,7 @@ export default function ProcessingResultsPage() {
   if (!batch) {
     return (
       <div className="min-h-screen bg-background">
-        <AuthenticatedNav />
+        <Navbar />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <p className="text-muted-foreground">No batch found</p>
@@ -1049,7 +1049,7 @@ export default function ProcessingResultsPage() {
       )}
 
       <div className={isConfirmingOrder ? "pointer-events-none opacity-50" : ""}>
-        <AuthenticatedNav />
+        <Navbar />
 
       {/* Sticky Header */}
       <div className="sticky top-16 z-40 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b shadow-sm">

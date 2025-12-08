@@ -31,7 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import Header from '@/components/Header'
+import Navbar from '@/components/Navbar'
 import { toast } from 'sonner'
 
 // Mock API keys
@@ -305,7 +305,7 @@ export default function ApiPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <Header />
+      <Navbar />
 
       <div className="container py-8 px-4 md:px-8">
         <div className="mx-auto max-w-7xl space-y-8">

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Header from '@/components/Header'
+import Navbar from '@/components/Navbar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -181,7 +181,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Navbar />
       
       {/* Hero Section */}
       <section className="relative overflow-hidden border-b">

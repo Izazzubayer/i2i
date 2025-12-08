@@ -1,6 +1,6 @@
 "use client"
 
-import AuthenticatedNav from '@/components/AuthenticatedNav'
+import Navbar from '@/components/Navbar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const policies = [
@@ -25,7 +25,7 @@ const policies = [
 export default function LegalPage() {
   return (
     <div className="min-h-screen bg-background">
-      <AuthenticatedNav />
+      <Navbar />
       <div className="container mx-auto px-4 py-10 space-y-8">
         <div>
           <h1 className="text-3xl font-bold">Legal & Compliance</h1>

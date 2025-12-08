@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from 'react'
-import Header from '@/components/Header'
+import Navbar from '@/components/Navbar'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -271,7 +271,7 @@ export default function SupportPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Navbar />
       
       <div className="container mx-auto px-4 py-10 space-y-12 max-w-7xl">
         {/* Hero Section */}

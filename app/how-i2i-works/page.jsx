@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import Header from '@/components/Header'
+import Navbar from '@/components/Navbar'
 
 const steps = [
   {
@@ -128,7 +128,7 @@ const features = [
 export default function HowI2IWorksPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900">
-      <Header />
+      <Navbar />
       {/* Hero Section */}
       <section className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="container px-4 py-20 md:py-32">
