@@ -140,7 +140,7 @@ export const signup = async (signupData) => {
     } else if (error.request) {
       // Request made but no response received
       throw {
-        message: 'Network error. Please check your connection.',
+        message: 'Network error.  Please check your connection.',
         status: null,
       }
     } else {
