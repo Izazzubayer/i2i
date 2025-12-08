@@ -1,24 +1,188 @@
 "use client"
 
-import { useState } from 'react'
-import AuthenticatedNav from '@/components/AuthenticatedNav'
+import { useState, useEffect } from 'react'
+import Navbar from '@/components/Navbar'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Upload, Trash2, AlertTriangle } from 'lucide-react'
+import { Upload, Trash2, AlertTriangle, Loader2, Mail } from 'lucide-react'
 import { toast } from 'sonner'
+import { getProfile, updateProfile, uploadAvatar } from '@/api/users/users'
+import { useRouter } from 'next/navigation'
 
 export default function AccountPage() {
-  const [username, setUsername] = useState('johndoe')
-  const [email, setEmail] = useState('john@example.com')
-  const [companyName, setCompanyName] = useState('Acme Studio')
+  const router = useRouter()
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [companyName, setCompanyName] = useState('')
+  const [phoneNo, setPhoneNo] = useState('')
   const [avatar, setAvatar] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [avatarFile, setAvatarFile] = useState(null)
   const [avatarPreview, setAvatarPreview] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isVerified, setIsVerified] = useState(false)
+
+  // Check email verification status and fetch user profile
+  useEffect(() => {
+    const checkVerificationAndFetchProfile = async () => {
+      try {
+        setIsLoading(true)
+        
+        // First, check verification status from localStorage
+        const localUser = localStorage.getItem('user')
+        const authToken = localStorage.getItem('authToken')
+        let localUserData = null
+        let localIsVerified = false
+        
+        if (localUser) {
+          try {
+            localUserData = JSON.parse(localUser)
+            localIsVerified = localUserData.isVerified === true // Only true if explicitly set to true
+          } catch (e) {
+            console.error('Error parsing local user data:', e)
+          }
+        }
+        
+        // If user has auth token, they must be verified (token is only given after verification)
+        // So trust localStorage if it says verified, or if token exists
+        if (localIsVerified || authToken) {
+          setIsVerified(true)
+          console.log('✅ User is verified (from localStorage or token)')
+        }
+        
+        // Fetch profile from API
+        try {
+          const response = await getProfile()
+          
+          // Extract user data from API response
+          let userData = null
+          if (response.success && response.data) {
+            userData = response.data
+          } else if (response.data) {
+            userData = response.data
+          }
+          
+          if (userData) {
+            // Check verification status from API (but trust localStorage if it says verified)
+            const apiIsVerified = userData.isVerified === true || 
+                                 userData.emailVerified === true
+            
+            // Only update verification status if API explicitly says verified
+            // If API doesn't have the field, trust localStorage/token
+            if (apiIsVerified) {
+              setIsVerified(true)
+            } else if (!localIsVerified && !authToken) {
+              // Only show unverified if localStorage says false AND no token exists
+              setIsVerified(false)
+              toast.error('Please verify your email to access your profile')
+              router.push(`/check-email?email=${encodeURIComponent(userData.email || localUserData?.email || '')}`)
+              return
+            }
+            
+            // Set user data
+            setUsername(userData.displayName || userData.username || userData.name || '')
+            setEmail(userData.email || '')
+            setCompanyName(userData.companyName || userData.company || '')
+            setPhoneNo(userData.phoneNo || userData.phone || '')
+            // Prioritize avatarUrl from API, fallback to avatar or profilePicture
+            setAvatar(userData.avatarUrl || userData.avatar || userData.profilePicture || '')
+            
+            // IMPORTANT: Update localStorage with ALL profile data from API
+            // This ensures companyName, phoneNo, and other fields are stored
+            const updatedUserData = {
+              ...(localUserData || {}),
+              userId: userData.userId || localUserData?.userId,
+              email: userData.email || localUserData?.email,
+              displayName: userData.displayName || userData.username || userData.name || localUserData?.displayName,
+              companyName: userData.companyName || userData.company || localUserData?.companyName || '',
+              phoneNo: userData.phoneNo || userData.phone || localUserData?.phoneNo || '',
+              avatar: userData.avatarUrl || userData.avatar || userData.profilePicture || localUserData?.avatar || '',
+              avatarUrl: userData.avatarUrl || userData.avatar || userData.profilePicture || localUserData?.avatarUrl || '',
+              isVerified: apiIsVerified !== undefined ? apiIsVerified : (localUserData?.isVerified || true),
+              companyId: userData.CompanyId || userData.companyId || localUserData?.companyId,
+              expiresAt: userData.expiresAt || localUserData?.expiresAt,
+            }
+            
+            localStorage.setItem('user', JSON.stringify(updatedUserData))
+            console.log('💾 Updated localStorage with full profile data:', JSON.stringify(updatedUserData, null, 2))
+            
+            // Trigger storage change event to update navbar
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('localStorageChange'))
+            }
+          } else {
+            // If API doesn't return data, use localStorage
+            if (localUserData) {
+              if (!localIsVerified && !authToken) {
+                setIsVerified(false)
+                toast.error('Please verify your email to access your profile')
+                router.push(`/check-email?email=${encodeURIComponent(localUserData.email || '')}`)
+                return
+              }
+              
+              setUsername(localUserData.displayName || localUserData.name || '')
+              setEmail(localUserData.email || '')
+              setCompanyName(localUserData.companyName || '')
+              setPhoneNo(localUserData.phoneNo || localUserData.phone || '')
+              setAvatar(localUserData.avatarUrl || localUserData.avatar || '')
+            }
+          }
+        } catch (apiError) {
+          console.error('Error fetching profile from API:', apiError)
+          
+          // Check if it's an auth error
+          if (apiError?.status === 401) {
+            // Token might be invalid or expired
+            console.warn('⚠️ 401 Unauthorized - checking token')
+            const currentToken = localStorage.getItem('authToken')
+            if (!currentToken) {
+              toast.error('Please sign in to view your profile')
+              router.push('/sign-in')
+              return
+            } else {
+              // Token exists but API rejected it - might be expired
+              toast.error('Session expired. Please sign in again.')
+              // Clear invalid token
+              localStorage.removeItem('authToken')
+              localStorage.removeItem('refreshToken')
+              localStorage.removeItem('user')
+              router.push('/sign-in')
+              return
+            }
+          }
+          
+          // If API fails but user has token or localStorage says verified, still show profile
+          if (localIsVerified || authToken) {
+            console.log('⚠️ API failed but user is verified, using localStorage data')
+            if (localUserData) {
+              setUsername(localUserData.displayName || localUserData.name || '')
+              setEmail(localUserData.email || '')
+              setCompanyName(localUserData.companyName || '')
+              setPhoneNo(localUserData.phoneNo || localUserData.phone || '')
+              setAvatar(localUserData.avatarUrl || localUserData.avatar || '')
+              // Show warning but don't block the user
+              toast.warning('Using cached profile data. Some information may be outdated.')
+            }
+          } else {
+            // Only show error if not verified
+            toast.error('Failed to load profile. Please try again.')
+          }
+        }
+      } catch (error) {
+        console.error('Error in checkVerificationAndFetchProfile:', error)
+        toast.error('Failed to load profile. Please try again.')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    checkVerificationAndFetchProfile()
+  }, [router])
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0]
@@ -40,12 +204,140 @@ export default function AccountPage() {
     }
   }
 
-  const handleSaveProfile = () => {
-    // In a real appthis would save to the backend
-    toast.success('Profile updated successfully')
-    if (avatarFile) {
-      setAvatar(avatarPreview)
-      setAvatarFile(null)
+  const handleSaveProfile = async () => {
+    setIsSaving(true)
+    try {
+      // First, upload avatar if a new file was selected
+      if (avatarFile) {
+        try {
+          const avatarResponse = await uploadAvatar(avatarFile)
+          
+          // Extract avatar URL from response
+          // Response structure: { success: true, data: { avatarUrl: "..." } }
+          let newAvatarUrl = ''
+          if (avatarResponse.success && avatarResponse.data?.avatarUrl) {
+            newAvatarUrl = avatarResponse.data.avatarUrl
+          } else if (avatarResponse.data?.avatarUrl) {
+            newAvatarUrl = avatarResponse.data.avatarUrl
+          } else if (avatarResponse.avatarUrl) {
+            newAvatarUrl = avatarResponse.avatarUrl
+          }
+          
+          if (newAvatarUrl) {
+            setAvatar(newAvatarUrl)
+            
+            // Update localStorage immediately with new avatar URL
+            const localUser = localStorage.getItem('user')
+            if (localUser) {
+              try {
+                const userData = JSON.parse(localUser)
+                userData.avatar = newAvatarUrl
+                userData.avatarUrl = newAvatarUrl
+                localStorage.setItem('user', JSON.stringify(userData))
+                
+                // Trigger storage change event to update navbar
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new Event('localStorageChange'))
+                }
+              } catch (e) {
+                console.error('Error updating localStorage with avatar:', e)
+              }
+            }
+          }
+          
+          // Clear the file after successful upload
+          setAvatarFile(null)
+          setAvatarPreview('')
+          
+          toast.success(avatarResponse.message || 'Avatar uploaded successfully')
+        } catch (avatarError) {
+          console.error('Error uploading avatar:', avatarError)
+          toast.error('Failed to upload avatar. Profile will still be updated.')
+          // Continue with profile update even if avatar upload fails
+        }
+      }
+      
+      // Then, update profile information
+      const response = await updateProfile({
+        displayName: username.trim(),
+        phoneNo: phoneNo.trim() || '', // Send empty string if not provided
+        companyName: companyName.trim(),
+      })
+
+      // Check if update was successful
+      if (response.success || response.status === 200) {
+        // Update localStorage with new data
+        const localUser = localStorage.getItem('user')
+        if (localUser) {
+          try {
+            const userData = JSON.parse(localUser)
+            userData.displayName = username.trim()
+            userData.companyName = companyName.trim()
+            userData.phoneNo = phoneNo.trim() || ''
+            
+            // Update avatar URL if it was updated
+            if (avatar) {
+              userData.avatar = avatar
+            }
+            
+            localStorage.setItem('user', JSON.stringify(userData))
+            
+            // Trigger storage change event
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('localStorageChange'))
+            }
+          } catch (e) {
+            console.error('Error updating localStorage:', e)
+          }
+        }
+        
+        toast.success(response.message || 'Profile updated successfully')
+      } else {
+        throw new Error(response.message || 'Failed to update profile')
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error)
+      
+      // Handle different error cases
+      let errorMessage = 'Failed to save profile. Please try again.'
+      
+      if (error?.status === 400) {
+        errorMessage = error?.message || error?.data?.Message || 'Invalid data. Please check your input and try again.'
+      } else if (error?.status === 401) {
+        // Check if token exists
+        const currentToken = localStorage.getItem('authToken')
+        if (!currentToken) {
+          errorMessage = 'Please sign in to update your profile'
+          // Clear user data and redirect to sign in
+          localStorage.removeItem('user')
+          localStorage.removeItem('authToken')
+          localStorage.removeItem('refreshToken')
+          setTimeout(() => {
+            router.push('/sign-in')
+          }, 2000)
+        } else {
+          errorMessage = error?.message || 'Session expired. Please sign in again.'
+          // Clear invalid token and redirect
+          localStorage.removeItem('authToken')
+          localStorage.removeItem('refreshToken')
+          localStorage.removeItem('user')
+          setTimeout(() => {
+            router.push('/sign-in')
+          }, 2000)
+        }
+      } else if (error?.status === 403) {
+        errorMessage = error?.message || 'You do not have permission to update this profile.'
+      } else if (error?.message) {
+        errorMessage = error.message
+      } else if (error?.data?.Message) {
+        errorMessage = error.data.Message
+      } else if (error?.data?.message) {
+        errorMessage = error.data.message
+      }
+      
+      toast.error(errorMessage)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -59,9 +351,79 @@ export default function AccountPage() {
     toast.info('Data export feature coming soon')
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-10 space-y-8 max-w-4xl">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading profile...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // If not verified, show verification required message
+  if (!isVerified) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-10 space-y-8 max-w-4xl">
+          <Card>
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
+                <Mail className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <CardTitle className="text-2xl">Email Verification Required</CardTitle>
+              <CardDescription className="text-base">
+                Please verify your email address to access your profile.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                      Verification Required
+                    </p>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                      You need to verify your email address before you can access your profile settings.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <Button
+                  className="w-full"
+                  onClick={() => router.push(`/check-email?email=${encodeURIComponent(email || '')}`)}
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  Check Verification Email
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => router.push('/')}
+                >
+                  Go to Home
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <AuthenticatedNav />
+      <Navbar />
       <div className="container mx-auto px-4 py-10 space-y-8 max-w-4xl">
         <div>
           <h1 className="text-3xl font-bold">Account</h1>
@@ -83,7 +445,7 @@ export default function AccountPage() {
               <Avatar className="h-24 w-24">
                 <AvatarImage src={avatarPreview || avatar} />
                 <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-2xl">
-                  {username.substring(0, 2).toUpperCase()}
+                  {username ? username.substring(0, 2).toUpperCase() : email ? email.substring(0, 2).toUpperCase() : 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="space-y-2">
@@ -165,15 +527,53 @@ export default function AccountPage() {
               </p>
             </div>
 
+            {/* Phone Number */}
+            <div className="space-y-2">
+              <Label htmlFor="phoneNo">Phone Number</Label>
+              <Input
+                id="phoneNo"
+                type="tel"
+                value={phoneNo}
+                onChange={(e) => setPhoneNo(e.target.value)}
+                placeholder="Enter your phone number (optional)"
+              />
+              <p className="text-xs text-muted-foreground">
+                Your phone number (optional). Leave empty if you don&apos;t want to provide it.
+              </p>
+            </div>
+
             <div className="flex gap-2">
-              <Button onClick={handleSaveProfile}>Save Changes</Button>
-              <Button variant="outline" onClick={() => {
-                setUsername('johndoe')
-                setEmail('john@example.com')
-                setCompanyName('Acme Studio')
-                setAvatarPreview('')
-                setAvatarFile(null)
-              }}>
+              <Button onClick={handleSaveProfile} disabled={isSaving || isLoading}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  // Reset to original values from API
+                  const localUser = localStorage.getItem('user')
+                  if (localUser) {
+                    try {
+                      const userData = JSON.parse(localUser)
+                      setUsername(userData.displayName || userData.name || '')
+                      setEmail(userData.email || '')
+                      setCompanyName(userData.companyName || '')
+                      setPhoneNo(userData.phoneNo || userData.phone || '')
+                    } catch (e) {
+                      console.error('Error parsing local user data:', e)
+                    }
+                  }
+                  setAvatarPreview('')
+                  setAvatarFile(null)
+                }}
+                disabled={isLoading}
+              >
                 Reset
               </Button>
             </div>

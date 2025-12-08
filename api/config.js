@@ -43,7 +43,11 @@ apiClient.interceptors.response.use(
         // Unauthorized - clear token and redirect to login
         if (typeof window !== 'undefined') {
           localStorage.removeItem('authToken')
-          // Optionally redirect to login
+          localStorage.removeItem('refreshToken')
+          localStorage.removeItem('user')
+          // Trigger event to update UI
+          window.dispatchEvent(new Event('localStorageChange'))
+          // Optionally redirect to login (can be handled by components)
         }
       }
       

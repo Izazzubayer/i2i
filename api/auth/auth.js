@@ -79,37 +79,19 @@ export const signup = async (signupData) => {
     
     const apiResponse = response.data
     
-    // Store user data and tokens if signup was successful
+    // Don't store user data during signup - email is not verified yet
+    // User data will be stored only after email verification is successful
+    // This prevents the account from appearing in navbar before verification
     if (apiResponse.success && apiResponse.data) {
-      const userData = {
-        userId: apiResponse.data.userId,
-        email: apiResponse.data.email,
-        displayName: apiResponse.data.displayName,
-        companyId: apiResponse.data.CompanyId,
-        expiresAt: apiResponse.data.expiresAt,
-      }
-      
-      // Store in localStorage
+      // Clear any existing user data and tokens to ensure clean state
       if (typeof window !== 'undefined') {
-        // Store access token
-        if (apiResponse.data.accessToken) {
-          localStorage.setItem('authToken', apiResponse.data.accessToken)
-          console.log('💾 Stored accessToken')
-        }
+        localStorage.removeItem('user')
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('refreshToken')
         
-        // Store refresh token
-        if (apiResponse.data.refreshToken) {
-          localStorage.setItem('refreshToken', apiResponse.data.refreshToken)
-          console.log('💾 Stored refreshToken')
-        }
-        
-        // Store user data
-        localStorage.setItem('user', JSON.stringify(userData))
-        console.log('💾 Stored user data:', JSON.stringify(userData, null, 2))
-        
-        // Trigger custom event to notify other components
+        // Trigger storage change event to update navbar
         window.dispatchEvent(new Event('localStorageChange'))
-        console.log('🔄 Triggered localStorageChange event')
+        console.log('🧹 Cleared user data - email verification required')
       }
     }
     
@@ -140,7 +122,7 @@ export const signup = async (signupData) => {
     } else if (error.request) {
       // Request made but no response received
       throw {
-        message: 'Network error. Please check your connection.',
+        message: 'Network error.  Please check your connection.',
         status: null,
       }
     } else {
@@ -197,37 +179,56 @@ export const signin = async (signinData) => {
     const apiResponse = response.data
     
     // Store user data and tokens if signin was successful
+    // IMPORTANT: If user can sign in successfully, assume they are verified
+    // Only skip storing if API explicitly says email is NOT verified
     if (apiResponse.success && apiResponse.data) {
-      const userData = {
-        userId: apiResponse.data.userId,
-        email: apiResponse.data.email,
-        displayName: apiResponse.data.displayName || apiResponse.data.email?.split('@')[0] || 'User',
-        companyId: apiResponse.data.CompanyId || apiResponse.data.companyId,
-        expiresAt: apiResponse.data.expiresAt,
-        isVerified: apiResponse.data.isVerified !== undefined ? apiResponse.data.isVerified : true,
-      }
+      // Check if API explicitly says email is NOT verified
+      const explicitlyNotVerified = apiResponse.data.isVerified === false || 
+                                    apiResponse.data.emailVerified === false
       
-      // Store in localStorage
-      if (typeof window !== 'undefined') {
-        // Store access token
-        if (apiResponse.data.accessToken) {
-          localStorage.setItem('authToken', apiResponse.data.accessToken)
-          console.log('💾 Stored accessToken')
+      // If not explicitly unverified, assume verified (successful signin = verified)
+      // Only skip storing if API explicitly says not verified
+      if (!explicitlyNotVerified) {
+        const userData = {
+          userId: apiResponse.data.userId,
+          email: apiResponse.data.email,
+          displayName: apiResponse.data.displayName || apiResponse.data.email?.split('@')[0] || 'User',
+          companyId: apiResponse.data.CompanyId || apiResponse.data.companyId,
+          expiresAt: apiResponse.data.expiresAt,
+          isVerified: true, // Set to true since signin was successful
         }
         
-        // Store refresh token
-        if (apiResponse.data.refreshToken) {
-          localStorage.setItem('refreshToken', apiResponse.data.refreshToken)
-          console.log('💾 Stored refreshToken')
+        // Store in localStorage
+        if (typeof window !== 'undefined') {
+          // Store access token
+          if (apiResponse.data.accessToken) {
+            localStorage.setItem('authToken', apiResponse.data.accessToken)
+            console.log('💾 Stored accessToken')
+          }
+          
+          // Store refresh token
+          if (apiResponse.data.refreshToken) {
+            localStorage.setItem('refreshToken', apiResponse.data.refreshToken)
+            console.log('💾 Stored refreshToken')
+          }
+          
+          // Store user data
+          localStorage.setItem('user', JSON.stringify(userData))
+          console.log('💾 Stored user data:', JSON.stringify(userData, null, 2))
+          
+          // Trigger custom event to notify other components
+          window.dispatchEvent(new Event('localStorageChange'))
+          console.log('🔄 Triggered localStorageChange event')
         }
-        
-        // Store user data
-        localStorage.setItem('user', JSON.stringify(userData))
-        console.log('💾 Stored user data:', JSON.stringify(userData, null, 2))
-        
-        // Trigger custom event to notify other components
-        window.dispatchEvent(new Event('localStorageChange'))
-        console.log('🔄 Triggered localStorageChange event')
+      } else {
+        // Email explicitly not verified - clear any existing user data
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('user')
+          localStorage.removeItem('authToken')
+          localStorage.removeItem('refreshToken')
+          window.dispatchEvent(new Event('localStorageChange'))
+          console.log('🧹 Cleared user data - email not verified')
+        }
       }
     }
     
@@ -335,50 +336,82 @@ export const verifyEmail = async (verifyData) => {
     
     const apiResponse = response.data
     
-    // Store user data if provided in response
+    // Store user data ONLY after email verification is successful
+    // This ensures user account only appears in navbar after verification
     if (apiResponse.success && apiResponse.data) {
-      // Get existing user data from localStorage (from signup)
-      let existingUserData = {}
+      // Store tokens first (needed for fetching full profile)
       if (typeof window !== 'undefined') {
-        const existingUser = localStorage.getItem('user')
-        if (existingUser) {
-          try {
-            existingUserData = JSON.parse(existingUser)
-            console.log('📋 Existing user data found (from signup):', existingUserData)
-          } catch (e) {
-            console.warn('Could not parse existing user data:', e)
-          }
+        // Store tokens if provided
+        if (apiResponse.data.accessToken) {
+          localStorage.setItem('authToken', apiResponse.data.accessToken)
+          console.log('💾 Stored accessToken')
+        }
+        if (apiResponse.data.refreshToken) {
+          localStorage.setItem('refreshToken', apiResponse.data.refreshToken)
+          console.log('💾 Stored refreshToken')
+        }
+        // Also check for token field (alternative format)
+        if (apiResponse.data.token) {
+          localStorage.setItem('authToken', apiResponse.data.token)
+          console.log('💾 Stored token')
         }
       }
       
-      // Merge verification data with existing user data (from signup)
-      // Preserve all signup data (displayName, companyId, expiresAt, etc.)
-      const userData = {
-        ...existingUserData, // Keep existing data from signup
-        userId: apiResponse.data.userId || existingUserData.userId,
-        email: apiResponse.data.email || existingUserData.email,
-        displayName: existingUserData.displayName || apiResponse.data.email?.split('@')[0] || 'User',
-        isVerified: apiResponse.data.isVerified !== undefined ? apiResponse.data.isVerified : true,
-        // Preserve signup data
-        companyId: existingUserData.companyId,
-        expiresAt: existingUserData.expiresAt,
+      // Create initial user data from verification API response
+      let userData = {
+        userId: apiResponse.data.userId,
+        email: apiResponse.data.email,
+        displayName: apiResponse.data.displayName || apiResponse.data.email?.split('@')[0] || 'User',
+        isVerified: true, // Email is verified, so set to true
+        companyId: apiResponse.data.CompanyId || apiResponse.data.companyId,
+        expiresAt: apiResponse.data.expiresAt,
       }
       
-      console.log('💾 Merged user data (signup + verification):', JSON.stringify(userData, null, 2))
+      console.log('💾 Initial user data from verification API:', JSON.stringify(userData, null, 2))
       
-      // Store in localStorage
+      // Try to fetch full profile to get companyName, phoneNo, etc.
+      // This ensures we have all user data after verification
+      try {
+        // Import getProfile dynamically to avoid circular dependency
+        const { getProfile } = await import('../users/users')
+        
+        // Only fetch if we have a token
+        const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
+        if (token) {
+          console.log('📥 Fetching full user profile after verification...')
+          const profileResponse = await getProfile()
+          
+          // Merge profile data with verification data
+          if (profileResponse.success && profileResponse.data) {
+            const profileData = profileResponse.data
+            userData = {
+              ...userData,
+              displayName: profileData.displayName || userData.displayName,
+              companyName: profileData.companyName || profileData.company || '',
+              phoneNo: profileData.phoneNo || profileData.phone || '',
+              avatar: profileData.avatarUrl || profileData.avatar || profileData.profilePicture || '',
+              // Keep verification data
+              isVerified: true,
+              userId: profileData.userId || userData.userId,
+              email: profileData.email || userData.email,
+              companyId: profileData.CompanyId || profileData.companyId || userData.companyId,
+            }
+            console.log('✅ Full profile fetched and merged:', JSON.stringify(userData, null, 2))
+          }
+        }
+      } catch (profileError) {
+        console.warn('⚠️ Could not fetch full profile after verification (will use basic data):', profileError)
+        // Continue with basic user data if profile fetch fails
+      }
+      
+      // Store complete user data in localStorage
       if (typeof window !== 'undefined') {
         localStorage.setItem('user', JSON.stringify(userData))
         
-        // If token is provided separately, store it
-        if (apiResponse.data.token) {
-          localStorage.setItem('authToken', apiResponse.data.token)
-        }
-        
-        // Trigger custom event to notify other components
+        // Trigger custom event to notify other components (navbar will update)
         window.dispatchEvent(new Event('localStorageChange'))
         
-        console.log('💾 User data stored in localStorage')
+        console.log('✅ User data stored in localStorage after email verification')
         console.log('💾 Final stored user:', JSON.stringify(userData, null, 2))
       }
     }
@@ -616,6 +649,87 @@ export const refreshToken = async () => {
   }
 }
 
+/**
+ * Resend verification email
+ * @param {Object} resendData - Resend verification email data
+ * @param {string} resendData.email - User email
+ * @returns {Promise} API response
+ */
+export const resendVerificationEmail = async (resendData) => {
+  try {
+    console.log('📧 Resend Verification Email API Call')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('📤 Email:', resendData.email)
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    // For resend-verification-email, don't send Authorization header (user might not be authenticated yet)
+    // Use axios directly to bypass the interceptor
+    const resendPayload = {
+      email: resendData.email,
+    }
+    
+    const resendResponse = await axios.post(
+      `${BASE_URL}/api/v1/Auth/resend-verification-email`,
+      resendPayload,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      }
+    )
+    
+    // Convert to same format as apiClient response
+    const response = {
+      status: resendResponse.status,
+      data: resendResponse.data,
+    }
+    
+    console.log('✅ Resend Verification Email Response received')
+    console.log('📥 Response Status:', response.status)
+    console.log('📥 Response Data:', JSON.stringify(response.data, null, 2))
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    return response.data
+  } catch (error) {
+    console.error('❌ Resend Verification Email API error:', error)
+    
+    // Handle axios errors (since we're using axios directly)
+    if (error.response) {
+      // Server responded with error status
+      const { status, data } = error.response
+      
+      // Extract error message
+      let errorMessage = 'An error occurred'
+      if (data?.Message) {
+        errorMessage = data.Message
+      } else if (data?.message) {
+        errorMessage = data.message
+      }
+      
+      // Throw in same format as apiClient
+      throw {
+        message: errorMessage,
+        status: status,
+        data: data,
+        code: data?.Code || data?.code,
+      }
+    } else if (error.request) {
+      // Request made but no response received
+      throw {
+        message: 'Network error. Please check your connection.',
+        status: null,
+      }
+    } else {
+      // Something else happened
+      throw {
+        message: error.message || 'An unexpected error occurred',
+        status: null,
+      }
+    }
+  }
+}
+
 // Export all auth functions as default object
 const authAPI = {
   signup,
@@ -625,6 +739,7 @@ const authAPI = {
   requestPasswordReset,
   resetPassword,
   refreshToken,
+  resendVerificationEmail,
 }
 
 export default authAPI

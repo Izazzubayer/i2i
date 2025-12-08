@@ -24,7 +24,7 @@ import {
   Server,
   TrendingUp
 } from 'lucide-react'
-import Header from '@/components/Header'
+import Navbar from '@/components/Navbar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -132,7 +132,7 @@ export default function PageEnterprise() {
 
   return (
     <main className="min-h-screen bg-background">
-      <Header />
+      <Navbar />
 
       {/* Enterprise Dashboard Header */}
       <div className="border-b bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">

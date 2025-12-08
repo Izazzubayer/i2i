@@ -161,13 +161,13 @@ export default function Header() {
   ]
 
   const resourcesItems = [
-    { label: 'How i2i Works', icon: Sparkles, href: '/how-i2i-works' },
     { label: 'API', icon: Code, href: '/api-docs' },
     { label: 'Contact', icon: Mail, href: '/contact' },
+    { label: 'How i2i Works', icon: Sparkles, href: '/how-i2i-works' },
     { label: 'FAQ', icon: HelpCircle, href: '/faq' },
   ]
 
-  const isResourcesActive = pathname?.startsWith('/how-i2i-works') || pathname?.startsWith('/api-docs') || pathname?.startsWith('/contact') || pathname?.startsWith('/faq')
+  const isResourcesActive = pathname?.startsWith('/api-docs') || pathname?.startsWith('/contact') || pathname?.startsWith('/how-i2i-works') || pathname?.startsWith('/faq')
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -190,45 +190,47 @@ export default function Header() {
         </Link>
 
         {/* Navigation Links - Desktop */}
-        <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
+        <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center max-w-4xl mx-auto">
           {navigationItems.map((item) => {
+            const isActive = pathname === item.path || (item.path !== '/' && pathname?.startsWith(item.path))
             return (
-              <Button 
-                key={item.href}
-                variant={pathname === item.path ? 'secondary' : 'ghost'} 
-                size="sm" 
-                asChild
-              >
-                <Link href={item.href}>
+              <Link key={item.href} href={item.href} prefetch={true}>
+                <Button 
+                  variant={isActive ? 'secondary' : 'ghost'} 
+                  size="sm"
+                >
                   {item.label}
-                </Link>
-              </Button>
+                </Button>
+              </Link>
             )
           })}
           
-          {/* Resources Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant={isResourcesActive ? 'secondary' : 'ghost'} 
-                size="sm" 
-                className="gap-2"
-              >
-                Resources
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="center">
-              {resourcesItems.map((item) => {
-                return (
-                  <DropdownMenuItem key={item.href} onClick={() => router.push(item.href)}>
-                    {item.label}
-                  </DropdownMenuItem>
-                )
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
+          {/* Resources Dropdown - For additional resources */}
+          {resourcesItems.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant={isResourcesActive ? 'secondary' : 'ghost'} 
+                  size="sm" 
+                  className="gap-2"
+                >
+                  Resources
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center">
+                {resourcesItems.map((item) => {
+                  return (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link href={item.href} prefetch={true}>
+                        {item.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </nav>
 
         {/* Right Side - Auth & Language - Desktop */}
@@ -357,10 +359,11 @@ export default function Header() {
             </DrawerHeader>
             <div className="px-4 pb-4 space-y-2">
               {navigationItems.map((item) => {
+                const isActive = pathname === item.path || (item.path !== '/' && pathname?.startsWith(item.path))
                 return (
                   <Button
                     key={item.href}
-                    variant={pathname === item.path ? 'secondary' : 'ghost'}
+                    variant={isActive ? 'secondary' : 'ghost'}
                     className="w-full justify-start"
                     onClick={() => {
                       router.push(item.href)
@@ -372,25 +375,27 @@ export default function Header() {
                 )
               })}
               
-              {/* Resources Section */}
-              <div className="pt-2 border-t">
-                <p className="text-xs font-semibold text-muted-foreground uppercase mb-2 px-2">Resources</p>
-                {resourcesItems.map((item) => {
-                  return (
-                    <Button
-                      key={item.href}
-                      variant="ghost"
-                      className="w-full justify-start"
-                      onClick={() => {
-                        router.push(item.href)
-                        setMobileMenuOpen(false)
-                      }}
-                    >
-                      {item.label}
-                    </Button>
-                  )
-                })}
-              </div>
+              {/* Additional Resources Section */}
+              {resourcesItems.length > 0 && (
+                <div className="pt-2 border-t">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2 px-2">Resources</p>
+                  {resourcesItems.map((item) => {
+                    return (
+                      <Button
+                        key={item.href}
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          router.push(item.href)
+                          setMobileMenuOpen(false)
+                        }}
+                      >
+                        {item.label}
+                      </Button>
+                    )
+                  })}
+                </div>
+              )}
 
               {/* Auth Buttons or User Menu */}
               <div className="pt-4 border-t space-y-2">

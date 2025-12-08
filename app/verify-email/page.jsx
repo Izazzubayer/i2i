@@ -6,17 +6,42 @@ import { motion } from 'framer-motion'
 import { CheckCircle2, Loader2, XCircle, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { verifyEmail } from '@/api/auth/auth'
+import { verifyEmail, resendVerificationEmail } from '@/api/auth/auth'
 import { toast } from 'sonner'
 
 function VerifyEmailHandler() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
-  const email = searchParams.get('email')
+  const emailFromUrl = searchParams.get('email')
   
   const [status, setStatus] = useState('verifying') // 'verifying', 'success', 'error', 'expired'
   const [message, setMessage] = useState('Verifying your email...')
+  const [isResending, setIsResending] = useState(false)
+  const [email, setEmail] = useState(emailFromUrl || null)
+  
+  // Get email from URL or localStorage (client-side only to prevent hydration issues)
+  useEffect(() => {
+    if (emailFromUrl) {
+      setEmail(emailFromUrl)
+      return
+    }
+    
+    // Try to get email from localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const user = localStorage.getItem('user')
+        if (user) {
+          const userData = JSON.parse(user)
+          if (userData.email) {
+            setEmail(userData.email)
+          }
+        }
+      } catch (e) {
+        console.warn('Could not parse user data from localStorage:', e)
+      }
+    }
+  }, [emailFromUrl])
 
   useEffect(() => {
     if (!token) {
@@ -252,14 +277,40 @@ function VerifyEmailHandler() {
                 <div className="space-y-3">
                   <Button
                     className="w-full"
-                    onClick={() => router.push('/check-email?email=' + encodeURIComponent(email || ''))}
+                    onClick={async () => {
+                      if (!email) {
+                        toast.error('Email address is required to resend verification email.')
+                        return
+                      }
+                      
+                      setIsResending(true)
+                      try {
+                        await resendVerificationEmail({ email })
+                        toast.success('Email send check email...')
+                        setMessage('Verification email has been sent. Please check your email inbox.')
+                      } catch (error) {
+                        console.error('Resend verification email error:', error)
+                        toast.error(error?.message || 'Failed to send verification email. Please try again.')
+                      } finally {
+                        setIsResending(false)
+                      }
+                    }}
+                    disabled={isResending}
                   >
-                    Request New Verification Email
+                    {isResending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      'Request New Verification Email'
+                    )}
                   </Button>
                   <Button
                     variant="outline"
                     className="w-full"
                     onClick={() => router.push('/sign-in')}
+                    disabled={isResending}
                   >
                     Go to Sign In
                   </Button>

@@ -14,6 +14,19 @@ export const startOrder = async () => {
     console.log('📦 Start Order API Call')
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     
+    // Check if token exists
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
+    if (!token) {
+      const error = {
+        message: 'Authentication token not found. Please sign in again.',
+        status: 401,
+      }
+      console.error('❌ No auth token found in localStorage')
+      throw error
+    }
+    
+    console.log('🔑 Auth token found:', token.substring(0, 20) + '...')
+    
     const response = await apiClient.post('/api/v1/orders/start', {}, {
       headers: {
         'Accept': 'text/plain',
@@ -27,6 +40,16 @@ export const startOrder = async () => {
     return response.data
   } catch (error) {
     console.error('❌ Start Order API error:', error)
+    
+    // Provide more helpful error messages
+    if (error?.status === 401) {
+      const enhancedError = {
+        ...error,
+        message: error.message || 'Authentication failed. Your session may have expired. Please sign in again.',
+      }
+      throw enhancedError
+    }
+    
     throw error
   }
 }

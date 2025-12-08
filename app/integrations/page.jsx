@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import AuthenticatedNav from '@/components/AuthenticatedNav'
+import Navbar from '@/components/Navbar'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +17,6 @@ import {
   Cloud,
   Plus,
   Settings,
-  RefreshCw,
   CheckCircle2,
   XCircle,
   AlertCircle,
@@ -25,10 +24,8 @@ import {
   Folder,
   Upload,
   Download,
-  Clock,
   Link2,
   Unlink,
-  Loader2,
   Cog,
   Eye
 } from 'lucide-react'
@@ -59,7 +56,6 @@ const mockIntegrations = [
     name: 'E-commerce Assets',
     provider: 'Shopify',
     status: 'connected',
-    lastSync: '2 minutes ago',
     workspace: 'acme-store',
     targetFolder: '/products',
     totalUploads: 1247,
@@ -71,7 +67,6 @@ const mockIntegrations = [
     name: 'Social Media Content',
     provider: 'Facebook',
     status: 'connected',
-    lastSync: '1 hour ago',
     workspace: 'acme-media',
     targetFolder: '/assets/images',
     totalUploads: 3562,
@@ -83,7 +78,6 @@ const mockIntegrations = [
     name: 'Brand Assets',
     provider: 'GlobalEdit',
     status: 'error',
-    lastSync: '3 days ago',
     workspace: 'brand-central',
     targetFolder: '/brand/assets',
     totalUploads: 456,
@@ -138,23 +132,6 @@ export default function IntegrationsPage() {
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false)
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
   const [selectedIntegration, setSelectedIntegration] = useState(null)
-  const [syncing, setSyncing] = useState(null)
-
-  const handleSync = async (integrationId) => {
-    setSyncing(integrationId)
-    setIntegrations(prev => prev.map(i => 
-      i.id === integrationId ? { ...i, status: 'syncing' } : i
-    ))
-    
-    // Simulate sync
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    setIntegrations(prev => prev.map(i => 
-      i.id === integrationId ? { ...i, status: 'connected', lastSync: 'Just now' } : i
-    ))
-    setSyncing(null)
-    toast.success('Sync completed successfully')
-  }
 
   const handleDisconnect = () => {
     if (!selectedIntegration) return
@@ -185,7 +162,6 @@ export default function IntegrationsPage() {
       name: `${selectedProvider.name} Integration`,
       provider: selectedProvider.name,
       status: 'connected',
-      lastSync: 'Just now',
       workspace: config.workspace || 'default-workspace',
       targetFolder: config.targetFolder || '/uploads',
       totalUploads: 0,
@@ -204,7 +180,6 @@ export default function IntegrationsPage() {
       name: `${selectedProvider?.name} Integration`,
       provider: selectedProvider?.name || 'Custom API',
       status: 'connected',
-      lastSync: 'Just now',
       workspace: 'new-workspace',
       targetFolder: '/uploads',
       totalUploads: 0,
@@ -240,13 +215,6 @@ export default function IntegrationsPage() {
             Error
           </Badge>
         )
-      case 'syncing':
-        return (
-          <Badge className="bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
-            <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-            Syncing
-          </Badge>
-        )
     }
   }
 
@@ -254,7 +222,7 @@ export default function IntegrationsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AuthenticatedNav />
+      <Navbar />
       <div className="container mx-auto px-4 py-10 space-y-8 max-w-6xl">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -284,7 +252,7 @@ export default function IntegrationsPage() {
                   <Cloud className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                   <h3 className="font-semibold text-lg mb-2">No integrations yet</h3>
                   <p className="text-muted-foreground mb-6">
-                    Connect your DAM system to start syncing your processed images.
+                    Connect your DAM system to automatically upload your processed images.
                   </p>
                   <Button onClick={() => setAddDialogOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" />
@@ -314,10 +282,6 @@ export default function IntegrationsPage() {
                                 <span>{integration.targetFolder}</span>
                               </div>
                               <div className="flex items-center gap-1">
-                                <Clock className="h-4 w-4" />
-                                <span>Last sync: {integration.lastSync}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
                                 <Upload className="h-4 w-4" />
                                 <span>{integration.totalUploads.toLocaleString()} uploads</span>
                               </div>
@@ -325,18 +289,6 @@ export default function IntegrationsPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleSync(integration.id)}
-                            disabled={syncing === integration.id || integration.status === 'syncing'}
-                          >
-                            {syncing === integration.id || integration.status === 'syncing' ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <RefreshCw className="h-4 w-4" />
-                            )}
-                          </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm">
@@ -393,21 +345,6 @@ export default function IntegrationsPage() {
                           </p>
                         </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSync(integration.id)}
-                        disabled={syncing === integration.id}
-                      >
-                        {syncing === integration.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Sync Now
-                          </>
-                        )}
-                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -604,10 +541,6 @@ export default function IntegrationsPage() {
                   <p className="text-sm font-medium">{selectedIntegration.targetFolder}</p>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Last Sync</Label>
-                  <p className="text-sm font-medium">{selectedIntegration.lastSync}</p>
-                </div>
-                <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Created</Label>
                   <p className="text-sm font-medium">{selectedIntegration.createdAt}</p>
                 </div>
@@ -639,7 +572,7 @@ export default function IntegrationsPage() {
               Disconnect Integration
             </DialogTitle>
             <DialogDescription className="leading-relaxed">
-              Are you sure you want to disconnect this integration? This will stop all syncing with {selectedIntegration?.provider}.
+              Are you sure you want to disconnect this integration? This will stop automatic uploads to {selectedIntegration?.provider}.
             </DialogDescription>
           </DialogHeader>
           {selectedIntegration && (

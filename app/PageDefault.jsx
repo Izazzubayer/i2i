@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Plus } from 'lucide-react'
-import Header from '@/components/Header'
+import Navbar from '@/components/Navbar'
 import UploadSection from '@/components/UploadSection'
 import ProcessingPanel from '@/components/ProcessingPanel'
 import ImageGallery from '@/components/ImageGallery'
@@ -31,7 +31,7 @@ export default function PageDefault() {
 
   return (
     <main className="min-h-screen bg-background">
-      <Header />
+      <Navbar />
       
       {/* Hero Section - Only show when no batch */}
       {!batch && (

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Header from '@/components/Header'
+import Navbar from '@/components/Navbar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -17,12 +17,14 @@ const plans = [
     description: 'Perfect for individuals and small projects',
     monthlyPrice: 19,
     yearlyPrice: 190,
-    credits: 500,
+    images: 500,
+    tokens: 10000,
     icon: Zap,
     popular: false,
     features: [
       { name: 'AI Image Processing', included: true },
-      { name: '500 credits/month', included: true },
+      { name: '500 images/month', included: true },
+      { name: '10,000 tokens/month', included: true },
       { name: 'Basic background removal', included: true },
       { name: 'Standard quality output', included: true },
       { name: 'Email support', included: true },
@@ -39,12 +41,14 @@ const plans = [
     description: 'Best for growing businesses and teams',
     monthlyPrice: 49,
     yearlyPrice: 490,
-    credits: 1000,
+    images: 1000,
+    tokens: 25000,
     icon: Rocket,
     popular: true,
     features: [
       { name: 'AI Image Processing', included: true },
-      { name: '1,000 credits/month', included: true },
+      { name: '1,000 images/month', included: true },
+      { name: '25,000 tokens/month', included: true },
       { name: 'Advanced background removal', included: true },
       { name: 'High quality output', included: true },
       { name: 'Priority email support', included: true },
@@ -61,12 +65,14 @@ const plans = [
     description: 'For large organizations with custom needs',
     monthlyPrice: 149,
     yearlyPrice: 1490,
-    credits: 5000,
+    images: 5000,
+    tokens: 100000,
     icon: Building2,
     popular: false,
     features: [
       { name: 'AI Image Processing', included: true },
-      { name: '5,000 credits/month', included: true },
+      { name: '5,000 images/month', included: true },
+      { name: '100,000 tokens/month', included: true },
       { name: 'Premium background removal', included: true },
       { name: 'Ultra-high quality output', included: true },
       { name: 'Dedicated support channel', included: true },
@@ -84,7 +90,8 @@ const comparisonFeatures = [
   { 
     category: 'Processing',
     features: [
-      { name: 'Monthly credits', starter: '500', pro: '1,000', enterprise: '5,000' },
+      { name: 'Monthly images', starter: '500', pro: '1,000', enterprise: '5,000' },
+      { name: 'Monthly tokens', starter: '10,000', pro: '25,000', enterprise: '100,000' },
       { name: 'Image quality', starter: 'Standard', pro: 'High', enterprise: 'Ultra-high' },
       { name: 'Processing speed', starter: 'Standard', pro: 'Priority', enterprise: 'Priority' },
       { name: 'Batch processing', starter: 'Up to 50', pro: 'Up to 200', enterprise: 'Unlimited' },
@@ -125,16 +132,16 @@ const comparisonFeatures = [
 
 const faqs = [
   {
-    question: 'What are credits and how do they work?',
-    answer: 'Credits are our unit of processing. Each image processed uses 1 credit. Your credits reset at the start of each billing cycle. Unused credits do not roll over to the next month.',
+    question: 'What are images and tokens and how do they work?',
+    answer: 'Images represent the number of images you can process per month. Tokens are used for API operations and advanced processing features. Each image processing uses 1 image from your quota. Your images and tokens reset at the start of each billing cycle. Unused images and tokens do not roll over to the next month.',
   },
   {
     question: 'Can I upgrade or downgrade my plan?',
     answer: 'Yes! You can upgrade your plan at any time and the changes take effect immediately. When downgrading, the change will take effect at the start of your next billing cycle.',
   },
   {
-    question: 'What happens if I run out of credits?',
-    answer: 'If you run out of credits, you can either wait until your next billing cycle when they reset, or upgrade to a higher plan for more credits. We\'ll notify you when you\'re running low.',
+    question: 'What happens if I run out of images or tokens?',
+    answer: 'If you run out of images or tokens, you can either wait until your next billing cycle when they reset, or upgrade to a higher plan for more. We\'ll notify you when you\'re running low on either quota.',
   },
   {
     question: 'Is there a free trial?',
@@ -174,7 +181,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Navbar />
       
       {/* Hero Section */}
       <section className="relative overflow-hidden border-b">
@@ -263,7 +270,10 @@ export default function PricingPage() {
                         </p>
                       )}
                       <p className="text-sm text-muted-foreground mt-2">
-                        {plan.credits.toLocaleString()} credits/month
+                        {plan.images.toLocaleString()} images/month
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {plan.tokens.toLocaleString()} tokens/month
                       </p>
                     </div>
 

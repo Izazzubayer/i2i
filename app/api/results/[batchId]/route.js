@@ -1,6 +1,9 @@
+// Mark this route as dynamic since it uses dynamic params
+export const dynamic = 'force-dynamic'
+
 export async function GET(request, { params }) {
   try {
-    const { batchId } = params
+    const { batchId } = await params
 
     // In a real application, you would:
     // 1. Query the database for all processed images in this batch

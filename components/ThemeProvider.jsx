@@ -1,12 +1,18 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '@/lib/store'
 
 export default function ThemeProvider({ children }) {
   const { darkMode } = useStore()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
     // Apply theme on mount and when darkMode changes
     const root = document.documentElement
     if (darkMode) {
@@ -14,7 +20,12 @@ export default function ThemeProvider({ children }) {
     } else {
       root.classList.remove('dark')
     }
-  }, [darkMode])
+  }, [darkMode, mounted])
+
+  // Prevent hydration mismatch by not applying theme until mounted
+  if (!mounted) {
+    return <>{children}</>
+  }
 
   return <>{children}</>
 }

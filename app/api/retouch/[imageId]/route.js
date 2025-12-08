@@ -1,6 +1,9 @@
+// Mark this route as dynamic since it uses dynamic params
+export const dynamic = 'force-dynamic'
+
 export async function POST(request, { params }) {
   try {
-    const { imageId } = params
+    const { imageId } = await params
     const body = await request.json()
     const { instruction } = body
 

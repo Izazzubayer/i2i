@@ -96,6 +96,7 @@ export default function ProcessingResultsPage() {
   const processingStartedRef = useRef(false)
   const imageHistoryRef = useRef(new Map()) // Store previous states for undo
   const allowLeaveRef = useRef(false) // Track if user confirmed leaving
+  const pollIntervalRef = useRef(null) // Poll interval for order updates
 
   // Get user's current plan from localStorage (default to Starter)
   const getUserPlan = useCallback(() => {
@@ -130,31 +131,31 @@ export default function ProcessingResultsPage() {
   useEffect(() => {
     if (!orderId) {
       // Fallback to batch if no orderId
-      if (batch && batch.images) {
+    if (batch && batch.images) {
         processingStartedRef.current = false
-        setImages(
-          batch.images.map((img) => {
-            const initialProcessedUrl = img.status === 'completed' 
-              ? (img.processedUrl || `https://picsum.photos/seed/${img.id}/800/600`)
-              : ''
-            
-            return {
-              ...img,
-              status: img.status === 'completed' ? STATUSES.PROCESSED : img.status === 'processing' ? STATUSES.IN_PROGRESS : STATUSES.PROCESSED,
-              amendmentInstruction: null,
-              originalUrl: img.originalUrl || `https://picsum.photos/seed/${img.id}-original/800/600`,
+      setImages(
+        batch.images.map((img) => {
+          const initialProcessedUrl = img.status === 'completed' 
+            ? (img.processedUrl || `https://picsum.photos/seed/${img.id}/800/600`)
+            : ''
+          
+          return {
+            ...img,
+            status: img.status === 'completed' ? STATUSES.PROCESSED : img.status === 'processing' ? STATUSES.IN_PROGRESS : STATUSES.PROCESSED,
+            amendmentInstruction: null,
+            originalUrl: img.originalUrl || `https://picsum.photos/seed/${img.id}-original/800/600`,
+            processedUrl: initialProcessedUrl,
+            versions: initialProcessedUrl ? [{
+              id: 'v1',
               processedUrl: initialProcessedUrl,
-              versions: initialProcessedUrl ? [{
-                id: 'v1',
-                processedUrl: initialProcessedUrl,
-                timestamp: new Date(),
-                isReprocess: false,
-                prompt: img.instruction || batch?.instruction || '',
-              }] : [],
-              selectedVersionId: initialProcessedUrl ? 'v1' : null,
-            }
-          })
-        )
+              timestamp: new Date(),
+              isReprocess: false,
+              prompt: img.instruction || batch?.instruction || '',
+            }] : [],
+            selectedVersionId: initialProcessedUrl ? 'v1' : null,
+          }
+        })
+      )
         setLoading(false)
       } else {
         setLoading(false)
@@ -162,7 +163,6 @@ export default function ProcessingResultsPage() {
       return
     }
 
-    let pollInterval = null
     let isMounted = true
 
     const fetchOrderData = async () => {
@@ -171,63 +171,105 @@ export default function ProcessingResultsPage() {
         
         setLoading(true)
         setError(null)
+        
         const orderDetails = await getOrderDetails(orderId, { expirationMinutes: 60 })
         
         if (!isMounted) return
+        
+        // Validate API response
+        if (!orderDetails) {
+          throw new Error('Order details not found')
+        }
+        
+        // Log API response for debugging
+        console.log('📥 Order Details API Response:', {
+          hasInputs: !!orderDetails.inputs,
+          inputsCount: Array.isArray(orderDetails.inputs) ? orderDetails.inputs.length : 0,
+          hasVersions: !!orderDetails.versions,
+          versionsCount: Array.isArray(orderDetails.versions) ? orderDetails.versions.length : 0,
+          hasImages: !!orderDetails.images,
+          imagesCount: Array.isArray(orderDetails.images) ? orderDetails.images.length : 0,
+        })
         
         setOrderData(orderDetails)
 
         // Group versions by input (each input = one image)
         const inputsMap = new Map()
         
+        // Ensure inputs, versions, and images are arrays
+        const inputs = Array.isArray(orderDetails.inputs) ? orderDetails.inputs : []
+        const versions = Array.isArray(orderDetails.versions) ? orderDetails.versions : []
+        const images = Array.isArray(orderDetails.images) ? orderDetails.images : []
+        
         // First, create entries for all inputs
-        (orderDetails.inputs || []).forEach((input, idx) => {
+        inputs.forEach((input, idx) => {
+          // Extract filename from downloadUrl or use default
+          let originalName = `image-${idx + 1}.jpg`
+          if (input.downloadUrl) {
+            try {
+              const url = new URL(input.downloadUrl)
+              const pathParts = url.pathname.split('/')
+              const filename = pathParts[pathParts.length - 1]
+              if (filename && filename !== '') {
+                originalName = filename.split('?')[0] // Remove query params
+              }
+            } catch (e) {
+              // If URL parsing fails, use default
+            }
+          }
+          
           inputsMap.set(input.orderInputId, {
             orderInputId: input.orderInputId,
-            originalName: input.downloadUrl 
-              ? `image-${idx + 1}.${input.downloadUrl.split('.').pop()?.split('?')[0] || 'jpg'}` 
-              : `input-${input.orderInputId.substring(0, 8)}.jpg`,
+            originalName: originalName,
             originalUrl: input.downloadUrl || '',
             instruction: input.promptText || '',
             versions: [],
             status: STATUSES.IN_PROGRESS,
             _notified: false,
+            imageId: images.find(img => img.orderInputId === input.orderInputId)?.imageId,
           })
         })
 
         // Then, add versions to their corresponding inputs
-        (orderDetails.versions || []).forEach((version) => {
+        versions.forEach((version) => {
           const input = inputsMap.get(version.orderInputId)
           if (input) {
             const versionData = {
               id: version.versionId,
               processedUrl: version.downloadUrl || '',
               timestamp: new Date(version.createdAt || new Date()),
-              isReprocess: false,
+              isReprocess: (version.versionNumber || 1) > 1,
               prompt: version.promptUsed || input.instruction || '',
-              versionNumber: version.versionNumber,
+              versionNumber: version.versionNumber || 1,
               isActive: version.isActive,
               statusLookupId: version.statusLookupId,
+              processingTimeMS: version.processingTimeMS,
+              tokensUsed: version.tokensUsed,
+              price: version.price,
             }
             
             input.versions.push(versionData)
             
-            // Update status based on versions - check for active processed versions
+            // Update status based on versions
+            // Check for active processed versions (isActive + has processedUrl)
             const hasActiveProcessed = input.versions.some(v => 
-              v.isActive && v.processedUrl && 
-              !v.statusLookupId?.toLowerCase().includes('failed')
+              v.isActive && v.processedUrl
             )
             
+            // Check if any version failed (has statusLookupId but no downloadUrl and isActive)
             const hasFailed = input.versions.some(v => 
-              v.isActive && v.statusLookupId?.toLowerCase().includes('failed')
+              v.isActive && !v.processedUrl && v.statusLookupId
             )
             
             if (hasActiveProcessed) {
               input.status = STATUSES.PROCESSED
-            } else if (hasFailed) {
+            } else if (hasFailed && input.versions.length > 0) {
               input.status = 'error'
             } else if (input.versions.length > 0) {
-              // Has versions but none are active/processed yet
+              // Has versions but none are active/processed yet - still processing
+              input.status = STATUSES.IN_PROGRESS
+            } else {
+              // No versions yet - still processing
               input.status = STATUSES.IN_PROGRESS
             }
           }
@@ -235,33 +277,56 @@ export default function ProcessingResultsPage() {
 
         // Transform to images array
         const transformedImages = Array.from(inputsMap.values()).map((input, index) => {
+          // Ensure versions is always an array
+          const versions = Array.isArray(input.versions) ? input.versions : []
+          
           // Get the latest active processed version, or fallback to latest version
-          const latestVersion = input.versions
-            .filter(v => v.isActive && v.processedUrl && !v.statusLookupId?.toLowerCase().includes('failed'))
-            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0] || 
-            input.versions
+          // Priority: 1) Active version with processedUrl, 2) Any version with processedUrl, 3) Latest version
+          const latestVersion = versions.length > 0 ? (
+            versions
+              .filter(v => v.isActive && v.processedUrl)
+              .sort((a, b) => {
+                const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0
+                const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0
+                return dateB - dateA
+              })[0] || 
+            versions
               .filter(v => v.processedUrl)
-              .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0] ||
-            input.versions[input.versions.length - 1]
+              .sort((a, b) => {
+                const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0
+                const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0
+                return dateB - dateA
+              })[0] ||
+            versions
+              .sort((a, b) => {
+                const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0
+                const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0
+                return dateB - dateA
+              })[0]
+          ) : null
 
           return {
             id: input.orderInputId || `img-${index}`,
             orderInputId: input.orderInputId,
+            imageId: input.imageId,
             originalName: input.originalName,
             originalUrl: input.originalUrl,
             processedUrl: latestVersion?.processedUrl || '',
             status: input.status,
             instruction: input.instruction,
             timestamp: latestVersion?.timestamp || new Date(),
-            versions: input.versions.map(v => ({
-              id: v.id,
-              processedUrl: v.processedUrl,
-              timestamp: v.timestamp,
-              isReprocess: false,
-              prompt: v.prompt,
-              versionNumber: v.versionNumber,
-            })),
-            selectedVersionId: latestVersion?.id || input.versions[0]?.id,
+            versions: versions
+              .filter(v => v.processedUrl) // Only include versions with processed URLs
+              .map(v => ({
+                id: v.id,
+                processedUrl: v.processedUrl,
+                timestamp: v.timestamp,
+                isReprocess: v.isReprocess,
+                prompt: v.prompt,
+                versionNumber: v.versionNumber,
+                isActive: v.isActive,
+              })),
+            selectedVersionId: latestVersion?.id || versions.find(v => v.processedUrl && v.id)?.id,
             _notified: input._notified,
           }
         })
@@ -270,16 +335,24 @@ export default function ProcessingResultsPage() {
         processingStartedRef.current = false
 
         // Check if any images are still processing
-        const hasProcessingImages = transformedImages.some(img => img.status === STATUSES.IN_PROGRESS)
+        const hasProcessingImages = transformedImages.some(img => 
+          img.status === STATUSES.IN_PROGRESS || 
+          (!img.processedUrl && img.versions.length === 0)
+        )
         
         // Poll for updates if there are processing images
-        if (hasProcessingImages && !pollInterval) {
-          pollInterval = setInterval(() => {
-            fetchOrderData()
+        // Clear existing interval before setting new one
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current)
+          pollIntervalRef.current = null
+        }
+        
+        if (hasProcessingImages && isMounted) {
+          pollIntervalRef.current = setInterval(() => {
+            if (isMounted) {
+              fetchOrderData()
+            }
           }, 3000) // Poll every 3 seconds
-        } else if (!hasProcessingImages && pollInterval) {
-          clearInterval(pollInterval)
-          pollInterval = null
         }
       } catch (err) {
         console.error('Error fetching order details:', err)
@@ -298,8 +371,9 @@ export default function ProcessingResultsPage() {
 
     return () => {
       isMounted = false
-      if (pollInterval) {
-        clearInterval(pollInterval)
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+        pollIntervalRef.current = null
       }
     }
   }, [orderId, batch])
@@ -321,23 +395,23 @@ export default function ProcessingResultsPage() {
           i.id === img.id ? { ...i, _notified: true } : i
         )
       )
-
-      toast.success(
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-black dark:text-white">
-              {img.originalName || 'Image'} processed
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-              Processing completed successfully
-            </p>
-          </div>
-        </div>,
-        { duration: 2000 }
-      )
+            
+            toast.success(
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm text-black dark:text-white">
+                    {img.originalName || 'Image'} processed
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                    Processing completed successfully
+                  </p>
+                </div>
+              </div>,
+              { duration: 2000 }
+            )
     })
   }, [images, orderId])
 
@@ -1134,8 +1208,12 @@ export default function ProcessingResultsPage() {
       const sizeInGB = (totalSize / 1024).toFixed(1)
       
       // Calculate total tokens from order data
-      const totalTokens = orderData?.versions?.reduce((sum, v) => sum + (v.tokensUsed || 0), 0) || 
-                         images.reduce((sum, img) => sum + (img.tokensUsed || 0), 0)
+      const totalTokens = (Array.isArray(orderData?.versions) 
+        ? orderData.versions.reduce((sum, v) => sum + (v.tokensUsed || 0), 0) 
+        : 0) || 
+        (Array.isArray(images) 
+          ? images.reduce((sum, img) => sum + (img.tokensUsed || 0), 0) 
+          : 0)
       
       // Save order to store for local reference
       const orderDataForStore = {
@@ -1183,7 +1261,7 @@ export default function ProcessingResultsPage() {
       
       // Navigate to orders page after a short delay
       setTimeout(() => {
-        router.push('/orders')
+      router.push('/orders')
       }, 1000)
     } catch (error) {
       console.error('Error confirming order:', error)
@@ -2080,11 +2158,42 @@ export default function ProcessingResultsPage() {
             </Button>
             {viewingImage && (
               <Button
-                onClick={() => {
-                  const link = document.createElement('a')
-                  link.href = viewingImage.processedUrl || viewingImage.originalUrl
-                  link.download = viewingImage.originalName
-                  link.click()
+                onClick={async () => {
+                  try {
+                    const imageUrl = viewingImage.processedUrl || viewingImage.originalUrl
+                    if (!imageUrl) {
+                      toast.error('No image URL available')
+                      return
+                    }
+                    
+                    toast.loading('Downloading image...', { id: 'download-viewing-image' })
+                    
+                    const response = await fetch(imageUrl, {
+                      mode: 'cors',
+                      credentials: 'omit',
+                    })
+                    
+                    if (!response.ok) {
+                      throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`)
+                    }
+                    
+                    const blob = await response.blob()
+                    const url = window.URL.createObjectURL(blob)
+                    const link = document.createElement('a')
+                    link.href = url
+                    link.download = viewingImage.originalName || `image-${viewingImage.id}.jpg`
+                    document.body.appendChild(link)
+                    link.click()
+                    document.body.removeChild(link)
+                    window.URL.revokeObjectURL(url)
+                    
+                    toast.dismiss('download-viewing-image')
+                    toast.success('Image downloaded')
+                  } catch (error) {
+                    console.error('Error downloading image:', error)
+                    toast.dismiss('download-viewing-image')
+                    toast.error(`Failed to download image: ${error.message || 'Unknown error'}`)
+                  }
                 }}
               >
                 <Download className="mr-2 h-4 w-4" />

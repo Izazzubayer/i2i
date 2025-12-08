@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRight, Check, Zap, Shield, Clock, Users, Star, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -8,8 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import Image from 'next/image'
-import Header from '@/components/Header'
-import AuthenticatedNav from '@/components/AuthenticatedNav'
+import Navbar from '@/components/Navbar'
 
 const features = [
   {
@@ -58,7 +56,8 @@ const plans = [
     period: '/month',
     description: 'Perfect for individuals',
     features: [
-      '500 credits/month',
+      '500 images/month',
+      '10,000 tokens/month',
       'Basic processing',
       'Email support',
       'API access'
@@ -71,7 +70,8 @@ const plans = [
     period: '/month',
     description: 'Best for growing teams',
     features: [
-      '1,000 credits/month',
+      '1,000 images/month',
+      '25,000 tokens/month',
       'Advanced processing',
       'Priority support',
       'Full API access',
@@ -86,7 +86,8 @@ const plans = [
     period: '',
     description: 'For large organizations',
     features: [
-      'Unlimited credits',
+      'Unlimited images',
+      'Unlimited tokens',
       'Premium processing',
       'Dedicated support',
       'SLA guarantee',
@@ -98,50 +99,9 @@ const plans = [
 ]
 
 export default function LandingPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-
-  useEffect(() => {
-    // Check if user is authenticated
-    const checkAuth = () => {
-      if (typeof window === 'undefined') return
-      
-      const token = localStorage.getItem('authToken')
-      const user = localStorage.getItem('user')
-      
-      // User is authenticated if they have either a token OR user data (for verified users)
-      setIsAuthenticated(!!(token || user))
-    }
-
-    // Initial check
-    checkAuth()
-
-    // Listen for storage changes (works across tabs)
-    const handleStorageChange = (e) => {
-      if (e.key === 'authToken' || e.key === 'user') {
-        checkAuth()
-      }
-    }
-
-    // Custom event for same-tab storage changes
-    const handleCustomStorageChange = () => {
-      checkAuth()
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('localStorageChange', handleCustomStorageChange)
-    // Also check on focus (in case user logged in another tab)
-    window.addEventListener('focus', checkAuth)
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('localStorageChange', handleCustomStorageChange)
-      window.removeEventListener('focus', checkAuth)
-    }
-  }, [])
-
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950">
-      {isAuthenticated ? <AuthenticatedNav /> : <Header />}
+      <Navbar />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden border-b border-zinc-200 dark:border-zinc-800">
@@ -267,16 +227,13 @@ export default function LandingPage() {
                 whileHover={{ scale: 1.1, y: -4 }}
                 className="group flex items-center justify-center h-20 md:h-24 w-full p-4 rounded-xl bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 shadow-sm hover:shadow-md transition-all duration-300 grayscale hover:grayscale-0 opacity-70 hover:opacity-100"
               >
-                <img
+                <Image
                   src={company.fallback || `https://cdn.simpleicons.org/${company.slug}/${company.color}`}
                   alt={`${company.name} logo`}
+                  width={120}
+                  height={48}
                   className="h-10 md:h-12 w-auto object-contain max-w-[120px]"
-                  loading="lazy"
-                  onError={(e) => {
-                    if (company.fallback && e.target.src !== company.fallback) {
-                      e.target.src = company.fallback
-                    }
-                  }}
+                  unoptimized
                 />
               </motion.div>
             ))}
@@ -420,55 +377,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
-        <div className="container px-4 py-12">
-          <div className="grid gap-8 md:grid-cols-4">
-            <div>
-              <div className="mb-4 flex items-center gap-2">
-                <Image
-                  src="/logo.png"
-                  alt="i2i Logo"
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 object-contain"
-                />
-                <span className="text-lg font-bold text-zinc-900 dark:text-zinc-50">i2i</span>
-              </div>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                AI-powered image processing for modern businesses
-              </p>
-            </div>
-            <div>
-              <h3 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-zinc-50">Product</h3>
-              <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-                <li><Link href="/upload" className="hover:text-zinc-900 dark:hover:text-zinc-50">Upload</Link></li>
-                <li><Link href="/pricing" className="hover:text-zinc-900 dark:hover:text-zinc-50">Pricing</Link></li>
-                <li><Link href="/portfolio" className="hover:text-zinc-900 dark:hover:text-zinc-50">Portfolio</Link></li>
-                <li><Link href="/api-docs" className="hover:text-zinc-900 dark:hover:text-zinc-50">API</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-zinc-50">Company</h3>
-              <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-                <li><Link href="/how-i2i-works" className="hover:text-zinc-900 dark:hover:text-zinc-50">How it Works</Link></li>
-                <li><Link href="/support" className="hover:text-zinc-900 dark:hover:text-zinc-50">Support</Link></li>
-                <li><Link href="/faq" className="hover:text-zinc-900 dark:hover:text-zinc-50">FAQ</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-zinc-50">Legal</h3>
-              <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-                <li><Link href="/terms" className="hover:text-zinc-900 dark:hover:text-zinc-50">Terms</Link></li>
-                <li><Link href="/legal" className="hover:text-zinc-900 dark:hover:text-zinc-50">Privacy</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-12 border-t border-zinc-200 pt-8 text-center text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-            <p>&copy; 2025 i2i. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }

@@ -1,12 +1,12 @@
 'use client'
 
-import { useStateuseCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
-import { UploadXLoader2ArrowRightImageageIconHardDriveSparklesEditCoinsDollarSign } from 'lucide-react'
+import { Upload, X, Loader2, ArrowRight, Image as ImageIcon, HardDrive, Sparkles, Edit, Coins, DollarSign, CheckCircle2 } from 'lucide-react'
 import Image from 'next/image'
-import { motionAnimatePresence } from 'framer-motion'
-import { CardCardContentCardDescriptionCardHeaderCardTitle } from '@/components/ui/card'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Textarea } from '@/components/ui/textarea'
@@ -32,9 +32,9 @@ export default function UploadSection() {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [collapsed, setCollapsed] = useState(false)
-  const [showSummaryDialogsetShowSummaryDialog] = useState(false)
-  const [projectSummarysetProjectSummary] = useState('')
-  const [isEditingeSummarysetIsEditingSummary] = useState(false)
+  const [showSummaryDialog, setShowSummaryDialog] = useState(false)
+  const [projectSummary, setProjectSummary] = useState('')
+  const [isEditingSummary, setIsEditingSummary] = useState(false)
 
   const { batch, createBatch } = useStore()
 
@@ -64,7 +64,7 @@ export default function UploadSection() {
   }
 
   const removeImage = (index) => {
-    setImages(prev => prev.filter((_i) => i !== index))
+    setImages(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleStartProcessing = async () => {
@@ -127,13 +127,41 @@ All processed images will maintain original quality while applying the requested
 
       setTimeout(() => {
         setCollapsed(true)
-        toast.success('Upload complete! Processing started...')
+        toast.success(
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-black dark:text-white">
+                Upload complete!
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                Processing started...
+              </p>
+            </div>
+          </div>
+        )
         // Navigate to processing page
         router.push('/processing')
       }, 500)
     } catch (error) {
       console.error('Upload failed:', error)
-      toast.error('Upload failed. Please try again.')
+      toast.error(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Upload failed
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Please try again
+            </p>
+          </div>
+        </div>
+      )
       setUploadProgress(0)
     } finally {
       setUploading(false)
@@ -354,7 +382,7 @@ All processed images will maintain original quality while applying the requested
           </DialogHeader>
 
           <div className="my-4">
-            {isEditingeSummary ? (
+            {isEditingSummary ? (
               <Textarea
                 value={projectSummary}
                 onChange={(e) => setProjectSummary(e.target.value)}
@@ -372,11 +400,11 @@ All processed images will maintain original quality while applying the requested
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
-              onClick={() => setIsEditingSummary(!isEditingeSummary)}
+              onClick={() => setIsEditingSummary(!isEditingSummary)}
               className="w-full sm:w-auto"
             >
               <Edit className="mr-2 h-4 w-4" />
-              {isEditingeSummary ? 'Save Changes' : 'Edit'}
+              {isEditingSummary ? 'Save Changes' : 'Edit'}
             </Button>
             <Button
               onClick={handleProceed}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import AuthenticatedNav from '@/components/AuthenticatedNav'
+import Navbar from '@/components/Navbar'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -16,9 +16,9 @@ import { CreditCard, Download, Plus, Check, Calendar, Package, Loader2, Search, 
 import { format, formatDistanceToNow } from 'date-fns'
 
 const plans = [
-  { name: 'Starter', price: '$19', credits: 500, features: ['Basic processing', 'Email support'] },
-  { name: 'Pro', price: '$49', credits: 1000, features: ['Advanced processing', 'Priority support', 'API access'], current: true },
-  { name: 'Enterprise', price: '$149', credits: 5000, features: ['All Pro features', 'Dedicated support', 'Custom integrations'] },
+  { name: 'Starter', price: '$19', images: 500, tokens: 10000, features: ['Basic processing', 'Email support'] },
+  { name: 'Pro', price: '$49', images: 1000, tokens: 25000, features: ['Advanced processing', 'Priority support', 'API access'], current: true },
+  { name: 'Enterprise', price: '$149', images: 5000, tokens: 100000, features: ['All Pro features', 'Dedicated support', 'Custom integrations'] },
 ]
 
 // Type removed
@@ -33,7 +33,8 @@ const invoices = [
     plan: 'Pro',
     period: { start: new Date('2025-11-01'), end: new Date('2025-11-30') },
     pdf: '#',
-    credits: 1000,
+    images: 1000,
+    tokens: 25000,
     description: 'Pro Plan - November 2025',
   },
   { 
@@ -46,7 +47,8 @@ const invoices = [
     plan: 'Pro',
     period: { start: new Date('2025-10-01'), end: new Date('2025-10-31') },
     pdf: '#',
-    credits: 1000,
+    images: 1000,
+    tokens: 25000,
     description: 'Pro Plan - October 2025',
   },
   { 
@@ -59,7 +61,8 @@ const invoices = [
     plan: 'Pro',
     period: { start: new Date('2025-09-01'), end: new Date('2025-09-30') },
     pdf: '#',
-    credits: 1000,
+    images: 1000,
+    tokens: 25000,
     description: 'Pro Plan - September 2025',
   },
   { 
@@ -72,7 +75,8 @@ const invoices = [
     plan: 'Pro',
     period: { start: new Date('2025-08-15'), end: new Date('2025-08-31') },
     pdf: '#',
-    credits: 1000,
+    images: 1000,
+    tokens: 25000,
     description: 'Pro Plan - August 2025 (Partial)',
   },
   { 
@@ -85,7 +89,8 @@ const invoices = [
     plan: 'Starter',
     period: { start: new Date('2025-07-01'), end: new Date('2025-07-31') },
     pdf: '#',
-    credits: 500,
+    images: 500,
+    tokens: 10000,
     description: 'Starter Plan - July 2025',
   },
 ]
@@ -267,7 +272,7 @@ export default function BillingPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AuthenticatedNav />
+      <Navbar />
       <div className="container mx-auto px-4 py-10 space-y-8 max-w-6xl">
         <div>
           <h1 className="text-3xl font-bold leading-tight">Billing & Subscription</h1>
@@ -312,9 +317,15 @@ export default function BillingPage() {
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium leading-relaxed">Monthly Credits</p>
+                    <p className="text-sm font-medium leading-relaxed">Monthly Images</p>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      {currentPlan.credits.toLocaleString()} credits included
+                      {currentPlan.images.toLocaleString()} images included
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium leading-relaxed">Monthly Tokens</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {currentPlan.tokens.toLocaleString()} tokens included
                     </p>
                   </div>
                   <div className="flex items-center justify-between">
@@ -386,7 +397,10 @@ export default function BillingPage() {
                                   <span className="text-muted-foreground text-sm">/month</span>
                                 </div>
                                 <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                                  {plan.credits.toLocaleString()} credits/month
+                                  {plan.images.toLocaleString()} images/month
+                                </p>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                  {plan.tokens.toLocaleString()} tokens/month
                                 </p>
                               </div>
                               <ul className="space-y-2 mb-4">
@@ -832,7 +846,8 @@ export default function BillingPage() {
                               <div className="flex items-center gap-4">
                                 <div className="text-right">
                                   <p className="font-semibold text-lg leading-tight">${invoice.amount.toFixed(2)}</p>
-                                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{invoice.credits.toLocaleString()} credits</p>
+                                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{invoice.images.toLocaleString()} images</p>
+                                  <p className="text-xs text-muted-foreground leading-relaxed">{invoice.tokens.toLocaleString()} tokens</p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Button
@@ -912,8 +927,10 @@ export default function BillingPage() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-muted-foreground mb-1.5 leading-tight">Credits Included</p>
-                          <p className="text-sm font-semibold leading-relaxed">{selectedInvoice.credits.toLocaleString()} credits</p>
+                          <p className="text-sm font-medium text-muted-foreground mb-1.5 leading-tight">Images Included</p>
+                          <p className="text-sm font-semibold leading-relaxed">{selectedInvoice.images.toLocaleString()} images</p>
+                          <p className="text-sm font-medium text-muted-foreground mb-1.5 leading-tight mt-3">Tokens Included</p>
+                          <p className="text-sm font-semibold leading-relaxed">{selectedInvoice.tokens.toLocaleString()} tokens</p>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-muted-foreground mb-1.5 leading-tight">Payment Method</p>
