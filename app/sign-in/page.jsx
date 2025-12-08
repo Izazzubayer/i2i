@@ -52,16 +52,39 @@ function SignInContent() {
       // Check if signin was successful
       if (response.success && response.data) {
         // User data and tokens are already stored in localStorage by the API function
-        console.log('✅ Signin successful - User data stored')
+        console.log('✅ Sign-in page: Signin successful - checking localStorage')
+        
+        // Verify data was stored
+        const token = localStorage.getItem('authToken')
+        const user = localStorage.getItem('user')
+        console.log('🔍 Sign-in page: localStorage check', { 
+          hasToken: !!token, 
+          hasUser: !!user,
+          tokenPreview: token ? token.substring(0, 20) + '...' : null,
+          userPreview: user ? JSON.parse(user) : null
+        })
+        
+        if (!token || !user) {
+          console.error('❌ Sign-in page: Data not found in localStorage after signin!')
+          toast.error('Sign in successful but data not stored. Please try again.')
+          setIsLoading(false)
+          return
+        }
         
         setMessage('Success! Redirecting to your workspace...')
         toast.success('Signed in successfully!')
         
-        // Redirect to home page (or processing page)
+        // Trigger localStorageChange event to update navbar immediately
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('localStorageChange'))
+          console.log('🔄 Sign-in page: Triggered localStorageChange event')
+        }
+        
+        // Redirect to home page with hard navigation to ensure navbar updates
         setTimeout(() => {
-          router.push('/')
-          router.refresh() // Refresh to update navbar
-        }, 1000)
+          console.log('🔄 Sign-in page: Redirecting to home...')
+          window.location.href = '/'
+        }, 1500)
       } else {
         throw new Error(response.message || 'Sign in failed')
       }
@@ -227,11 +250,24 @@ function SignInContent() {
                             setMessage('Success! Redirecting to your workspace...')
                             toast.success('Signed in with Google successfully!')
                             
-                            // Redirect to home page
+                            // Wait a moment for localStorage to be fully written, then trigger event
                             setTimeout(() => {
-                              router.push('/')
-                              router.refresh() // Refresh to update navbar
-                            }, 1000)
+                              if (typeof window !== 'undefined') {
+                                // Double-check that data is in localStorage
+                                const token = localStorage.getItem('authToken')
+                                const user = localStorage.getItem('user')
+                                console.log('🔍 Google sign-in: Verifying localStorage', { hasToken: !!token, hasUser: !!user })
+                                
+                                // Trigger localStorageChange event to update navbar immediately
+                                window.dispatchEvent(new Event('localStorageChange'))
+                                console.log('🔄 Google sign-in: Triggered localStorageChange event')
+                              }
+                            }, 100)
+                            
+                            // Redirect to home page with hard navigation to ensure navbar updates
+                            setTimeout(() => {
+                              window.location.href = '/'
+                            }, 1200)
                           } else {
                             throw new Error(response.message || 'Google sign in failed')
                           }
