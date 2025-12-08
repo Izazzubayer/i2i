@@ -10,12 +10,6 @@ const nextConfig = {
       },
     ],
   },
-  // Ensure proper routing on Vercel
-  trailingSlash: false,
-  // Ensure API routes are properly handled
-  async rewrites() {
-    return []
-  },
 }
 
 module.exports = nextConfig
