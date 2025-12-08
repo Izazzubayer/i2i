@@ -84,6 +84,7 @@ export default function OrdersPage() {
   const [damDialogOpen, setDamDialogOpen] = useState(false)
   const [selectedOrderForDAM, setSelectedOrderForDAM] = useState(null)
   const [uploadingToDAM, setUploadingToDAM] = useState(false)
+  const [selectedDamsForOrder, setSelectedDamsForOrder] = useState({}) // Track selected DAMs per order
   const [downloadingOrder, setDownloadingOrder] = useState(null)
 
   // Check authentication status - same logic as Navbar
@@ -414,11 +415,24 @@ export default function OrdersPage() {
   }, [activeDamConnection, setDamDialogOpen])
 
   const handleSelectDam = useCallback((connection) => {
-    setActiveDamConnection(connection)
-    setDamDialogOpen(false)
-    // If there's a selected order, automatically upload to the selected DAM
+    // Handle both single connection and array of connections
+    const connections = Array.isArray(connection) ? connection : [connection]
+    
+    setActiveDamConnection(connections[0]) // Set first as active
+    
+    // Store selected DAMs for the order
     if (selectedOrderForDAM) {
-      handleUploadToDAM(selectedOrderForDAM, connection)
+      setSelectedDamsForOrder(prev => ({
+        ...prev,
+        [selectedOrderForDAM.id]: connections
+      }))
+    }
+    
+    setDamDialogOpen(false)
+    
+    // If there's a selected order, automatically upload to the selected DAMs
+    if (selectedOrderForDAM && connections.length > 0) {
+      handleUploadToDAM(selectedOrderForDAM, connections[0])
     }
   }, [selectedOrderForDAM, setActiveDamConnection, handleUploadToDAM, setDamDialogOpen])
 
@@ -893,10 +907,30 @@ export default function OrdersPage() {
                                 ) : (
                                   <>
                                     <Cloud className="mr-2 h-4 w-4" />
-                                    {activeDamConnection ? 'Upload to DAM' : 'Connect DAM'}
+                                    Connect to DAM
                                   </>
                                 )}
                               </Button>
+                              
+                              {/* Display selected connected DAMs */}
+                              {selectedDamsForOrder[order.id] && selectedDamsForOrder[order.id].length > 0 && (
+                                <div className="space-y-2 pt-2 border-t">
+                                  <p className="text-xs font-medium text-muted-foreground">Connected DAMs:</p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {selectedDamsForOrder[order.id].map((dam) => (
+                                      <Badge
+                                        key={dam.id}
+                                        variant="outline"
+                                        className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20 text-green-700 dark:text-green-400"
+                                      >
+                                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                                        {dam.provider || dam.name}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              
                               <Button
                                 variant="default"
                                 size="sm"

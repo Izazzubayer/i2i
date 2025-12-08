@@ -341,7 +341,7 @@ export default function ImageGallery() {
                   ) : (
                     <>
                       <Cloud className="mr-2 h-4 w-4" />
-                      {activeDamConnection ? 'Upload to DAM' : 'Connect DAM'}
+                      Connect to DAM
                     </>
                   )}
                 </Button>
