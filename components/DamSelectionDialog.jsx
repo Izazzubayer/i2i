@@ -14,7 +14,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
+import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import DamConnectDialog from '@/components/DamConnectDialog'
 import IntegrationConnectDialog from '@/components/IntegrationConnectDialog'
@@ -82,6 +83,7 @@ export default function DamSelectionDialog({
   const [integrationDialogOpen, setIntegrationDialogOpen] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState(null)
   const [selectedDamIds, setSelectedDamIds] = useState(new Set())
+  const [uploadProgress, setUploadProgress] = useState({}) // Track upload progress per DAM
 
   // Helper to get connection description
   const getConnectionDescription = (connection, provider) => {
@@ -131,8 +133,41 @@ export default function DamSelectionDialog({
   useEffect(() => {
     if (open) {
       setSelectedDamIds(new Set())
+      setUploadProgress({})
     }
   }, [open])
+
+  // Simulate upload progress when DAMs are selected (for demo purposes)
+  useEffect(() => {
+    const intervals = {}
+    
+    selectedDamIds.forEach((damId) => {
+      if (uploadProgress[damId] === undefined) {
+        // Start progress simulation
+        let progress = 0
+        intervals[damId] = setInterval(() => {
+          progress += 10
+          if (progress >= 100) {
+            clearInterval(intervals[damId])
+            setTimeout(() => {
+              setUploadProgress(prev => {
+                const newProgress = { ...prev }
+                delete newProgress[damId]
+                return newProgress
+              })
+            }, 500)
+          } else {
+            setUploadProgress(prev => ({ ...prev, [damId]: progress }))
+          }
+        }, 200)
+      }
+    })
+    
+    // Cleanup intervals when component unmounts or selected DAMs change
+    return () => {
+      Object.values(intervals).forEach(interval => clearInterval(interval))
+    }
+  }, [selectedDamIds])
 
   const handleSelectDam = (connection) => {
     if (allowMultiSelect) {
@@ -250,7 +285,6 @@ export default function DamSelectionDialog({
     })
 
     return { connectedProviders: connected, unconnectedProviders: unconnected }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveConnections])
 
   // Handle provider click
@@ -310,14 +344,6 @@ export default function DamSelectionDialog({
                       >
                         <CardContent className="p-4">
                           <div className="flex items-center gap-3">
-                            {allowMultiSelect && (
-                              <Checkbox
-                                checked={isSelected}
-                                onCheckedChange={() => handleSelectDam(connection)}
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex-shrink-0"
-                              />
-                            )}
                             <ProviderLogo provider={provider.name} size="md" />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
@@ -327,13 +353,34 @@ export default function DamSelectionDialog({
                                     Active
                                   </Badge>
                                 )}
-                                <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
                               </div>
                               <p className="text-sm text-muted-foreground mt-0.5">
                                 {getConnectionDescription(connection, provider)}
                               </p>
+                              {/* Processing Bar */}
+                              {uploadProgress[connection.id] !== undefined && (
+                                <div className="mt-2 space-y-1">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-muted-foreground">Uploading...</span>
+                                    <span className="text-muted-foreground">{uploadProgress[connection.id]}%</span>
+                                  </div>
+                                  <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-secondary/50">
+                                    <div 
+                                      className="h-full bg-green-600 transition-all duration-300 ease-in-out"
+                                      style={{ transform: `translateX(-${100 - (uploadProgress[connection.id] || 0)}%)` }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            {!allowMultiSelect && (
+                            {allowMultiSelect ? (
+                              <Switch
+                                checked={isSelected}
+                                onCheckedChange={() => handleSelectDam(connection)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex-shrink-0 data-[state=checked]:bg-green-600"
+                              />
+                            ) : (
                               <Button
                                 variant="ghost"
                                 size="sm"

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
-import AuthenticatedNav from '@/components/AuthenticatedNav'
+import Navbar from '@/components/Navbar'
 import { BeforeAfterSliderImproved } from '@/components/BeforeAfterSliderImproved'
 import {
   ArrowLeft,
@@ -42,7 +42,6 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
-import { getOrderDetails } from '@/api'
 import DamConnectDialog from '@/components/DamConnectDialog'
 import DamSelectionDialog from '@/components/DamSelectionDialog'
 
@@ -52,255 +51,101 @@ export default function OrderDetailPage() {
   const orderId = params?.orderId
   const { getOrder, addDamConnection, activeDamConnection, damConnections, setActiveDamConnection, removeDamConnection } = useStore()
   
-  const [order, setOrder] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
   const [selectedImage, setSelectedImage] = useState(null)
   const [selectedVersionId, setSelectedVersionId] = useState(null)
-  const [selectedTab, setSelectedTab] = useState('all')
   const [viewMode, setViewMode] = useState('grid') // 'grid' or 'list'
   const [damDialogOpen, setDamDialogOpen] = useState(false)
   const [uploadingToDAM, setUploadingToDAM] = useState(false)
   const [copiedPrompt, setCopiedPrompt] = useState(null)
   const [selectedDams, setSelectedDams] = useState([]) // Track selected DAMs for this order
 
-  // Fetch order details from API
-  useEffect(() => {
-    const fetchOrderDetails = async () => {
-      if (!orderId) return
-      
-      try {
-        setLoading(true)
-        setError(null)
-        const orderData = await getOrderDetails(orderId)
-        setOrder(orderData)
-      } catch (err) {
-        console.error('Error fetching order details:', err)
-        setError(err.message || 'Failed to load order details')
-        toast.error(err.message || 'Failed to load order details')
-      } finally {
-        setLoading(false)
-      }
-    }
+  const order = useMemo(() => {
+    if (!orderId) return null
+    return getOrder(orderId)
+  }, [orderId, getOrder])
 
-    fetchOrderDetails()
-  }, [orderId])
-
-  // Use order from API and transform it - group by input (each input = one image with multiple versions)
+  // If order not found, show mock data for demo
   const displayOrder = useMemo(() => {
-    if (!order) return null
+    if (order) return order
     
-    // Group versions by input
-    const inputsMap = new Map()
-    
-    // Ensure inputs, versions, and images are arrays
-    const inputs = Array.isArray(order.inputs) ? order.inputs : []
-    const versions = Array.isArray(order.versions) ? order.versions : []
-    const apiImages = Array.isArray(order.images) ? order.images : []
-    
-    // First, create entries for all inputs
-    inputs.forEach((input, idx) => {
-      // Extract filename from downloadUrl
-      let originalName = `image-${idx + 1}.jpg`
-      if (input.downloadUrl) {
-        try {
-          const url = new URL(input.downloadUrl)
-          const pathParts = url.pathname.split('/')
-          const filename = pathParts[pathParts.length - 1]
-          if (filename && filename !== '') {
-            originalName = filename.split('?')[0]
-          }
-        } catch (e) {
-          // Use default if parsing fails
-        }
-      }
-      
-      const image = apiImages.find(img => img.orderInputId === input.orderInputId)
-      
-      inputsMap.set(input.orderInputId, {
-        orderInputId: input.orderInputId,
-        imageId: image?.imageId,
-        originalName: originalName,
-        originalUrl: input.downloadUrl || '',
-        instruction: input.promptText || '',
-        versions: [],
-      })
-    })
-    
-    // Add versions to their corresponding inputs
-    versions.forEach((version) => {
-      const input = inputsMap.get(version.orderInputId)
-      if (input) {
-        input.versions.push({
-          id: version.versionId,
-          versionId: version.versionId,
-          processedUrl: version.downloadUrl || '',
-          timestamp: new Date(version.createdAt || new Date()),
-          isReprocess: (version.versionNumber || 1) > 1,
-          prompt: version.promptUsed || input.instruction || '',
-          versionNumber: version.versionNumber || 1,
-          isActive: version.isActive,
-          processingTimeMS: version.processingTimeMS,
-          tokensUsed: version.tokensUsed,
-          price: version.price,
-        })
-      }
-    })
-    
-    // Transform to images array (one image per input)
-    const images = Array.from(inputsMap.values()).map((input, index) => {
-      const latestVersion = input.versions
-        .filter(v => v.isActive && v.processedUrl)
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0] || 
-        input.versions
-          .filter(v => v.processedUrl)
-          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0] ||
-        input.versions[0]
-      
-      return {
-        id: input.orderInputId || `img-${index}`,
-        orderInputId: input.orderInputId,
-        imageId: input.imageId,
-        name: input.originalName,
-        status: latestVersion?.isActive && latestVersion?.processedUrl ? 'approved' : 
-                latestVersion?.processedUrl ? 'needs-retouch' : 'failed',
-        size: 'N/A',
-        processedUrl: latestVersion?.processedUrl || '',
-        inputUrl: input.originalUrl,
-        versionNumber: latestVersion?.versionNumber,
-        promptUsed: latestVersion?.prompt,
-        processingTimeMS: latestVersion?.processingTimeMS,
-        tokensUsed: latestVersion?.tokensUsed,
-        price: latestVersion?.price,
-        versions: input.versions.map(v => ({
-          id: v.id,
-          versionId: v.versionId,
-          processedUrl: v.processedUrl,
-          timestamp: v.timestamp,
-          isReprocess: v.isReprocess,
-          prompt: v.prompt,
-          versionNumber: v.versionNumber,
-          isActive: v.isActive,
-        })),
-        selectedVersionId: latestVersion?.id || input.versions[0]?.id,
-      }
-    })
-    
-    // Transform API response to match UI structure
-    const transformedOrder = {
-      id: order.orderId,
-      orderId: order.orderId,
-      orderNumber: order.orderName || order.orderId,
-      name: order.orderName || `Order ${order.orderId.substring(0, 8)}`,
-      status: order.status, // Keep UUID status
-      statusLookupId: order.status,
-      createdAt: order.createdAt,
-      updatedAt: order.updatedAt,
-      expireAt: order.expireAt,
-      // Calculate stats
-      imageCount: inputs.length || 0,
-      processedCount: images.filter(img => img.status === 'approved' || img.processedUrl).length,
-      approvedCount: images.filter(img => img.status === 'approved').length,
-      retouchCount: images.filter(img => img.status === 'needs-retouch').length,
-      failedCount: images.filter(img => img.status === 'failed').length,
-      // Get instructions from first input
-      instructions: inputs[0]?.promptText || 'No instructions provided',
-      // Calculate processing time
-      processingTime: Array.isArray(versions) ? versions.reduce((sum, v) => sum + (v.processingTimeMS || 0), 0) : 0,
-      // Images grouped by input
-      images: images,
-      // Full API data for reference
-      _apiData: order,
-    }
-    
-    return transformedOrder
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order?.orderId, order?.orderInputs, order?.orderVersions])
-
-  // Helper to check if order is completed (for UUID statuses)
-  const isOrderCompleted = useMemo(() => {
-    if (!displayOrder) return false
-    // Check if order has been updated significantly after creation
-    if (displayOrder.updatedAt && displayOrder.createdAt) {
-      const created = new Date(displayOrder.createdAt)
-      const updated = new Date(displayOrder.updatedAt)
-      const diffMinutes = (updated - created) / (1000 * 60)
-      // If updated more than 5 minutes after creation and has processed images, likely completed
-      if (diffMinutes > 5 && displayOrder.processedCount > 0) {
-        return true
-      }
-    }
-    // Also check if all inputs have processed versions
-    if (displayOrder.images && displayOrder.images.length > 0) {
-      const allProcessed = displayOrder.images.every(img => img.status === 'approved' || img.processedUrl)
-      return allProcessed
-    }
-    return false
-  }, [displayOrder])
-
-  // Group images by status - must be before early returns
-  const imagesByStatus = useMemo(() => {
-    if (!displayOrder?.images) return { processed: [], amendment: [], deleted: [] }
-    
+    // Mock order for demo
     return {
-      processed: displayOrder.images.filter(img => img.status === 'processed' || img.status === 'approved'),
-      amendment: displayOrder.images.filter(img => img.status === 'amendment' || img.status === 'needs-retouch'),
-      deleted: displayOrder.images.filter(img => img.status === 'deleted'),
+      id: orderId || 'ORD-2024-001',
+      name: 'Product Catalog 2024',
+      status: 'completed',
+      createdAt: '2024-11-10T14:30:00',
+      completedAt: '2024-11-10T15:45:00',
+      instructions: 'Remove background, enhance colors, resize to 1920x1080',
+      images: 16,
+      processedCount: 16,
+      approvedCount: 14,
+      retouchCount: 2,
+      failedCount: 0,
+      images: 16,
+      tokens: 320,
+      size: '4.2 GB',
+      imagesData: Array.from({ length: 16 }, (_, i) => ({
+        id: `img-${i}`,
+        originalName: `image-${i + 1}.jpg`,
+        originalUrl: `https://picsum.photos/seed/original-${i}/800/600`,
+        processedUrl: `https://picsum.photos/seed/processed-${i}/800/600`,
+        status: i < 14 ? 'processed' : i < 16 ? 'amendment' : 'deleted',
+        instruction: 'Remove background, enhance colors, resize to 1920x1080',
+        versions: [
+          {
+            id: `v1-${i}`,
+            processedUrl: `https://picsum.photos/seed/processed-${i}/800/600`,
+            timestamp: new Date('2024-11-10T14:30:00'),
+            isReprocess: false,
+            isAmendment: false,
+            prompt: 'Remove background, enhance colors, resize to 1920x1080',
+          },
+          ...(i % 3 === 0 ? [{
+            id: `v2-${i}`,
+            processedUrl: `https://picsum.photos/seed/reprocess-${i}/800/600`,
+            timestamp: new Date('2024-11-10T14:35:00'),
+            isReprocess: true,
+            isAmendment: false,
+            prompt: 'Increase saturation, add more contrast, sharpen edges',
+          }] : []),
+          ...(i >= 14 ? [{
+            id: `v3-${i}`,
+            processedUrl: `https://picsum.photos/seed/amendment-${i}/800/600`,
+            timestamp: new Date('2024-11-10T14:40:00'),
+            isReprocess: false,
+            isAmendment: true,
+            amendmentInstruction: 'Fix color balance, remove artifacts',
+            prompt: 'Fix color balance, remove artifacts',
+          }] : []),
+        ],
+      })),
     }
-  }, [displayOrder?.images])
+  }, [order, orderId])
 
-  const getStatusBadge = (status, orderData = null) => {
+  const getStatusBadge = (status) => {
     const icons = {
       completed: <CheckCircle2 className="h-3 w-3" />,
       processing: <Loader2 className="h-3 w-3 animate-spin" />,
       queued: <Clock className="h-3 w-3" />,
       failed: <XCircle className="h-3 w-3" />,
-      pending: <Clock className="h-3 w-3" />,
     }
 
-    // Normalize status (handle UUIDs)
-    let normalizedStatus = status
-    if (status && status.length > 20 && status.includes('-')) {
-      // It's a UUID - try to determine status from order data
-      if (orderData?.updatedAt && orderData?.createdAt) {
-        const created = new Date(orderData.createdAt)
-        const updated = new Date(orderData.updatedAt)
-        const diffMinutes = (updated - created) / (1000 * 60)
-        // If updated more than 5 minutes after creation, likely completed
-        if (diffMinutes > 5) {
-          normalizedStatus = 'completed'
-        } else {
-          normalizedStatus = 'processing'
-        }
-      } else {
-        normalizedStatus = 'processing' // Default for UUIDs
-      }
-    } else if (status) {
-      normalizedStatus = status.toLowerCase()
-    } else {
-      normalizedStatus = 'pending'
-    }
-
-    const statusMap = {
-      completed: { label: 'Completed', tone: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' },
-      processing: { label: 'Processing', tone: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300' },
-      pending: { label: 'Pending', tone: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300' },
-      queued: { label: 'Queued', tone: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300' },
-      failed: { label: 'Failed', tone: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300' },
-    }
+    const label = status.charAt(0).toUpperCase() + status.slice(1)
     
-    const statusInfo = statusMap[normalizedStatus] || { 
-      label: 'Processing', 
-      tone: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300' 
+    const statusStyles = {
+      completed: 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400',
+      processing: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400',
+      queued: 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-400',
+      failed: 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400',
     }
     
     return (
       <Badge 
         variant="outline" 
-        className={`border ${statusInfo.tone} gap-1.5`}
+        className={`${statusStyles[status] || 'border-border bg-muted/50 text-foreground'} gap-1.5`}
       >
-        {icons[normalizedStatus] || <AlertCircle className="h-3 w-3" />}
-        {statusInfo.label}
+        {icons[status] || <AlertCircle className="h-3 w-3" />}
+        {label}
       </Badge>
     )
   }
@@ -325,25 +170,19 @@ export default function OrderDetailPage() {
     )
   }
 
-  const filteredImages = displayOrder?.images?.filter(img => {
-    if (selectedTab === 'all') return true
-    return img.status === selectedTab
-  }) || []
+  const formatOrderId = (id) => {
+    if (!id) return 'ORD-UNKNOWN'
+    return id.startsWith('ORD-') ? id : `ORD-${id}`
+  }
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A'
-    try {
-      const date = new Date(dateString)
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    } catch {
-      return dateString
-    }
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
   }
 
   const handleConnectDAM = () => {
@@ -410,54 +249,12 @@ export default function OrderDetailPage() {
     }
   }
 
-
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-background">
-        <AuthenticatedNav />
-        <div className="container py-8 px-4 md:px-8">
-          <div className="mx-auto max-w-7xl space-y-6">
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-3 text-muted-foreground">Loading order details...</span>
-            </div>
-          </div>
-        </div>
-      </main>
-    )
-  }
-
-  if (error || !order) {
-    return (
-      <main className="min-h-screen bg-background">
-        <AuthenticatedNav />
-        <div className="container py-8 px-4 md:px-8">
-          <div className="mx-auto max-w-7xl space-y-6">
-            <Button variant="ghost" onClick={() => window.history.back()}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Orders
-            </Button>
-            <Card>
-              <CardContent className="py-10 text-center">
-                <AlertCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
-                <h2 className="text-xl font-semibold mb-2">Failed to Load Order</h2>
-                <p className="text-muted-foreground">{error || 'Order not found'}</p>
-                <Button className="mt-4" onClick={() => window.location.reload()}>
-                  Retry
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </main>
-    )
-  }
-
   const handleDownloadOrder = async () => {
     try {
-      if (!displayOrder) return
+      toast.loading(`Preparing download for ${displayOrder.name || displayOrder.id}...`)
+      await new Promise(resolve => setTimeout(resolve, 1500))
       
-      const imagesToDownload = displayOrder.images?.filter(img => 
+      const imagesToDownload = displayOrder.imagesData?.filter(img => 
         img.status !== 'deleted' && img.processedUrl
       ) || []
 
@@ -466,96 +263,11 @@ export default function OrderDetailPage() {
         return
       }
 
-      toast.loading(`Downloading ${imagesToDownload.length} image(s)...`, { id: 'download-order' })
-      
-      // Download each image
-      for (let i = 0; i < imagesToDownload.length; i++) {
-        const img = imagesToDownload[i]
-        try {
-          // Use processedUrl if available, otherwise use inputUrl
-          const imageUrl = img.processedUrl || img.inputUrl
-          
-          if (!imageUrl) {
-            console.warn(`Skipping image ${i + 1}: No URL available`)
-            continue
-          }
-          
-          const response = await fetch(imageUrl, {
-            mode: 'cors',
-            credentials: 'omit',
-          })
-          
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-          }
-          
-          const blob = await response.blob()
-          const url = window.URL.createObjectURL(blob)
-          const link = document.createElement('a')
-          link.href = url
-          link.download = img.name || `image-${i + 1}.jpg`
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          window.URL.revokeObjectURL(url)
-          
-          // Small delay between downloads to avoid browser blocking
-          if (i < imagesToDownload.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 300))
-          }
-        } catch (err) {
-          console.error(`Error downloading image ${i + 1}:`, err)
-          toast.error(`Failed to download image ${i + 1}: ${err.message || 'Unknown error'}`)
-        }
-      }
-
-      toast.dismiss('download-order')
-      toast.success(`Downloaded ${imagesToDownload.length} image(s)`)
+      toast.dismiss()
+      toast.success(`Download started: ${imagesToDownload.length} image(s)`)
     } catch (error) {
-      console.error('Error downloading order:', error)
-      toast.dismiss('download-order')
+      toast.dismiss()
       toast.error('Failed to download order')
-    }
-  }
-  
-  const handleDownloadImage = async (image) => {
-    try {
-      // Use processedUrl if available, otherwise use inputUrl (original)
-      const imageUrl = image.processedUrl || image.inputUrl
-      
-      if (!imageUrl) {
-        toast.error('No image URL available')
-        return
-      }
-      
-      toast.loading('Downloading image...', { id: 'download-image' })
-      
-      // Fetch the image with CORS mode
-      const response = await fetch(imageUrl, {
-        mode: 'cors',
-        credentials: 'omit',
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`)
-      }
-      
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = image.name || `image-${image.id}.jpg`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-      
-      toast.dismiss('download-image')
-      toast.success('Image downloaded')
-    } catch (error) {
-      console.error('Error downloading image:', error)
-      toast.dismiss('download-image')
-      toast.error(`Failed to download image: ${error.message || 'Unknown error'}`)
     }
   }
 
@@ -566,14 +278,25 @@ export default function OrderDetailPage() {
     setTimeout(() => setCopiedPrompt(null), 2000)
   }
 
-  const currentImage = selectedImage ? displayOrder?.images?.find(img => img.id === selectedImage) : null
+  const currentImage = selectedImage ? displayOrder.imagesData?.find(img => img.id === selectedImage) : null
   const selectedVersion = currentImage?.versions?.find(v => v.id === selectedVersionId) || 
                          currentImage?.versions?.[0] || null
+
+  // Group images by status
+  const imagesByStatus = useMemo(() => {
+    if (!displayOrder.imagesData) return { processed: [], amendment: [], deleted: [] }
+    
+    return {
+      processed: displayOrder.imagesData.filter(img => img.status === 'processed'),
+      amendment: displayOrder.imagesData.filter(img => img.status === 'amendment'),
+      deleted: displayOrder.imagesData.filter(img => img.status === 'deleted'),
+    }
+  }, [displayOrder.imagesData])
 
   if (!displayOrder) {
     return (
       <div className="min-h-screen bg-background">
-        <AuthenticatedNav />
+        <Navbar />
         <div className="container mx-auto px-4 py-16 text-center">
           <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-semibold mb-2">Order Not Found</h2>
@@ -589,7 +312,7 @@ export default function OrderDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AuthenticatedNav />
+      <Navbar />
 
       {/* Sticky Header */}
       <div className="sticky top-16 z-40 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b shadow-sm">
@@ -607,10 +330,11 @@ export default function OrderDetailPage() {
               </Button>
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-semibold">{displayOrder.name || displayOrder.id || displayOrder.orderNumber}</h1>
-                  {getStatusBadge(displayOrder.status, displayOrder)}
+                  <h1 className="text-2xl font-semibold">
+                    {formatOrderId(displayOrder.id)}
+                  </h1>
+                  {getStatusBadge(displayOrder.status)}
                 </div>
-                <p className="text-sm text-muted-foreground mt-1 font-mono">{displayOrder.id}</p>
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -628,6 +352,11 @@ export default function OrderDetailPage() {
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Uploading...
                         </>
+                      ) : selectedDams.length > 0 ? (
+                        <>
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          Connected({selectedDams.length})
+                        </>
                       ) : (
                         <>
                           <Cloud className="mr-2 h-4 w-4" />
@@ -643,47 +372,6 @@ export default function OrderDetailPage() {
                 )}
               </div>
               
-              {/* Display selected connected DAMs with status */}
-              {selectedDams.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  <p className="text-xs font-medium text-muted-foreground">Connected DAMs:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedDams.map((dam) => {
-                      const isActive = activeDamConnection?.id === dam.id
-                      const uploadStatus = uploadingToDAM && isActive ? 'uploading' : isActive ? 'active' : 'connected'
-                      
-                      return (
-                        <Badge
-                          key={dam.id}
-                          variant="outline"
-                          className={`${
-                            uploadStatus === 'uploading'
-                              ? 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20'
-                              : uploadStatus === 'active'
-                              ? 'border-green-500 bg-green-50 dark:border-green-800 dark:bg-green-950/30'
-                              : 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20'
-                          }`}
-                        >
-                          {uploadStatus === 'uploading' ? (
-                            <>
-                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                              <span className="text-blue-700 dark:text-blue-400">Uploading to {dam.provider || dam.name}</span>
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 className="h-3 w-3 mr-1" />
-                              <span className={uploadStatus === 'active' ? 'text-green-700 dark:text-green-400 font-medium' : 'text-green-600 dark:text-green-500'}>
-                                {dam.provider || dam.name}
-                                {uploadStatus === 'active' && ' (Active)'}
-                              </span>
-                            </>
-                          )}
-                        </Badge>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -699,49 +387,47 @@ export default function OrderDetailPage() {
           <Card className="border-border">
             <CardContent className="p-6">
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
-                <div className="flex items-center gap-2">
-                  <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                  <div>
+                <div className="flex items-start gap-2">
+                  <ImageIcon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Total Images</p>
-                    <p className="text-sm font-semibold">{displayOrder.imageCount || displayOrder.images?.length || 0}</p>
+                    <p className="text-sm font-semibold">{displayOrder.images || 0}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                  <div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Processed</p>
                     <p className="text-sm font-semibold">{displayOrder.processedCount || 0}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  <div>
+                <div className="flex items-start gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Amendments</p>
                     <p className="text-sm font-semibold">{displayOrder.retouchCount || 0}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <div>
+                <div className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Tokens</p>
+                    <p className="text-sm font-semibold">{displayOrder.tokens || 0}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Created</p>
                     <p className="text-sm font-semibold">{formatDate(displayOrder.createdAt)}</p>
                   </div>
                 </div>
                 {displayOrder.completedAt && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <div>
+                  <div className="flex items-start gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <div className="min-w-0">
                       <p className="text-xs text-muted-foreground">Completed</p>
                       <p className="text-sm font-semibold">{formatDate(displayOrder.completedAt)}</p>
-                    </div>
-                  </div>
-                )}
-                {displayOrder.updatedAt && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Last Updated</p>
-                      <p className="text-sm font-semibold">{formatDate(displayOrder.updatedAt)}</p>
                     </div>
                   </div>
                 )}
@@ -793,89 +479,6 @@ export default function OrderDetailPage() {
               </div>
             </CardHeader>
             <CardContent>
-
-              <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-                <TabsList>
-                  <TabsTrigger value="all">All ({order.imageCount})</TabsTrigger>
-                  <TabsTrigger value="approved">Approved ({order.approvedCount})</TabsTrigger>
-                  <TabsTrigger value="needs-retouch">Retouch ({order.retouchCount})</TabsTrigger>
-                  {order.failedCount > 0 && (
-                    <TabsTrigger value="failed">Failed ({order.failedCount})</TabsTrigger>
-                  )}
-                </TabsList>
-
-                <TabsContent value={selectedTab} className="mt-6">
-                  {filteredImages.length === 0 ? (
-                    <div className="py-10 text-center text-muted-foreground">
-                      <ImageIcon className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                      <p>No images found for this filter</p>
-                    </div>
-                  ) : (
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                      {filteredImages.map((image) => (
-                        <Card key={image.id} className="overflow-hidden">
-                          <div className="relative aspect-[4/3] bg-muted">
-                            {image.processedUrl ? (
-                              <Image
-                                src={image.processedUrl}
-                                alt={image.name}
-                                fill
-                                className="object-cover"
-                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                              />
-                            ) : (
-                              <div className="flex items-center justify-center h-full">
-                                <ImageIcon className="h-12 w-12 text-muted-foreground" />
-                              </div>
-                            )}
-                            <div className="absolute top-2 right-2">
-                              {getImageStatusBadge(image.status)}
-                            </div>
-                          </div>
-                          <CardContent className="p-4">
-                            <p className="text-sm font-medium truncate">{image.name}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {image.size || `Version ${image.versionNumber || 'N/A'}`}
-                            </p>
-                            {image.promptUsed && (
-                              <p className="text-xs text-muted-foreground mt-1 truncate" title={image.promptUsed}>
-                                {image.promptUsed}
-                              </p>
-                            )}
-                            <div className="mt-3 flex gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="flex-1"
-                                onClick={() => {
-                                  if (image.processedUrl) {
-                                    window.open(image.processedUrl, '_blank')
-                                  } else {
-                                    toast.error('Image URL not available')
-                                  }
-                                }}
-                              >
-                                <Eye className="mr-1 h-3 w-3" />
-                                View
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="flex-1"
-                                onClick={() => handleDownloadImage(image)}
-                              >
-                                <Download className="mr-1 h-3 w-3" />
-                                Save
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-
               {viewMode === 'grid' ? (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {displayOrder.imagesData?.map((image) => (
@@ -968,7 +571,6 @@ export default function OrderDetailPage() {
                   ))}
                 </div>
               )}
-
             </CardContent>
           </Card>
         </motion.div>
@@ -1108,7 +710,7 @@ export default function OrderDetailPage() {
                           </CardHeader>
                           <CardContent>
                             <ScrollArea className="h-32">
-                              <p className="text-xs whitespace-pre-wrap font-mono leading-relaxed">
+                              <p className="text-sm whitespace-pre-wrap font-mono text-xs leading-relaxed">
                                 {selectedVersion.prompt}
                               </p>
                             </ScrollArea>
@@ -1174,16 +776,10 @@ export default function OrderDetailPage() {
                 </div>
 
                 <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-muted/30">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => currentImage && handleDownloadImage(currentImage)}
-                    className="flex items-center gap-2 text-sm"
-                    disabled={!currentImage?.processedUrl}
-                  >
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Download className="h-4 w-4" />
                     <span>Download this image</span>
-                  </Button>
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -1236,60 +832,6 @@ export default function OrderDetailPage() {
         onAddDam={handleAddDam}
         onRemoveDam={handleRemoveDam}
       />
-
-
-      {/* AI Summary Dialog */}
-      <Dialog open={showSummary} onOpenChange={setShowSummary}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-2xl">
-              <Sparkles className="h-6 w-6 text-primary" />
-              AI Generated Project Summary
-            </DialogTitle>
-            <DialogDescription className="text-sm">
-              Order {order.orderNumber || order.id} - Processing Summary
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="my-4">
-            <div className="rounded-lg border bg-muted/50 p-4">
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-semibold mb-2">Instructions:</p>
-                  <p className="text-sm text-muted-foreground">{order.instructions}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold mb-2">Order Details:</p>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Total Images: {order.imageCount}</li>
-                    <li>• Processed: {order.processedCount}</li>
-                    <li>• Approved: {order.approvedCount}</li>
-                    {order.retouchCount > 0 && <li>• Needs Retouch: {order.retouchCount}</li>}
-                    {order.failedCount > 0 && <li>• Failed: {order.failedCount}</li>}
-                  </ul>
-                </div>
-                {order.processingTime > 0 && (
-                  <div>
-                    <p className="text-sm font-semibold mb-2">Processing Time:</p>
-                    <p className="text-sm text-muted-foreground">
-                      {Math.floor(order.processingTime / 1000 / 60)}m {Math.floor((order.processingTime / 1000) % 60)}s
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button onClick={() => setShowSummary(false)}>
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-  
-
     </div>
-
   )
 }
