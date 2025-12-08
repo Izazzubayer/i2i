@@ -860,7 +860,7 @@ export default function ProcessingResultsPage() {
     } finally {
       setIsUploadingToDAM(false)
     }
-  }, [confirmedOrderData, router])
+  }, [confirmedOrderData])
 
   // Check if there are unconfirmed orders (images ready to confirm)
   const hasUnconfirmedOrder = useMemo(() => {
@@ -2020,7 +2020,7 @@ export default function ProcessingResultsPage() {
               Reprocess Limit Reached
             </DialogTitle>
             <DialogDescription>
-              You've reached the maximum number of reprocesses allowed for your current {getUserPlan()} plan.
+              You&apos;ve reached the maximum number of reprocesses allowed for your current {getUserPlan()} plan.
             </DialogDescription>
           </DialogHeader>
           
@@ -2106,7 +2106,7 @@ export default function ProcessingResultsPage() {
               Unconfirmed Order
             </DialogTitle>
             <DialogDescription>
-              You have {confirmableImagesCount} image{confirmableImagesCount !== 1 ? 's' : ''} ready to confirm. If you leave this page, you'll need to come back to confirm your order.
+              You have {confirmableImagesCount} image{confirmableImagesCount !== 1 ? 's' : ''} ready to confirm. If you leave this page, you&apos;ll need to come back to confirm your order.
             </DialogDescription>
           </DialogHeader>
           
