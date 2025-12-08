@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
@@ -74,6 +74,8 @@ export default function OrdersPage() {
   const router = useRouter()
   const { orders, deleteOrder, addDamConnection, activeDamConnection, damConnections, setActiveDamConnection, removeDamConnection } = useStore()
   
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState(STATUSES.ALL)
   const [sortBy, setSortBy] = useState(SORT_OPTIONS.NEWEST)
@@ -83,6 +85,72 @@ export default function OrdersPage() {
   const [selectedOrderForDAM, setSelectedOrderForDAM] = useState(null)
   const [uploadingToDAM, setUploadingToDAM] = useState(false)
   const [downloadingOrder, setDownloadingOrder] = useState(null)
+
+  // Check authentication status - same logic as Navbar
+  useEffect(() => {
+    setMounted(true)
+    
+    const checkAuth = () => {
+      if (typeof window === 'undefined') return
+      
+      const authToken = localStorage.getItem('authToken')
+      
+      // SIMPLE RULE: If token exists, user is authenticated
+      // Token is only given after successful signin, so it's the primary indicator
+      if (authToken) {
+        console.log('✅ Orders page: User authenticated (token found)')
+        setIsAuthenticated(true)
+      } else {
+        console.log('❌ Orders page: Not authenticated (no token)')
+        setIsAuthenticated(false)
+      }
+    }
+
+    // Initial check
+    checkAuth()
+    
+    // Also check after short delays to catch data stored just before page load
+    const delayedCheck1 = setTimeout(() => {
+      checkAuth()
+    }, 100)
+    
+    const delayedCheck2 = setTimeout(() => {
+      checkAuth()
+    }, 500)
+    
+    // Listen for auth changes
+    const handleStorageChange = () => {
+      console.log('🔄 Orders page: localStorageChange event detected')
+      checkAuth()
+    }
+    
+    const handleStorageEvent = (e) => {
+      if (e.key === 'authToken' || e.key === 'user') {
+        console.log('🔄 Orders page: Storage event detected', e.key)
+        checkAuth()
+      }
+    }
+    
+    window.addEventListener('localStorageChange', handleStorageChange)
+    window.addEventListener('storage', handleStorageEvent)
+    
+    // Also check when page becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🔄 Orders page: Page visible - checking auth')
+        checkAuth()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      clearTimeout(delayedCheck1)
+      clearTimeout(delayedCheck2)
+      window.removeEventListener('localStorageChange', handleStorageChange)
+      window.removeEventListener('storage', handleStorageEvent)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
 
   // Mock orders if store is empty (for demo)
   const allOrders = useMemo(() => {
@@ -430,11 +498,52 @@ export default function OrdersPage() {
     })
   }
 
+  // Show loading state during mount
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    )
+  }
+
+  // If not authenticated, show message and redirect option
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="mb-8">
+              <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+              <h1 className="text-3xl font-bold mb-2">Sign in to view your orders</h1>
+              <p className="text-muted-foreground mb-6">
+                You need to be signed in to view and manage your image processing orders.
+              </p>
+              <div className="flex gap-4 justify-center">
+                <Button onClick={() => router.push('/sign-in')}>
+                  Sign In
+                </Button>
+                <Button variant="outline" onClick={() => router.push('/sign-up')}>
+                  Sign Up
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
+      <Navbar />
 
       {/* Sticky Header */}
-      <div className="sticky top-16 z-40 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b shadow-sm">
+      <div className="sticky top-[64px] z-40 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b shadow-sm">
         <div className="container mx-auto px-4 py-6">
           <motion.div
             initial={{ opacity: 0, y: -10 }}

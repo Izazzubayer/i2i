@@ -296,6 +296,7 @@ export default function Navbar() {
   // Navigation items - different for authenticated vs unauthenticated
   const navItems = isAuthenticated ? [
     { label: 'Home', href: '/', icon: Home },
+    { label: 'Upload', href: '/upload', icon: ImageIcon },
     { label: 'Orders', href: '/orders', icon: Package },
     { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
     { label: 'Pricing', href: '/pricing', icon: DollarSign },
@@ -309,10 +310,8 @@ export default function Navbar() {
   const resourcesItems = [
     { label: 'API', href: '/api-docs', icon: Code },
     { label: 'Contact', href: '/contact', icon: Mail },
-    ...(isAuthenticated ? [] : [
-      { label: 'How i2i Works', href: '/how-i2i-works', icon: Sparkles },
-      { label: 'FAQ', href: '/faq', icon: HelpCircle },
-    ]),
+    { label: 'How i2i Works', href: '/how-i2i-works', icon: Sparkles },
+    { label: 'FAQ', href: '/faq', icon: HelpCircle },
   ]
 
   const isResourcesActive = pathname?.startsWith('/api-docs') || 
