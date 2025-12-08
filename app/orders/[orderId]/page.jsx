@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   ArrowLeft,
@@ -38,59 +39,86 @@ import DamConnectDialog from '@/components/DamConnectDialog'
 import { useStore } from '@/lib/store'
 import { apiClient } from '@/lib/api'
 import { toast } from 'sonner'
+import { getOrderDetails } from '@/api'
 
-// Mock order details
-const mockOrderDetails = {
-  id: 'ORD-2024-001',
-  createdAt: '2024-10-28T10:30:00',
-  completedAt: '2024-10-28T10:32:15',
-  status: 'completed',
-  imageCount: 45,
-  processedCount: 45,
-  approvedCount: 42,
-  retouchCount: 3,
-  failedCount: 0,
-  totalSize: '1.2 GB',
-  instructions: 'Remove backgroundenhance colorsresize to 1920x1080',
-  processingTime: '2m 15s',
-  summary: `This batch contains 45 images for AI-powered processing with the following objectives:
-
-Remove backgroundenhance colorsresize to 1920x1080
-
-The AI will analyze each image and apply the following transformations:
-• Background enhancement and removal
-• Color correction and optimization
-• Object detection and masking
-• Smart cropping and composition
-• Quality enhancement using advanced algorithms
-
-Expected processing time: 113 seconds
-Total file size: 1.2 GB
-
-All processed images will maintain original quality while applying the requested enhancements. The system will automatically detect and optimize each image based on its content and composition.`,
-  images: [
-    { id: 'img-1', name: 'product-001.jpg', status: 'approved', size: '28 MB', processedUrl: 'https://picsum.photos/seed/1/400/300' },
-    { id: 'img-2', name: 'product-002.jpg', status: 'approved', size: '25 MB', processedUrl: 'https://picsum.photos/seed/2/400/300' },
-    { id: 'img-3', name: 'product-003.jpg', status: 'needs-retouch', size: '30 MB', processedUrl: 'https://picsum.photos/seed/3/400/300' },
-    { id: 'img-4', name: 'product-004.jpg', status: 'approved', size: '27 MB', processedUrl: 'https://picsum.photos/seed/4/400/300' },
-    { id: 'img-5', name: 'product-005.jpg', status: 'approved', size: '26 MB', processedUrl: 'https://picsum.photos/seed/5/400/300' },
-    { id: 'img-6', name: 'product-006.jpg', status: 'needs-retouch', size: '29 MB', processedUrl: 'https://picsum.photos/seed/6/400/300' },
-    { id: 'img-7', name: 'product-007.jpg', status: 'approved', size: '24 MB', processedUrl: 'https://picsum.photos/seed/7/400/300' },
-    { id: 'img-8', name: 'product-008.jpg', status: 'approved', size: '31 MB', processedUrl: 'https://picsum.photos/seed/8/400/300' },
-    { id: 'img-9', name: 'product-009.jpg', status: 'needs-retouch', size: '28 MB', processedUrl: 'https://picsum.photos/seed/9/400/300' },
-    { id: 'img-10', name: 'product-010.jpg', status: 'approved', size: '27 MB', processedUrl: 'https://picsum.photos/seed/10/400/300' },
-  ],
-}
-
-export default function OrderDetailPage({ params }) {
+export default function OrderDetailPage() {
+  const params = useParams()
+  const orderId = params?.orderId
+  
   const [showSummary, setShowSummary] = useState(false)
   const [selectedTab, setSelectedTab] = useState('all')
-  const order = mockOrderDetails
+  const [order, setOrder] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   
   // DAM state
   const [damDialogOpen, setDamDialogOpen] = useState(false)
   const [uploadingToDAM, setUploadingToDAM] = useState(false)
   const { addDamConnection, activeDamConnection } = useStore()
+
+  // Fetch order details
+  useEffect(() => {
+    if (!orderId) return
+
+    const fetchOrderDetails = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const orderData = await getOrderDetails(orderId, { expirationMinutes: 60 })
+        
+        // Transform API response to match UI structure
+        const transformedOrder = {
+          id: orderData.orderId,
+          orderNumber: orderData.orderName || orderData.orderId,
+          createdAt: orderData.createdAt,
+          updatedAt: orderData.updatedAt,
+          expireAt: orderData.expireAt,
+          status: orderData.status?.toLowerCase() || 'pending',
+          // Calculate stats from versions
+          imageCount: orderData.versions?.length || 0,
+          processedCount: orderData.versions?.filter(v => v.statusLookupId).length || 0,
+          approvedCount: orderData.versions?.filter(v => v.isActive && v.statusLookupId).length || 0,
+          retouchCount: 0, // This would need to come from status lookup
+          failedCount: orderData.versions?.filter(v => v.statusLookupId && v.statusLookupId.includes('failed')).length || 0,
+          // Get instructions from first input
+          instructions: orderData.inputs?.[0]?.promptText || 'No instructions provided',
+          // Calculate processing time
+          processingTime: orderData.versions?.reduce((sum, v) => sum + (v.processingTimeMS || 0), 0) || 0,
+          // Transform versions to images
+          images: orderData.versions?.map((version, index) => {
+            const input = orderData.inputs?.find(i => i.orderInputId === version.orderInputId)
+            return {
+              id: version.versionId,
+              orderInputId: version.orderInputId,
+              imageId: version.imageId,
+              name: input?.downloadUrl ? `image-${index + 1}.jpg` : `version-${version.versionNumber}.jpg`,
+              status: version.isActive ? 'approved' : version.statusLookupId?.includes('failed') ? 'failed' : 'needs-retouch',
+              size: 'N/A', // Size not provided in API
+              processedUrl: version.downloadUrl || '',
+              inputUrl: input?.downloadUrl || '',
+              versionNumber: version.versionNumber,
+              promptUsed: version.promptUsed,
+              processingTimeMS: version.processingTimeMS,
+              tokensUsed: version.tokensUsed,
+              price: version.price,
+            }
+          }) || [],
+          // Full API data for reference
+          _apiData: orderData,
+        }
+        
+        setOrder(transformedOrder)
+      } catch (err) {
+        console.error('Error fetching order details:', err)
+        setError(err.message || 'Failed to load order details')
+        toast.error(err.message || 'Failed to load order details')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchOrderDetails()
+  }, [orderId])
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -118,10 +146,10 @@ export default function OrderDetailPage({ params }) {
     }
   }
 
-  const filteredImages = order.images.filter(img => {
+  const filteredImages = order?.images?.filter(img => {
     if (selectedTab === 'all') return true
     return img.status === selectedTab
-  })
+  }) || []
 
   // Handle DAM connection
   const handleConnectDam = () => {
@@ -132,7 +160,7 @@ export default function OrderDetailPage({ params }) {
     }
   }
 
-  const handleDamConnect = async (configmConfig) => {
+  const handleDamConnect = async (config) => {
     addDamConnection(config)
     setDamDialogOpen(false)
     await handleUploadToDAM()
@@ -141,6 +169,11 @@ export default function OrderDetailPage({ params }) {
   const handleUploadToDAM = async () => {
     if (!activeDamConnection) {
       toast.error('No DAM connection found')
+      return
+    }
+
+    if (!order) {
+      toast.error('Order not loaded')
       return
     }
 
@@ -174,6 +207,48 @@ export default function OrderDetailPage({ params }) {
     }
   }
 
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-background">
+        <Header />
+        <div className="container py-8 px-4 md:px-8">
+          <div className="mx-auto max-w-7xl space-y-6">
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-3 text-muted-foreground">Loading order details...</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  if (error || !order) {
+    return (
+      <main className="min-h-screen bg-background">
+        <Header />
+        <div className="container py-8 px-4 md:px-8">
+          <div className="mx-auto max-w-7xl space-y-6">
+            <Button variant="ghost" onClick={() => window.history.back()}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Orders
+            </Button>
+            <Card>
+              <CardContent className="py-10 text-center">
+                <AlertCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
+                <h2 className="text-xl font-semibold mb-2">Failed to Load Order</h2>
+                <p className="text-muted-foreground">{error || 'Order not found'}</p>
+                <Button className="mt-4" onClick={() => window.location.reload()}>
+                  Retry
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen bg-background">
       <Header />
@@ -189,7 +264,7 @@ export default function OrderDetailPage({ params }) {
           {/* Order Header */}
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight">{order.id}</h1>
+              <h1 className="text-3xl font-bold tracking-tight">{order.orderNumber || order.id}</h1>
               <div className="hidden lg:block text-2xl text-muted-foreground">|</div>
               {getStatusBadge(order.status)}
             </div>
@@ -285,13 +360,17 @@ export default function OrderDetailPage({ params }) {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Processing Time</p>
-                  <p className="mt-1 text-sm font-medium">{order.processingTime}</p>
+                  <p className="mt-1 text-sm font-medium">
+                    {order.processingTime > 0 
+                      ? `${Math.floor(order.processingTime / 1000 / 60)}m ${Math.floor((order.processingTime / 1000) % 60)}s`
+                      : 'N/A'}
+                  </p>
                 </div>
-                {order.completedAt && (
+                {order.updatedAt && (
                   <div>
-                    <p className="text-sm text-muted-foreground">Completed At</p>
+                    <p className="text-sm text-muted-foreground">Last Updated</p>
                     <p className="mt-1 text-sm font-medium">
-                      {new Date(order.completedAt).toLocaleString()}
+                      {new Date(order.updatedAt).toLocaleString()}
                     </p>
                   </div>
                 )}
@@ -328,38 +407,83 @@ export default function OrderDetailPage({ params }) {
                 </TabsList>
 
                 <TabsContent value={selectedTab} className="mt-6">
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {filteredImages.map((image) => (
-                      <Card key={image.id} className="overflow-hidden">
-                        <div className="relative aspect-[4/3] bg-muted">
-                          <Image
-                            src={image.processedUrl}
-                            alt={image.name}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 768px) 100vw(max-width: 1200px) 50vw33vw"
-                          />
-                          <div className="absolute top-2 right-2">
-                            {getImageStatusBadge(image.status)}
+                  {filteredImages.length === 0 ? (
+                    <div className="py-10 text-center text-muted-foreground">
+                      <ImageIcon className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                      <p>No images found for this filter</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {filteredImages.map((image) => (
+                        <Card key={image.id} className="overflow-hidden">
+                          <div className="relative aspect-[4/3] bg-muted">
+                            {image.processedUrl ? (
+                              <Image
+                                src={image.processedUrl}
+                                alt={image.name}
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center h-full">
+                                <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="absolute top-2 right-2">
+                              {getImageStatusBadge(image.status)}
+                            </div>
                           </div>
-                        </div>
-                        <CardContent className="p-4">
-                          <p className="text-sm font-medium truncate">{image.name}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{image.size}</p>
-                          <div className="mt-3 flex gap-2">
-                            <Button variant="outline" size="sm" className="flex-1">
-                              <Eye className="mr-1 h-3 w-3" />
-                              View
-                            </Button>
-                            <Button variant="outline" size="sm" className="flex-1">
-                              <Download className="mr-1 h-3 w-3" />
-                              Save
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                          <CardContent className="p-4">
+                            <p className="text-sm font-medium truncate">{image.name}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {image.size || `Version ${image.versionNumber || 'N/A'}`}
+                            </p>
+                            {image.promptUsed && (
+                              <p className="text-xs text-muted-foreground mt-1 truncate" title={image.promptUsed}>
+                                {image.promptUsed}
+                              </p>
+                            )}
+                            <div className="mt-3 flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex-1"
+                                onClick={() => {
+                                  if (image.processedUrl) {
+                                    window.open(image.processedUrl, '_blank')
+                                  } else {
+                                    toast.error('Image URL not available')
+                                  }
+                                }}
+                              >
+                                <Eye className="mr-1 h-3 w-3" />
+                                View
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex-1"
+                                onClick={() => {
+                                  if (image.processedUrl) {
+                                    const link = document.createElement('a')
+                                    link.href = image.processedUrl
+                                    link.download = image.name
+                                    link.click()
+                                  } else {
+                                    toast.error('Image URL not available')
+                                  }
+                                }}
+                              >
+                                <Download className="mr-1 h-3 w-3" />
+                                Save
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
             </CardContent>
@@ -383,15 +507,36 @@ export default function OrderDetailPage({ params }) {
               AI Generated Project Summary
             </DialogTitle>
             <DialogDescription className="text-sm">
-              Order {order.id} - Processing Summary
+              Order {order.orderNumber || order.id} - Processing Summary
             </DialogDescription>
           </DialogHeader>
 
           <div className="my-4">
             <div className="rounded-lg border bg-muted/50 p-4">
-              <p className="whitespace-pre-line text-sm leading-relaxed">
-                {order.summary}
-              </p>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold mb-2">Instructions:</p>
+                  <p className="text-sm text-muted-foreground">{order.instructions}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold mb-2">Order Details:</p>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• Total Images: {order.imageCount}</li>
+                    <li>• Processed: {order.processedCount}</li>
+                    <li>• Approved: {order.approvedCount}</li>
+                    {order.retouchCount > 0 && <li>• Needs Retouch: {order.retouchCount}</li>}
+                    {order.failedCount > 0 && <li>• Failed: {order.failedCount}</li>}
+                  </ul>
+                </div>
+                {order.processingTime > 0 && (
+                  <div>
+                    <p className="text-sm font-semibold mb-2">Processing Time:</p>
+                    <p className="text-sm text-muted-foreground">
+                      {Math.floor(order.processingTime / 1000 / 60)}m {Math.floor((order.processingTime / 1000) % 60)}s
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

@@ -39,6 +39,7 @@ import {
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
 import { formatFileSize } from '@/lib/utils'
+import { startOrder, processOrder, confirmOrder } from '@/api'
 import { 
   FaFilePdf, 
   FaFileWord, 
@@ -1112,7 +1113,7 @@ export default function PageChat() {
                   Cancel
                 </Button>
                 <Button
-                  onClick={() => {
+                  onClick={async () => {
                     // Get all uploaded images
                     const allImages = [...uploadedImages, ...attachedFiles.filter(f => f.type.startsWith('image/'))]
                     
@@ -1121,48 +1122,119 @@ export default function PageChat() {
                       return
                     }
                     
-                    // Create batch with images
-                    const batchId = `batch-${Date.now()}`
                     const instruction = editableText || input
                     
-                    // Create ProcessedImage objects from uploaded files
-                    const processedImages = allImages.map((file, index) => ({
-                      id: `img-${Date.now()}-${index}`,
-                      originalName: file.name,
-                      originalUrl: URL.createObjectURL(file),
-                      processedUrl: '', // Will be set when processing completes
-                      status: 'processing',
-                      instruction: instruction,
-                      timestamp: new Date(),
-                    }))
-                    
-                    // Create batch in store
-                    createBatch(batchId, instruction, allImages.length)
-                    
-                    // Update batch with actual images using store's setState
-                    setTimeout(() => {
-                      const { batch } = useStore.getState()
-                      if (batch) {
-                        useStore.setState({
-                          batch: {
-                            ...batch,
-                            images: processedImages,
-                          }
+                    try {
+                      // Start order
+                      toast.loading('Starting order...', { id: 'order-start' })
+                      const orderResponse = await startOrder()
+                      const orderId = orderResponse.orderId
+                      const orderNumber = orderResponse.orderNumber
+                      
+                      toast.success('Order started successfully', { id: 'order-start' })
+                      
+                      // Process each image
+                      toast.loading(`Processing ${allImages.length} image(s)...`, { id: 'order-process' })
+                      
+                      const processedImages = []
+                      for (let i = 0; i < allImages.length; i++) {
+                        const image = allImages[i]
+                        try {
+                          const processResponse = await processOrder({
+                            orderId: orderId,
+                            image: image,
+                            prompt: instruction || '',
+                          })
+                          
+                          processedImages.push({
+                            id: processResponse.orderInputId || `img-${Date.now()}-${i}`,
+                            originalName: image.name,
+                            originalUrl: URL.createObjectURL(image),
+                            processedUrl: processResponse.outputImageUrl || '',
+                            status: 'processing',
+                            instruction: instruction,
+                            timestamp: new Date(),
+                            orderInputId: processResponse.orderInputId,
+                            versionId: processResponse.versionId,
+                            imageId: processResponse.imageId,
+                          })
+                          
+                          toast.success(`Image ${i + 1}/${allImages.length} processed`, { 
+                            id: `image-${i}`,
+                            duration: 2000 
+                          })
+                        } catch (error) {
+                          console.error(`Error processing image ${i + 1}:`, error)
+                          toast.error(`Failed to process image ${i + 1}: ${error.message || 'Unknown error'}`, {
+                            id: `image-${i}`,
+                            duration: 3000
+                          })
+                          
+                          // Still add the image to the list with error status
+                          processedImages.push({
+                            id: `img-${Date.now()}-${i}`,
+                            originalName: image.name,
+                            originalUrl: URL.createObjectURL(image),
+                            processedUrl: '',
+                            status: 'error',
+                            instruction: instruction,
+                            timestamp: new Date(),
+                            error: error.message || 'Processing failed',
+                          })
+                        }
+                      }
+                      
+                      toast.success('All images processed', { id: 'order-process' })
+                      
+                      // Confirm order
+                      try {
+                        toast.loading('Confirming order...', { id: 'order-confirm' })
+                        await confirmOrder(orderId)
+                        toast.success('Order confirmed', { id: 'order-confirm' })
+                      } catch (error) {
+                        console.error('Error confirming order:', error)
+                        toast.error(`Failed to confirm order: ${error.message || 'Unknown error'}`, {
+                          id: 'order-confirm',
+                          duration: 3000
                         })
                       }
-                    }, 0)
-                    
-                    // Close modal and clear state
-                    setShowAnalysisModal(false)
-                    setIsAnalyzing(true)
-                    setParaphrasedText('')
-                    setEditableText('')
-                    setInput('')
-                    setUploadedImages([])
-                    setAttachedFiles([])
-                    
-                    // Navigate to homepage where ProcessingPanel will show images appearing gradually
-                    router.push('/')
+                      
+                      // Create batch in store with orderId
+                      createBatch(orderNumber || orderId, instruction, allImages.length)
+                      
+                      // Update batch with actual images using store's setState
+                      setTimeout(() => {
+                        const { batch } = useStore.getState()
+                        if (batch) {
+                          useStore.setState({
+                            batch: {
+                              ...batch,
+                              orderId: orderId,
+                              orderNumber: orderNumber,
+                              images: processedImages,
+                            }
+                          })
+                        }
+                      }, 0)
+                      
+                      // Close modal and clear state
+                      setShowAnalysisModal(false)
+                      setIsAnalyzing(true)
+                      setParaphrasedText('')
+                      setEditableText('')
+                      setInput('')
+                      setUploadedImages([])
+                      setAttachedFiles([])
+                      
+                      // Navigate to homepage where ProcessingPanel will show images appearing gradually
+                      router.push('/')
+                    } catch (error) {
+                      console.error('Error processing order:', error)
+                      toast.error(`Failed to process order: ${error.message || 'Unknown error'}`, {
+                        id: 'order-error',
+                        duration: 5000
+                      })
+                    }
                   }}
                 >
                   Confirm & Process
