@@ -24,7 +24,7 @@ export const signup = async (signupData) => {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     console.log('📤 Signup Data:', {
       email: signupData.email,
-      displayName: signupData.displayName,
+      displayName: signupData.displayName, 
       companyName: signupData.companyName,
       phoneNo: signupData.phoneNo || '(empty)',
       termsAndCondition: signupData.termsAndCondition,

@@ -38,16 +38,16 @@ export default function Header() {
     { label: 'Upload', icon: Image, href: '/upload', path: '/upload' },
     { label: 'Portfolio', icon: Image, href: '/portfolio', path: '/portfolio' },
     { label: 'Pricing', icon: DollarSign, href: '/pricing', path: '/pricing' },
-    { label: 'API', icon: Code, href: '/api-docs', path: '/api-docs' },
-    { label: 'Contact', icon: Mail, href: '/contact', path: '/contact' },
   ]
 
   const resourcesItems = [
+    { label: 'API', icon: Code, href: '/api-docs' },
+    { label: 'Contact', icon: Mail, href: '/contact' },
     { label: 'How i2i Works', icon: Sparkles, href: '/how-i2i-works' },
     { label: 'FAQ', icon: HelpCircle, href: '/faq' },
   ]
 
-  const isResourcesActive = pathname?.startsWith('/how-i2i-works') || pathname?.startsWith('/faq')
+  const isResourcesActive = pathname?.startsWith('/api-docs') || pathname?.startsWith('/contact') || pathname?.startsWith('/how-i2i-works') || pathname?.startsWith('/faq')
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -78,9 +78,7 @@ export default function Header() {
                 <Button 
                   variant={isActive ? 'secondary' : 'ghost'} 
                   size="sm"
-                  className="gap-1.5"
                 >
-                  <item.icon className="h-4 w-4" />
                   {item.label}
                 </Button>
               </Link>
@@ -96,7 +94,7 @@ export default function Header() {
                   size="sm" 
                   className="gap-2"
                 >
-                  More
+                  Resources
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -105,7 +103,6 @@ export default function Header() {
                   return (
                     <DropdownMenuItem key={item.href} asChild>
                       <Link href={item.href} prefetch={true}>
-                        <item.icon className="mr-2 h-4 w-4" />
                         {item.label}
                       </Link>
                     </DropdownMenuItem>
@@ -168,13 +165,12 @@ export default function Header() {
                   <Button
                     key={item.href}
                     variant={isActive ? 'secondary' : 'ghost'}
-                    className="w-full justify-start gap-2"
+                    className="w-full justify-start"
                     onClick={() => {
                       router.push(item.href)
                       setMobileMenuOpen(false)
                     }}
                   >
-                    <item.icon className="h-4 w-4" />
                     {item.label}
                   </Button>
                 )
@@ -183,19 +179,18 @@ export default function Header() {
               {/* Additional Resources Section */}
               {resourcesItems.length > 0 && (
                 <div className="pt-2 border-t">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2 px-2">More</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2 px-2">Resources</p>
                   {resourcesItems.map((item) => {
                     return (
                       <Button
                         key={item.href}
                         variant="ghost"
-                        className="w-full justify-start gap-2"
+                        className="w-full justify-start"
                         onClick={() => {
                           router.push(item.href)
                           setMobileMenuOpen(false)
                         }}
                       >
-                        <item.icon className="h-4 w-4" />
                         {item.label}
                       </Button>
                     )

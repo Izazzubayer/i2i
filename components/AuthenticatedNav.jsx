@@ -227,9 +227,14 @@ export default function AuthenticatedNav() {
     { label: 'Orders', href: '/orders', icon: Package },
     { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
     { label: 'Pricing', href: '/pricing', icon: DollarSign },
+  ]
+
+  const resourcesItems = [
     { label: 'API', href: '/api-docs', icon: Code },
     { label: 'Contact', href: '/contact', icon: Mail },
   ]
+
+  const isResourcesActive = pathname?.startsWith('/api-docs') || pathname?.startsWith('/contact')
 
   return (
     <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -264,14 +269,39 @@ export default function AuthenticatedNav() {
                   <Button 
                     variant={isActive ? 'secondary' : 'ghost'} 
                     size="sm"
-                    className="gap-1.5"
                   >
-                    <item.icon className="h-4 w-4" />
                     {item.label}
                   </Button>
                 </Link>
               )
             })}
+            
+            {/* Resources Dropdown */}
+            {resourcesItems.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant={isResourcesActive ? 'secondary' : 'ghost'} 
+                    size="sm" 
+                    className="gap-2"
+                  >
+                    Resources
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center">
+                  {resourcesItems.map((item) => {
+                    return (
+                      <DropdownMenuItem key={item.href} asChild>
+                        <Link href={item.href} prefetch={true}>
+                          {item.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    )
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
 
           {/* Right Side: Language, Profile */}
@@ -427,14 +457,37 @@ export default function AuthenticatedNav() {
                     >
                       <Button 
                         variant={isActive ? 'secondary' : 'ghost'} 
-                        className="w-full justify-start gap-2"
+                        className="w-full justify-start"
                       >
-                        <item.icon className="h-4 w-4" />
                         {item.label}
                       </Button>
                     </Link>
                   )
                 })}
+                
+                {/* Resources Section */}
+                {resourcesItems.length > 0 && (
+                  <div className="pt-2 border-t">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-2 px-2">Resources</p>
+                    {resourcesItems.map((item) => {
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          prefetch={true}
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                          >
+                            {item.label}
+                          </Button>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

@@ -169,12 +169,7 @@ function SignInContent() {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
-                    <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
-                      Forgot?
-                    </Link>
-                  </div>
+                  <Label htmlFor="password">Password</Label>
                   <div className="relative">
                     <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -198,9 +193,9 @@ function SignInContent() {
                     />
                     Keep me signed in
                   </label>
-                  <span className="text-xs text-muted-foreground">
-                    Session lasts 7 days
-                  </span>
+                  <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
+                    Forgot?
+                  </Link>
                 </div>
 
                 {/* Social Sign-in Options */}
