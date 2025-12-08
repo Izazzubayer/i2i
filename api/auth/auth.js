@@ -1,7 +1,7 @@
 import apiClient, { BASE_URL } from '../config'
 import axios from 'axios'
 import { signInWithPopup } from 'firebase/auth'
-import { auth, googleProvider } from '@/lib/firebase'
+import { auth, googleProvider, microsoftProvider } from '@/lib/firebase'
 
 /**
  * Authentication API endpoints
@@ -842,6 +842,7 @@ export const googleSignIn = async () => {
         expiresAt: apiResponse.data.expiresAt,
         isVerified: true, // Google sign-in means email is verified
         avatar: user.photoURL || apiResponse.data.avatar || '',
+        authProvider: 'google', // Mark as OAuth user
       }
       
       // Store in localStorage
@@ -925,6 +926,149 @@ export const googleSignIn = async () => {
   }
 }
 
+/**
+ * Microsoft Sign In
+ * Authenticates user with Microsoft and sends idToken to backend
+ * @returns {Promise} API response
+ */
+export const microsoftSignIn = async () => {
+  try {
+    console.log('🔐 Microsoft Sign In API Call')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    // Sign in with Microsoft using Firebase
+    const result = await signInWithPopup(auth, microsoftProvider)
+    const user = result.user
+    
+    // Get the ID token
+    const idToken = await user.getIdToken()
+    
+    console.log('✅ Microsoft Sign In Successful')
+    console.log('📤 User Info:', {
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      uid: user.uid,
+    })
+    console.log('📤 ID Token:', idToken)
+    console.log('📤 ID Token Length:', idToken.length)
+    console.log('📤 ID Token Type:', typeof idToken)
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    // Call backend API with the idToken
+    const response = await axios.post(
+      `${BASE_URL}/api/v1/Auth/microsoft-signin`,
+      {
+        idToken: idToken,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      }
+    )
+    
+    console.log('📥 Backend Response Status:', response.status)
+    console.log('📥 Backend Response Data:', JSON.stringify(response.data, null, 2))
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    const apiResponse = response.data
+    
+    // Store user data and tokens if signin was successful
+    if (apiResponse.success && apiResponse.data) {
+      const userData = {
+        userId: apiResponse.data.userId,
+        email: apiResponse.data.email || user.email,
+        displayName: apiResponse.data.displayName || user.displayName || user.email?.split('@')[0] || 'User',
+        companyId: apiResponse.data.CompanyId || apiResponse.data.companyId,
+        expiresAt: apiResponse.data.expiresAt,
+        isVerified: true, // Microsoft sign-in means email is verified
+        avatar: user.photoURL || apiResponse.data.avatar || '',
+        authProvider: 'microsoft', // Mark as OAuth user
+      }
+      
+      // Store in localStorage
+      if (typeof window !== 'undefined') {
+        // Store access token
+        if (apiResponse.data.accessToken) {
+          localStorage.setItem('authToken', apiResponse.data.accessToken)
+          console.log('💾 Stored accessToken')
+        }
+        
+        // Store refresh token
+        if (apiResponse.data.refreshToken) {
+          localStorage.setItem('refreshToken', apiResponse.data.refreshToken)
+          console.log('💾 Stored refreshToken')
+        }
+        
+        // Store user data
+        localStorage.setItem('user', JSON.stringify(userData))
+        console.log('💾 Stored user data:', JSON.stringify(userData, null, 2))
+        
+        // Trigger custom event to notify other components
+        window.dispatchEvent(new Event('localStorageChange'))
+        console.log('🔄 Triggered localStorageChange event')
+      }
+    }
+    
+    return apiResponse
+  } catch (error) {
+    console.error('❌ Microsoft Sign In error:', error)
+    
+    // Handle Firebase errors
+    if (error.code) {
+      console.error('Firebase Error Code:', error.code)
+      console.error('Firebase Error Message:', error.message)
+      
+      let errorMessage = 'Microsoft sign in failed. Please try again.'
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Sign in was cancelled. Please try again.'
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'Popup was blocked. Please allow popups and try again.'
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your connection.'
+      }
+      
+      throw {
+        message: errorMessage,
+        status: null,
+        code: error.code,
+      }
+    }
+    
+    // Handle axios errors (backend API errors)
+    if (error.response) {
+      const { status, data } = error.response
+      
+      let errorMessage = 'An error occurred'
+      if (data?.Message) {
+        errorMessage = data.Message
+      } else if (data?.message) {
+        errorMessage = data.message
+      }
+      
+      throw {
+        message: errorMessage,
+        status: status,
+        data: data,
+        code: data?.Code || data?.code,
+      }
+    } else if (error.request) {
+      throw {
+        message: 'Network error. Please check your connection.',
+        status: null,
+      }
+    } else {
+      throw {
+        message: error.message || 'An unexpected error occurred',
+        status: null,
+      }
+    }
+  }
+}
+
 // Export all auth functions as default object
 const authAPI = {
   signup,
@@ -936,6 +1080,7 @@ const authAPI = {
   refreshToken,
   resendVerificationEmail,
   googleSignIn,
+  microsoftSignIn,
 }
 
 export default authAPI

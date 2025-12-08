@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
-import { signin, googleSignIn } from '@/api/auth/auth'
+import { signin, googleSignIn, microsoftSignIn } from '@/api/auth/auth'
 
 function SignInContent() {
   const router = useRouter()
@@ -21,6 +21,7 @@ function SignInContent() {
   const [staySignedIn, setStaySignedIn] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [showPasswordResetSuccess, setShowPasswordResetSuccess] = useState(false)
 
@@ -322,18 +323,73 @@ function SignInContent() {
                       type="button"
                       variant="outline"
                       className="w-full"
-                      onClick={() => {
-                        // Dummy - non-functional
-                        toast.info('Microsoft sign-in coming soon')
+                      disabled={isMicrosoftLoading || isLoading || isGoogleLoading}
+                      onClick={async () => {
+                        setIsMicrosoftLoading(true)
+                        setMessage('Signing in with Microsoft...')
+                        try {
+                          const response = await microsoftSignIn()
+                          
+                          if (response.success && response.data) {
+                            console.log('✅ Microsoft sign-in successful - User data stored')
+                            setMessage('Success! Redirecting to your workspace...')
+                            toast.success('Signed in with Microsoft successfully!')
+                            
+                            // Wait a moment for localStorage to be fully written, then trigger event
+                            setTimeout(() => {
+                              if (typeof window !== 'undefined') {
+                                // Double-check that data is in localStorage
+                                const token = localStorage.getItem('authToken')
+                                const user = localStorage.getItem('user')
+                                console.log('🔍 Microsoft sign-in: Verifying localStorage', { hasToken: !!token, hasUser: !!user })
+                                
+                                // Trigger localStorageChange event to update navbar immediately
+                                window.dispatchEvent(new Event('localStorageChange'))
+                                console.log('🔄 Microsoft sign-in: Triggered localStorageChange event')
+                              }
+                            }, 100)
+                            
+                            // Redirect to home page with hard navigation to ensure navbar updates
+                            setTimeout(() => {
+                              window.location.href = '/'
+                            }, 1200)
+                          } else {
+                            throw new Error(response.message || 'Microsoft sign in failed')
+                          }
+                        } catch (error) {
+                          console.error('Microsoft sign in error:', error)
+                          setIsMicrosoftLoading(false)
+                          
+                          let errorMessage = 'Microsoft sign in failed. Please try again.'
+                          if (error?.message) {
+                            errorMessage = error.message
+                          } else if (error?.data?.Message) {
+                            errorMessage = error.data.Message
+                          } else if (error?.data?.message) {
+                            errorMessage = error.data.message
+                          }
+                          
+                          setMessage('')
+                          toast.error(errorMessage)
+                        }
                       }}
                     >
-                      <svg className="mr-2 h-4 w-4" viewBox="0 0 23 23" fill="none">
-                        <path d="M0 0h11.5v11.5H0V0z" fill="#F25022" />
-                        <path d="M11.5 0H23v11.5H11.5V0z" fill="#7FBA00" />
-                        <path d="M0 11.5h11.5V23H0V11.5z" fill="#00A4EF" />
-                        <path d="M11.5 11.5H23V23H11.5V11.5z" fill="#FFB900" />
-                      </svg>
-                      Microsoft
+                      {isMicrosoftLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="mr-2 h-4 w-4" viewBox="0 0 23 23" fill="none">
+                            <path d="M0 0h11.5v11.5H0V0z" fill="#F25022" />
+                            <path d="M11.5 0H23v11.5H11.5V0z" fill="#7FBA00" />
+                            <path d="M0 11.5h11.5V23H0V11.5z" fill="#00A4EF" />
+                            <path d="M11.5 11.5H23V23H11.5V11.5z" fill="#FFB900" />
+                          </svg>
+                          Microsoft
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>

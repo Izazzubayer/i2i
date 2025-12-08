@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label'
 import { Upload, Trash2, AlertTriangle, Loader2, Mail } from 'lucide-react'
 import { toast } from 'sonner'
-import { getProfile, updateProfile, uploadAvatar } from '@/api/users/users'
+import { getProfile, updateProfile, uploadAvatar, deleteAccount } from '@/api/users/users'
 import { useRouter } from 'next/navigation'
 import ReactCrop from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
@@ -23,6 +23,8 @@ export default function AccountPage() {
   const [phoneNo, setPhoneNo] = useState('')
   const [avatar, setAvatar] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
   const [avatarFile, setAvatarFile] = useState(null)
   const [avatarPreview, setAvatarPreview] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -33,6 +35,8 @@ export default function AccountPage() {
   const [crop, setCrop] = useState({ unit: '%', width: 80, aspect: 1 })
   const [completedCrop, setCompletedCrop] = useState(null)
   const imgRef = useRef(null)
+  const [isOAuthUser, setIsOAuthUser] = useState(false)
+  const [authProvider, setAuthProvider] = useState(null)
 
   // Check email verification status and fetch user profile
   useEffect(() => {
@@ -50,6 +54,18 @@ export default function AccountPage() {
           try {
             localUserData = JSON.parse(localUser)
             localIsVerified = localUserData.isVerified === true // Only true if explicitly set to true
+            
+            // If authProvider is missing but user has avatar from OAuth (Google/Microsoft typically provide photoURL)
+            // or if we can infer from other data, set it
+            if (!localUserData.authProvider && localUserData.avatar && localUserData.avatar.includes('googleusercontent.com')) {
+              localUserData.authProvider = 'google'
+              localStorage.setItem('user', JSON.stringify(localUserData))
+              console.log('🔍 Detected Google user from avatar URL, added authProvider')
+            } else if (!localUserData.authProvider && localUserData.avatar && localUserData.avatar.includes('live.com')) {
+              localUserData.authProvider = 'microsoft'
+              localStorage.setItem('user', JSON.stringify(localUserData))
+              console.log('🔍 Detected Microsoft user from avatar URL, added authProvider')
+            }
           } catch (e) {
             console.error('Error parsing local user data:', e)
           }
@@ -91,16 +107,40 @@ export default function AccountPage() {
               return
             }
             
+            // Check if user is OAuth (Google/Microsoft) - check API response first, then localStorage
+            const apiAuthProvider = userData.authProvider || userData.provider || userData.loginProvider
+            const localAuthProvider = localUserData?.authProvider
+            const detectedProvider = apiAuthProvider || localAuthProvider
+            
+            // OAuth users: google, microsoft, or any provider that's not 'email' or 'password'
+            const isOAuth = detectedProvider && 
+                           (detectedProvider.toLowerCase() === 'google' || 
+                            detectedProvider.toLowerCase() === 'microsoft' ||
+                            (detectedProvider.toLowerCase() !== 'email' && detectedProvider.toLowerCase() !== 'password'))
+            
+            setIsOAuthUser(isOAuth)
+            setAuthProvider(detectedProvider)
+            console.log('🔍 Auth Provider Detection:', { apiAuthProvider, localAuthProvider, detectedProvider, isOAuth })
+            
             // Set user data
             setUsername(userData.displayName || userData.username || userData.name || '')
             setEmail(userData.email || '')
             setCompanyName(userData.companyName || userData.company || '')
             setPhoneNo(userData.phoneNo || userData.phone || '')
-            // Prioritize avatarUrl from API, fallback to avatar or profilePicture
-            setAvatar(userData.avatarUrl || userData.avatar || userData.profilePicture || '')
+            // Use same priority as Navbar: avatarUrl -> avatar -> profilePicture
+            const avatarValue = userData.avatarUrl || userData.avatar || userData.profilePicture || ''
+            setAvatar(avatarValue)
             
             // IMPORTANT: Update localStorage with ALL profile data from API
             // This ensures companyName, phoneNo, and other fields are stored
+            // CRITICAL: Always preserve authProvider from localStorage if API doesn't provide it
+            const finalAuthProvider = detectedProvider || localUserData?.authProvider || 
+              // Fallback: Check avatar URL for OAuth indicators
+              (userData.avatarUrl && userData.avatarUrl.includes('googleusercontent.com') ? 'google' : null) ||
+              (userData.avatarUrl && userData.avatarUrl.includes('live.com') ? 'microsoft' : null) ||
+              (userData.avatar && userData.avatar.includes('googleusercontent.com') ? 'google' : null) ||
+              (userData.avatar && userData.avatar.includes('live.com') ? 'microsoft' : null)
+            
             const updatedUserData = {
               ...(localUserData || {}),
               userId: userData.userId || localUserData?.userId,
@@ -113,7 +153,19 @@ export default function AccountPage() {
               isVerified: apiIsVerified !== undefined ? apiIsVerified : (localUserData?.isVerified || true),
               companyId: userData.CompanyId || userData.companyId || localUserData?.companyId,
               expiresAt: userData.expiresAt || localUserData?.expiresAt,
+              // CRITICAL: Always preserve authProvider - prioritize detected, then localStorage, then fallback detection
+              authProvider: finalAuthProvider,
             }
+            
+            // Update detection based on final authProvider
+            const finalIsOAuth = finalAuthProvider && 
+              (finalAuthProvider.toLowerCase() === 'google' || 
+               finalAuthProvider.toLowerCase() === 'microsoft' ||
+               (finalAuthProvider.toLowerCase() !== 'email' && finalAuthProvider.toLowerCase() !== 'password'))
+            
+            setIsOAuthUser(finalIsOAuth)
+            setAuthProvider(finalAuthProvider)
+            console.log('🔍 Final Auth Provider Detection:', { finalAuthProvider, finalIsOAuth, detectedProvider, localAuthProvider })
             
             localStorage.setItem('user', JSON.stringify(updatedUserData))
             console.log('💾 Updated localStorage with full profile data:', JSON.stringify(updatedUserData, null, 2))
@@ -123,21 +175,47 @@ export default function AccountPage() {
               window.dispatchEvent(new Event('localStorageChange'))
             }
           } else {
-            // If API doesn't return data, use localStorage
-            if (localUserData) {
-              if (!localIsVerified && !authToken) {
-                setIsVerified(false)
-                toast.error('Please verify your email to access your profile')
-                router.push(`/check-email?email=${encodeURIComponent(localUserData.email || '')}`)
-                return
-              }
-              
-              setUsername(localUserData.displayName || localUserData.name || '')
-              setEmail(localUserData.email || '')
-              setCompanyName(localUserData.companyName || '')
-              setPhoneNo(localUserData.phoneNo || localUserData.phone || '')
-              setAvatar(localUserData.avatarUrl || localUserData.avatar || '')
+          // If API doesn't return data, use localStorage
+          if (localUserData) {
+            if (!localIsVerified && !authToken) {
+              setIsVerified(false)
+              toast.error('Please verify your email to access your profile')
+              router.push(`/check-email?email=${encodeURIComponent(localUserData.email || '')}`)
+              return
             }
+            
+            // Check if OAuth user from localStorage
+            let localAuthProvider = localUserData.authProvider
+            
+            // If authProvider is missing, try to detect from avatar URL
+            if (!localAuthProvider) {
+              if (localUserData.avatar && localUserData.avatar.includes('googleusercontent.com')) {
+                localAuthProvider = 'google'
+                localUserData.authProvider = 'google'
+                localStorage.setItem('user', JSON.stringify(localUserData))
+                console.log('🔍 Detected Google user from avatar URL, added authProvider')
+              } else if (localUserData.avatar && localUserData.avatar.includes('live.com')) {
+                localAuthProvider = 'microsoft'
+                localUserData.authProvider = 'microsoft'
+                localStorage.setItem('user', JSON.stringify(localUserData))
+                console.log('🔍 Detected Microsoft user from avatar URL, added authProvider')
+              }
+            }
+            
+            const isOAuth = localAuthProvider && 
+                           (localAuthProvider.toLowerCase() === 'google' || 
+                            localAuthProvider.toLowerCase() === 'microsoft' ||
+                            (localAuthProvider.toLowerCase() !== 'email' && localAuthProvider.toLowerCase() !== 'password'))
+            setIsOAuthUser(isOAuth)
+            setAuthProvider(localAuthProvider)
+            
+            setUsername(localUserData.displayName || localUserData.name || '')
+            setEmail(localUserData.email || '')
+            setCompanyName(localUserData.companyName || '')
+            setPhoneNo(localUserData.phoneNo || localUserData.phone || '')
+            // Use same priority as Navbar: avatarUrl -> avatar -> profilePicture
+            setAvatar(localUserData.avatarUrl || localUserData.avatar || localUserData.profilePicture || '')
+          }
           }
         } catch (apiError) {
           console.error('Error fetching profile from API:', apiError)
@@ -167,11 +245,37 @@ export default function AccountPage() {
           if (localIsVerified || authToken) {
             console.log('⚠️ API failed but user is verified, using localStorage data')
             if (localUserData) {
+              // Check if OAuth user from localStorage
+              let localAuthProvider = localUserData.authProvider
+              
+              // If authProvider is missing, try to detect from avatar URL
+              if (!localAuthProvider) {
+                if (localUserData.avatar && localUserData.avatar.includes('googleusercontent.com')) {
+                  localAuthProvider = 'google'
+                  localUserData.authProvider = 'google'
+                  localStorage.setItem('user', JSON.stringify(localUserData))
+                  console.log('🔍 Detected Google user from avatar URL, added authProvider')
+                } else if (localUserData.avatar && localUserData.avatar.includes('live.com')) {
+                  localAuthProvider = 'microsoft'
+                  localUserData.authProvider = 'microsoft'
+                  localStorage.setItem('user', JSON.stringify(localUserData))
+                  console.log('🔍 Detected Microsoft user from avatar URL, added authProvider')
+                }
+              }
+              
+              const isOAuth = localAuthProvider && 
+                             (localAuthProvider.toLowerCase() === 'google' || 
+                              localAuthProvider.toLowerCase() === 'microsoft' ||
+                              (localAuthProvider.toLowerCase() !== 'email' && localAuthProvider.toLowerCase() !== 'password'))
+              setIsOAuthUser(isOAuth)
+              setAuthProvider(localAuthProvider)
+              
               setUsername(localUserData.displayName || localUserData.name || '')
               setEmail(localUserData.email || '')
               setCompanyName(localUserData.companyName || '')
               setPhoneNo(localUserData.phoneNo || localUserData.phone || '')
-              setAvatar(localUserData.avatarUrl || localUserData.avatar || '')
+              // Use same priority as Navbar: avatarUrl -> avatar -> profilePicture
+              setAvatar(localUserData.avatarUrl || localUserData.avatar || localUserData.profilePicture || '')
               // Show warning but don't block the user
               toast.warning('Using cached profile data. Some information may be outdated.')
             }
@@ -190,6 +294,43 @@ export default function AccountPage() {
 
     checkVerificationAndFetchProfile()
   }, [router])
+
+  // Sync avatar with localStorage changes (for Navbar sync)
+  useEffect(() => {
+    const syncAvatar = () => {
+      if (typeof window !== 'undefined') {
+        try {
+          const localUser = localStorage.getItem('user')
+          if (localUser) {
+            const userData = JSON.parse(localUser)
+            const syncedAvatar = userData.avatarUrl || userData.avatar || userData.profilePicture || ''
+            // Only update if different to avoid unnecessary re-renders
+            if (syncedAvatar && syncedAvatar !== avatar && !avatarPreview) {
+              setAvatar(syncedAvatar)
+            }
+          }
+        } catch (e) {
+          // Ignore errors
+        }
+      }
+    }
+
+    // Initial sync
+    syncAvatar()
+
+    // Listen for localStorage changes
+    const handleStorageChange = () => {
+      syncAvatar()
+    }
+
+    window.addEventListener('localStorageChange', handleStorageChange)
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      window.removeEventListener('localStorageChange', handleStorageChange)
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [avatar, avatarPreview])
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0]
@@ -489,10 +630,60 @@ export default function AccountPage() {
     }
   }
 
-  const handleDeleteAccount = () => {
-    // In a real appthis would delete the account
-    toast.error('Account deletion is not implemented in this demo')
-    setDeleteDialogOpen(false)
+  const handleDeleteAccount = async () => {
+    // Check if confirmation text is correct
+    if (deleteConfirmText !== 'DELETE') {
+      toast.error('Please type DELETE to confirm account deletion')
+      return
+    }
+
+    if (!email) {
+      toast.error('Email not found. Cannot delete account.')
+      return
+    }
+
+    try {
+      setIsDeleting(true)
+      toast.loading('Deleting your account...')
+      
+      // Call delete account API
+      await deleteAccount(email)
+      
+      // Clear all local storage
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+      
+      // Trigger storage change event
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('localStorageChange'))
+      }
+      
+      toast.dismiss()
+      toast.success('Account deleted successfully')
+      setDeleteDialogOpen(false)
+      setDeleteConfirmText('')
+      
+      // Redirect to home page
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 1000)
+    } catch (error) {
+      console.error('Delete account error:', error)
+      setIsDeleting(false)
+      toast.dismiss()
+      
+      let errorMessage = 'Failed to delete account. Please try again.'
+      if (error?.message) {
+        errorMessage = error.message
+      } else if (error?.data?.Message) {
+        errorMessage = error.data.Message
+      } else if (error?.data?.message) {
+        errorMessage = error.data.message
+      }
+      
+      toast.error(errorMessage)
+    }
   }
 
   const handleExportData = () => {
@@ -591,6 +782,7 @@ export default function AccountPage() {
             {/* Avatar */}
             <div className="flex items-center gap-4">
               <Avatar className="h-24 w-24">
+                {/* Use same priority as Navbar: avatarUrl -> avatar -> profilePicture, with preview override */}
                 <AvatarImage src={avatarPreview || avatar} />
                 <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-2xl">
                   {username ? username.substring(0, 2).toUpperCase() : email ? email.substring(0, 2).toUpperCase() : 'U'}
@@ -598,31 +790,49 @@ export default function AccountPage() {
               </Avatar>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="avatar-upload" className="cursor-pointer">
-                    <Button variant="outline" size="sm" asChild>
-                      <span>
-                        <Upload className="mr-2 h-4 w-4" />
-                        Change Avatar
-                      </span>
+                  {isOAuthUser ? (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      disabled
+                      className="cursor-not-allowed opacity-60"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Change Avatar
                     </Button>
-                  </Label>
+                  ) : (
+                    <Label htmlFor="avatar-upload" className="cursor-pointer">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        asChild
+                      >
+                        <span>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Change Avatar
+                        </span>
+                      </Button>
+                    </Label>
+                  )}
                   <Input
                     id="avatar-upload"
                     type="file"
                     accept="image/jpeg,image/jpg,image/png,image/gif,.jpg,.jpeg,.png,.gif"
                     className="hidden"
                     onChange={handleAvatarChange}
+                    disabled={isOAuthUser}
                   />
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleRemoveAvatar}
-                    disabled={!avatar && !avatarPreview}
+                    disabled={!avatar && !avatarPreview || isOAuthUser}
+                    className={isOAuthUser ? 'cursor-not-allowed opacity-60' : ''}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Remove Avatar
                   </Button>
-                  {avatarPreview && (
+                  {avatarPreview && !isOAuthUser && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -635,21 +845,34 @@ export default function AccountPage() {
                     </Button>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">JPG, PNG or GIF. Max size 2MB.</p>
+                <p className="text-xs text-muted-foreground">
+                  {isOAuthUser 
+                    ? 'Avatar is managed by your OAuth provider and cannot be changed here.'
+                    : 'JPG, PNG or GIF. Max size 2MB.'}
+                </p>
               </div>
             </div>
 
             {/* Username */}
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username" className={isOAuthUser ? 'cursor-not-allowed opacity-60' : ''}>
+                Username
+                {isOAuthUser && authProvider && (
+                  <span className="ml-2 text-xs text-muted-foreground">(Managed by {authProvider})</span>
+                )}
+              </Label>
               <Input
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter your username"
+                disabled={isOAuthUser}
+                className={isOAuthUser ? 'cursor-not-allowed opacity-60' : ''}
               />
               <p className="text-xs text-muted-foreground">
-                This is your unique identifier. You can change it at any time.
+                {isOAuthUser 
+                  ? 'This field is managed by your OAuth provider and cannot be edited here.'
+                  : 'This is your unique identifier. You can change it at any time.'}
               </p>
             </div>
 
@@ -672,35 +895,53 @@ export default function AccountPage() {
 
             {/* Company Name */}
             <div className="space-y-2">
-              <Label htmlFor="companyName">Company Name</Label>
+              <Label htmlFor="companyName" className={isOAuthUser ? 'cursor-not-allowed opacity-60' : ''}>
+                Company Name
+                {isOAuthUser && authProvider && (
+                  <span className="ml-2 text-xs text-muted-foreground">(Managed by {authProvider})</span>
+                )}
+              </Label>
               <Input
                 id="companyName"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="Enter your company name"
+                disabled={isOAuthUser}
+                className={isOAuthUser ? 'cursor-not-allowed opacity-60' : ''}
               />
               <p className="text-xs text-muted-foreground">
-                The name of your company or organization.
+                {isOAuthUser 
+                  ? 'This field is managed by your OAuth provider and cannot be edited here.'
+                  : 'The name of your company or organization.'}
               </p>
             </div>
 
             {/* Phone Number */}
             <div className="space-y-2">
-              <Label htmlFor="phoneNo">Phone Number</Label>
+              <Label htmlFor="phoneNo" className={isOAuthUser ? 'cursor-not-allowed opacity-60' : ''}>
+                Phone Number
+                {isOAuthUser && authProvider && (
+                  <span className="ml-2 text-xs text-muted-foreground">(Managed by {authProvider})</span>
+                )}
+              </Label>
               <Input
                 id="phoneNo"
                 type="tel"
                 value={phoneNo}
                 onChange={(e) => setPhoneNo(e.target.value)}
                 placeholder="Enter your phone number (optional)"
+                disabled={isOAuthUser}
+                className={isOAuthUser ? 'cursor-not-allowed opacity-60' : ''}
               />
               <p className="text-xs text-muted-foreground">
-                Your phone number (optional). Leave empty if you don&apos;t want to provide it.
+                {isOAuthUser 
+                  ? 'This field is managed by your OAuth provider and cannot be edited here.'
+                  : 'Your phone number (optional). Leave empty if you don\'t want to provide it.'}
               </p>
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleSaveProfile} disabled={isSaving || isLoading}>
+              <Button onClick={handleSaveProfile} disabled={isSaving || isLoading || isOAuthUser}>
                 {isSaving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -760,7 +1001,16 @@ export default function AccountPage() {
               <Button variant="outline" onClick={handleExportData}>
                 Export Data
               </Button>
-              <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <Dialog 
+                open={deleteDialogOpen} 
+                onOpenChange={(open) => {
+                  setDeleteDialogOpen(open)
+                  if (!open) {
+                    setDeleteConfirmText('')
+                    setIsDeleting(false)
+                  }
+                }}
+              >
                 <DialogTrigger asChild>
                   <Button variant="destructive">
                     <Trash2 className="mr-2 h-4 w-4" />
@@ -777,20 +1027,41 @@ export default function AccountPage() {
                   </DialogHeader>
                   <div className="py-4">
                     <p className="text-sm text-muted-foreground">
-                      To confirmplease type <strong className="text-foreground">DELETE</strong> in the field below:
+                      To confirm, please type <strong className="text-foreground">DELETE</strong> in the field below:
                     </p>
                     <Input
                       id="delete-confirm"
                       placeholder="Type DELETE to confirm"
                       className="mt-2"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      disabled={isDeleting}
                     />
                   </div>
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setDeleteDialogOpen(false)
+                        setDeleteConfirmText('')
+                      }}
+                      disabled={isDeleting}
+                    >
                       Cancel
                     </Button>
-                    <Button variant="destructive" onClick={handleDeleteAccount}>
-                      Delete Account
+                    <Button 
+                      variant="destructive" 
+                      onClick={handleDeleteAccount}
+                      disabled={isDeleting || deleteConfirmText !== 'DELETE'}
+                    >
+                      {isDeleting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete Account'
+                      )}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
