@@ -449,7 +449,6 @@ export default function OrdersPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
 
       {/* Sticky Header */}
       <div className="sticky top-16 z-40 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b shadow-sm">

@@ -18,10 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-<<<<<<< HEAD
 import { signup, googleSignIn } from '@/api/auth/auth'
-=======
-import { signup } from '@/api/auth/auth'
 import {
   Dialog,
   DialogContent,
@@ -30,7 +27,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
->>>>>>> cd5d5b04e3f7c391522f24cb391db7defb200a9f
 
 export default function SignUpPage() {
   const router = useRouter()

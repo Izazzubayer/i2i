@@ -180,13 +180,22 @@ export const signin = async (signinData) => {
     
     const apiResponse = response.data
     
+    console.log('🔍 Signin: Processing API response', {
+      success: apiResponse?.success,
+      hasData: !!apiResponse?.data,
+      dataKeys: apiResponse?.data ? Object.keys(apiResponse.data) : [],
+      fullResponse: JSON.stringify(apiResponse, null, 2)
+    })
+    
     // Store user data and tokens if signin was successful
     // IMPORTANT: If user can sign in successfully, assume they are verified
     // Only skip storing if API explicitly says email is NOT verified
-    if (apiResponse.success && apiResponse.data) {
+    if (apiResponse && apiResponse.success && apiResponse.data) {
       // Check if API explicitly says email is NOT verified
       const explicitlyNotVerified = apiResponse.data.isVerified === false || 
                                     apiResponse.data.emailVerified === false
+      
+      console.log('🔍 Signin: Verification check', { explicitlyNotVerified })
       
       // If not explicitly unverified, assume verified (successful signin = verified)
       // Only skip storing if API explicitly says not verified
@@ -200,38 +209,71 @@ export const signin = async (signinData) => {
           isVerified: true, // Set to true since signin was successful
         }
         
+        console.log('💾 Signin: Preparing to store user data', userData)
+        
         // Store in localStorage
         if (typeof window !== 'undefined') {
-          // Store access token
-          if (apiResponse.data.accessToken) {
-            localStorage.setItem('authToken', apiResponse.data.accessToken)
-            console.log('💾 Stored accessToken')
+          try {
+            // Store access token - check multiple possible field names
+            const accessToken = apiResponse.data.accessToken || 
+                               apiResponse.data.token || 
+                               apiResponse.data.access_token ||
+                               apiResponse.data.authToken
+            if (accessToken) {
+              localStorage.setItem('authToken', accessToken)
+              console.log('✅ Signin: Stored accessToken', accessToken.substring(0, 20) + '...')
+            } else {
+              console.warn('⚠️ Signin: No accessToken in response. Available keys:', Object.keys(apiResponse.data))
+              console.warn('⚠️ Signin: Full data object:', apiResponse.data)
+            }
+            
+            // Store refresh token - check multiple possible field names
+            const refreshToken = apiResponse.data.refreshToken || 
+                                apiResponse.data.refresh_token
+            if (refreshToken) {
+              localStorage.setItem('refreshToken', refreshToken)
+              console.log('✅ Signin: Stored refreshToken')
+            }
+            
+            // Store user data
+            localStorage.setItem('user', JSON.stringify(userData))
+            console.log('✅ Signin: Stored user data:', JSON.stringify(userData, null, 2))
+            
+            // Verify storage
+            const storedToken = localStorage.getItem('authToken')
+            const storedUser = localStorage.getItem('user')
+            console.log('🔍 Signin: Verification after storage', {
+              hasToken: !!storedToken,
+              hasUser: !!storedUser,
+              tokenLength: storedToken?.length || 0
+            })
+            
+            // Trigger custom event to notify other components
+            window.dispatchEvent(new Event('localStorageChange'))
+            console.log('🔄 Signin: Triggered localStorageChange event')
+          } catch (storageError) {
+            console.error('❌ Signin: Error storing in localStorage:', storageError)
           }
-          
-          // Store refresh token
-          if (apiResponse.data.refreshToken) {
-            localStorage.setItem('refreshToken', apiResponse.data.refreshToken)
-            console.log('💾 Stored refreshToken')
-          }
-          
-          // Store user data
-          localStorage.setItem('user', JSON.stringify(userData))
-          console.log('💾 Stored user data:', JSON.stringify(userData, null, 2))
-          
-          // Trigger custom event to notify other components
-          window.dispatchEvent(new Event('localStorageChange'))
-          console.log('🔄 Triggered localStorageChange event')
+        } else {
+          console.warn('⚠️ Signin: window is undefined, cannot store in localStorage')
         }
       } else {
         // Email explicitly not verified - clear any existing user data
+        console.log('⚠️ Signin: Email not verified - clearing data')
         if (typeof window !== 'undefined') {
           localStorage.removeItem('user')
           localStorage.removeItem('authToken')
           localStorage.removeItem('refreshToken')
           window.dispatchEvent(new Event('localStorageChange'))
-          console.log('🧹 Cleared user data - email not verified')
+          console.log('🧹 Signin: Cleared user data - email not verified')
         }
       }
+    } else {
+      console.warn('⚠️ Signin: API response not successful or missing data', {
+        hasResponse: !!apiResponse,
+        success: apiResponse?.success,
+        hasData: !!apiResponse?.data
+      })
     }
     
     return apiResponse
