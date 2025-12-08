@@ -305,7 +305,7 @@ ${batch.images.map((imgi) => `${i + 1}. ${img.originalName} - Status: ${img.stat
                   disabled={exporting}
                 >
                   <Cloud className="mr-2 h-5 w-5" />
-                  {activeDamConnection ? 'Upload to DAM' : 'Connect to DAM'}
+                  Connect to DAM
                 </Button>
               </CardContent>
             </Card>

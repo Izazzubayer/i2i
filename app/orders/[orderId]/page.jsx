@@ -43,12 +43,13 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
 import DamConnectDialog from '@/components/DamConnectDialog'
+import DamSelectionDialog from '@/components/DamSelectionDialog'
 
 export default function OrderDetailPage() {
   const router = useRouter()
   const params = useParams()
   const orderId = params?.orderId
-  const { getOrder, addDamConnection, activeDamConnection } = useStore()
+  const { getOrder, addDamConnection, activeDamConnection, damConnections, setActiveDamConnection, removeDamConnection } = useStore()
   
   const [selectedImage, setSelectedImage] = useState(null)
   const [selectedVersionId, setSelectedVersionId] = useState(null)
@@ -56,6 +57,7 @@ export default function OrderDetailPage() {
   const [damDialogOpen, setDamDialogOpen] = useState(false)
   const [uploadingToDAM, setUploadingToDAM] = useState(false)
   const [copiedPrompt, setCopiedPrompt] = useState(null)
+  const [selectedDams, setSelectedDams] = useState([]) // Track selected DAMs for this order
 
   const order = useMemo(() => {
     if (!orderId) return null
@@ -174,18 +176,32 @@ export default function OrderDetailPage() {
   }
 
   const handleConnectDAM = () => {
-    if (activeDamConnection) {
-      handleUploadToDAM()
-    } else {
-      setDamDialogOpen(true)
+    setDamDialogOpen(true)
+  }
+
+  const handleSelectDam = (connection) => {
+    // Handle both single connection and array of connections
+    const connections = Array.isArray(connection) ? connection : [connection]
+    
+    setActiveDamConnection(connections[0]) // Set first as active
+    setSelectedDams(connections) // Store selected DAMs
+    setDamDialogOpen(false)
+    
+    // Automatically upload to the first selected DAM
+    if (connections.length > 0) {
+      handleUploadToDAM(connections[0].config)
     }
   }
 
-  const handleDamConnect = async (config) => {
-    addDamConnection(config)
-    setDamDialogOpen(false)
-    await handleUploadToDAM(config)
+  const handleAddDam = (connection) => {
+    addDamConnection(connection.config || connection)
   }
+
+  const handleRemoveDam = (connectionId) => {
+    removeDamConnection(connectionId)
+    setSelectedDams(prev => prev.filter(dam => dam.id !== connectionId))
+  }
+
 
   const handleUploadToDAM = async (damConfig = null) => {
     const config = damConfig || activeDamConnection?.config
@@ -310,32 +326,76 @@ export default function OrderDetailPage() {
                 <p className="text-sm text-muted-foreground mt-1 font-mono">{displayOrder.id}</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              {displayOrder.status === 'completed' && (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={handleConnectDAM}
-                    disabled={uploadingToDAM}
-                    className="border-border"
-                  >
-                    {uploadingToDAM ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Cloud className="mr-2 h-4 w-4" />
-                        {activeDamConnection ? 'Upload to DAM' : 'Connect DAM'}
-                      </>
-                    )}
-                  </Button>
-                  <Button onClick={handleDownloadOrder}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Download All
-                  </Button>
-                </>
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-2">
+                {displayOrder.status === 'completed' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={handleConnectDAM}
+                      disabled={uploadingToDAM}
+                      className="border-border"
+                    >
+                      {uploadingToDAM ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Cloud className="mr-2 h-4 w-4" />
+                          Connect to DAM
+                        </>
+                      )}
+                    </Button>
+                    <Button onClick={handleDownloadOrder}>
+                      <Download className="mr-2 h-4 w-4" />
+                      Download All
+                    </Button>
+                  </>
+                )}
+              </div>
+              
+              {/* Display selected connected DAMs with status */}
+              {selectedDams.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-medium text-muted-foreground">Connected DAMs:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedDams.map((dam) => {
+                      const isActive = activeDamConnection?.id === dam.id
+                      const uploadStatus = uploadingToDAM && isActive ? 'uploading' : isActive ? 'active' : 'connected'
+                      
+                      return (
+                        <Badge
+                          key={dam.id}
+                          variant="outline"
+                          className={`${
+                            uploadStatus === 'uploading'
+                              ? 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20'
+                              : uploadStatus === 'active'
+                              ? 'border-green-500 bg-green-50 dark:border-green-800 dark:bg-green-950/30'
+                              : 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20'
+                          }`}
+                        >
+                          {uploadStatus === 'uploading' ? (
+                            <>
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              <span className="text-blue-700 dark:text-blue-400">Uploading to {dam.provider || dam.name}</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              <span className={uploadStatus === 'active' ? 'text-green-700 dark:text-green-400 font-medium' : 'text-green-600 dark:text-green-500'}>
+                                {dam.provider || dam.name}
+                                {uploadStatus === 'active' && ' (Active)'}
+                              </span>
+                            </>
+                          )}
+                        </Badge>
+                      )
+                    })}
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -785,10 +845,17 @@ export default function OrderDetailPage() {
       </Dialog>
 
       {/* DAM Connect Dialog */}
-      <DamConnectDialog
+      {/* DAM Selection Dialog */}
+      <DamSelectionDialog
         open={damDialogOpen}
-        onOpenChange={setDamDialogOpen}
-        onConnect={handleDamConnect}
+        onOpenChange={(open) => {
+          setDamDialogOpen(open)
+        }}
+        damConnections={damConnections || []}
+        activeDamConnection={activeDamConnection}
+        onSelectDam={handleSelectDam}
+        onAddDam={handleAddDam}
+        onRemoveDam={handleRemoveDam}
       />
     </div>
   )
