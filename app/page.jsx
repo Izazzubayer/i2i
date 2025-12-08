@@ -5,9 +5,12 @@
  * Upload/processing interface has been moved to /upload
  */
 
-'use client'
-
 import LandingPage from './LandingPage'
+
+export const metadata = {
+  title: 'i2i - AI Image Processing Platform',
+  description: 'Professional image-to-image AI processing for businesses',
+}
 
 export default function Home() {
   return <LandingPage />
