@@ -2116,7 +2116,7 @@ export default function ProcessingResultsPage() {
                 ? 'Are you sure you want to go back? We recommend confirming your order before leaving this page.'
                 : navigationIntent === 'reload'
                 ? 'Are you sure you want to reload? We recommend confirming your order before refreshing this page.'
-                : 'Are you sure you want to leave? We recommend confirming your order before navigating away.'
+                : 'Are you sure you want to  leave? We recommend confirming your order before navigating away.'
               }
             </p>
           </div>
