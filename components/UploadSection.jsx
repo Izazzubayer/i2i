@@ -1,12 +1,12 @@
 'use client'
 
-import { useStateuseCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
 import { Upload, X, Loader2, ArrowRight, Image as ImageIcon, HardDrive, Sparkles, Edit, Coins, DollarSign, CheckCircle2 } from 'lucide-react'
 import Image from 'next/image'
-import { motionAnimatePresence } from 'framer-motion'
-import { CardCardContentCardDescriptionCardHeaderCardTitle } from '@/components/ui/card'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Textarea } from '@/components/ui/textarea'
@@ -32,9 +32,9 @@ export default function UploadSection() {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [collapsed, setCollapsed] = useState(false)
-  const [showSummaryDialogsetShowSummaryDialog] = useState(false)
-  const [projectSummarysetProjectSummary] = useState('')
-  const [isEditingeSummarysetIsEditingSummary] = useState(false)
+  const [showSummaryDialog, setShowSummaryDialog] = useState(false)
+  const [projectSummary, setProjectSummary] = useState('')
+  const [isEditingSummary, setIsEditingSummary] = useState(false)
 
   const { batch, createBatch } = useStore()
 
@@ -64,7 +64,7 @@ export default function UploadSection() {
   }
 
   const removeImage = (index) => {
-    setImages(prev => prev.filter((_i) => i !== index))
+    setImages(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleStartProcessing = async () => {
@@ -382,7 +382,7 @@ All processed images will maintain original quality while applying the requested
           </DialogHeader>
 
           <div className="my-4">
-            {isEditingeSummary ? (
+            {isEditingSummary ? (
               <Textarea
                 value={projectSummary}
                 onChange={(e) => setProjectSummary(e.target.value)}
@@ -400,11 +400,11 @@ All processed images will maintain original quality while applying the requested
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
-              onClick={() => setIsEditingSummary(!isEditingeSummary)}
+              onClick={() => setIsEditingSummary(!isEditingSummary)}
               className="w-full sm:w-auto"
             >
               <Edit className="mr-2 h-4 w-4" />
-              {isEditingeSummary ? 'Save Changes' : 'Edit'}
+              {isEditingSummary ? 'Save Changes' : 'Edit'}
             </Button>
             <Button
               onClick={handleProceed}
