@@ -229,7 +229,7 @@ export default function SignUpPage() {
               Create your i2i account
             </h1>
             <p className="max-w-xl text-base text-muted-foreground">
-              Upload, process, and deliver production-ready visuals at scale. We'll spin up a workspace so your team can collaborate instantly.
+              Upload, process, and deliver production-ready visuals at scale. Well spin up a workspace so your team can collaborate instantly.
             </p>
           </div>
           <ul className="space-y-2 text-sm text-muted-foreground">

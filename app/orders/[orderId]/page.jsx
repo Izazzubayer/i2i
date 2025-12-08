@@ -274,7 +274,7 @@ export default function OrderDetailPage() {
         <div className="container mx-auto px-4 py-16 text-center">
           <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-semibold mb-2">Order Not Found</h2>
-          <p className="text-muted-foreground mb-4">The order you're looking for doesn't exist.</p>
+          <p className="text-muted-foreground mb-4">The order youre looking for doesnt exist.</p>
           <Button onClick={() => router.push('/orders')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Orders

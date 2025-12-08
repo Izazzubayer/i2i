@@ -787,6 +787,128 @@ export default function ProcessingResultsPage() {
     }
   }
 
+  // Get count of confirmable images
+  const confirmableImagesCount = useMemo(() => {
+    return images.filter(img => img.status === STATUSES.PROCESSED || img.status === STATUSES.AMENDMENT).length
+  }, [images])
+
+  // Handle upload to DAM
+  const handleUploadToDAM = useCallback(async (damConnection) => {
+    if (!confirmedOrderData) return
+
+    setIsUploadingToDAM(true)
+    try {
+      const processedImages = confirmedOrderData.imagesData?.filter(img => 
+        img.status !== STATUSES.DELETED && img.processedUrl
+      ) || []
+
+      if (processedImages.length === 0) {
+        toast.error(
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-black dark:text-white">
+                No images to upload
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                No processed images available
+              </p>
+            </div>
+          </div>
+        )
+        return
+      }
+
+      // Simulate upload API call
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      toast.success(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <Cloud className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Upload successful!
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              {processedImages.length} image{processedImages.length !== 1 ? 's' : ''} uploaded to {damConnection.name}
+            </p>
+          </div>
+        </div>
+      )
+
+      setDamConnectModalOpen(false)
+    } catch (error) {
+      toast.error(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              Upload failed
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Please try again later
+            </p>
+          </div>
+        </div>
+      )
+    } finally {
+      setIsUploadingToDAM(false)
+    }
+  }, [confirmedOrderData, router])
+
+  // Check if there are unconfirmed orders (images ready to confirm)
+  const hasUnconfirmedOrder = useMemo(() => {
+    return confirmableImagesCount > 0
+  }, [confirmableImagesCount])
+
+  // Handle page reload, back button, and tab close warnings
+  useEffect(() => {
+    if (!hasUnconfirmedOrder) {
+      allowLeaveRef.current = false
+      setNavigationIntent(null)
+      return
+    }
+
+    // Push a state entry when there are unconfirmed orders to intercept back button
+    const handlePopState = (e) => {
+      if (allowLeaveRef.current) {
+        return // Allow navigation if user confirmed
+      }
+      e.preventDefault()
+      setNavigationIntent('back')
+      setReloadWarningModalOpen(true)
+      // Push state again to keep user on page
+      window.history.pushState(null, '', window.location.href)
+    }
+
+    window.history.pushState(null, '', window.location.href)
+    window.addEventListener('popstate', handlePopState)
+
+    // Handle beforeunload for tab close/refresh
+    const handleBeforeUnload = (e) => {
+      if (allowLeaveRef.current) {
+        return // Allow if user confirmed
+      }
+      e.preventDefault()
+      e.returnValue = '' // Required for Chrome
+      setNavigationIntent('reload')
+      setReloadWarningModalOpen(true)
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [hasUnconfirmedOrder])
+
   if (!batch) {
     return (
       <div className="min-h-screen bg-background">
@@ -887,167 +1009,6 @@ export default function ProcessingResultsPage() {
       setIsConfirmingOrder(false)
     }
   }
-
-  // Get count of confirmable images
-  const confirmableImagesCount = useMemo(() => {
-    return images.filter(img => img.status === STATUSES.PROCESSED || img.status === STATUSES.AMENDMENT).length
-  }, [images])
-
-  // Handle upload to DAM
-  const handleUploadToDAM = useCallback(async (damConnection) => {
-    if (!confirmedOrderData) return
-
-    setIsUploadingToDAM(true)
-    try {
-      const processedImages = confirmedOrderData.imagesData?.filter(img => 
-        img.status !== STATUSES.DELETED && img.processedUrl
-      ) || []
-
-      if (processedImages.length === 0) {
-        toast.error(
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-              <X className="h-4 w-4 text-red-600 dark:text-red-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-black dark:text-white">
-                No images to upload
-              </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                No processed images available
-              </p>
-            </div>
-          </div>
-        )
-        return
-      }
-
-      // Simulate upload API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
-      toast.success(
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <Cloud className="h-4 w-4 text-green-600 dark:text-green-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-black dark:text-white">
-              Upload successful!
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-              {processedImages.length} image{processedImages.length !== 1 ? 's' : ''} uploaded to {damConnection.name}
-            </p>
-          </div>
-        </div>
-      )
-
-      setDamConnectModalOpen(false)
-    } catch (error) {
-      toast.error(
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-            <X className="h-4 w-4 text-red-600 dark:text-red-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-black dark:text-white">
-              Upload failed
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-              Please try again later
-            </p>
-          </div>
-        </div>
-      )
-    } finally {
-      setIsUploadingToDAM(false)
-    }
-  }, [confirmedOrderData, router])
-
-  // Check if there are unconfirmed orders (images ready to confirm)
-  const hasUnconfirmedOrder = useMemo(() => {
-    return confirmableImagesCount > 0
-  }, [confirmableImagesCount])
-
-  // Handle page reload, back button, and tab close warnings
-  useEffect(() => {
-    if (!hasUnconfirmedOrder) {
-      allowLeaveRef.current = false
-      setNavigationIntent(null)
-      return
-    }
-
-    // Push a state entry when there are unconfirmed orders to intercept back button
-    const statePushed = { hasUnconfirmedOrder: true, timestamp: Date.now() }
-    window.history.pushState(statePushed, '', window.location.href)
-
-    const handleBeforeUnload = (e) => {
-      // If user already confirmed leaving, allow it
-      if (allowLeaveRef.current) {
-        return
-      }
-      
-      // Standard browser warning for tab close/refresh
-      // This shows the browser's native confirmation dialog
-      // Note: Modern browsers ignore custom messages for security reasons
-      e.preventDefault()
-      e.returnValue = '' // Required for some browsers
-      return e.returnValue
-    }
-
-    // Handle browser back button
-    const handlePopState = (e) => {
-      if (allowLeaveRef.current) {
-        // User confirmed, allow navigation
-        allowLeaveRef.current = false // Reset for next time
-        setNavigationIntent(null)
-        return
-      }
-
-      // Check if this is our pushed state (prevent infinite loop)
-      if (e.state && e.state.hasUnconfirmedOrder && e.state.timestamp === statePushed.timestamp) {
-        return
-      }
-
-      // Prevent back navigation by pushing state back immediately
-      window.history.pushState(statePushed, '', window.location.href)
-      setNavigationIntent('back')
-      setReloadWarningModalOpen(true)
-    }
-
-    // Also detect refresh key combinations and navigation shortcuts
-    const handleKeyDown = (e) => {
-      if (allowLeaveRef.current) return
-
-      // F5 or Ctrl+R / Cmd+R for reload
-      if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && e.key === 'r')) {
-        if (hasUnconfirmedOrder) {
-          e.preventDefault()
-          setNavigationIntent('reload')
-          setReloadWarningModalOpen(true)
-        }
-      }
-      // Backspace key when not in input field (browser back)
-      if (e.key === 'Backspace' && 
-          !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName) &&
-          !document.activeElement?.isContentEditable) {
-        if (hasUnconfirmedOrder) {
-          e.preventDefault()
-          setNavigationIntent('back')
-          setReloadWarningModalOpen(true)
-        }
-      }
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    window.addEventListener('popstate', handlePopState)
-    window.addEventListener('keydown', handleKeyDown, true) // Use capture phase
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload)
-      window.removeEventListener('popstate', handlePopState)
-      window.removeEventListener('keydown', handleKeyDown, true)
-    }
-  }, [hasUnconfirmedOrder])
 
   return (
     <div className="min-h-screen bg-background relative">
