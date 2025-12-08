@@ -16,6 +16,11 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata = {
   title: "i2i - AI Image Processing Platform",
   description: "Professional image-to-image AI processing for businesses",
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({ children }) {
