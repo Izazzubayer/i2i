@@ -189,7 +189,7 @@ export default function ContactPage() {
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Get in Touch</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Have a question or need help? We're here to assist you. Fill out the form below or reach out through our other channels.
+            Have a question or need help? We&apos;re here to assist you. Fill out the form below or reach out through our other channels.
           </p>
         </div>
 
@@ -275,7 +275,7 @@ export default function ContactPage() {
               <CardHeader>
                 <CardTitle>Send us a Message</CardTitle>
                 <CardDescription>
-                  Fill out the form below and we'll get back to you as soon as possible.
+                  Fill out the form below and we&apos;ll get back to you as soon as possible.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -446,7 +446,7 @@ export default function ContactPage() {
                     <p className="font-medium text-foreground mb-1">Response Time</p>
                     <p>
                       We typically respond within 24-48 hours during business days. 
-                      For urgent matters, please indicate "Urgent" in your subject line.
+                      For urgent matters, please indicate &quot;Urgent&quot; in your subject line.
                     </p>
                   </div>
                 </div>

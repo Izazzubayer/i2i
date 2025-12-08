@@ -489,7 +489,7 @@ export default function AccountPage() {
                 placeholder="Enter your phone number (optional)"
               />
               <p className="text-xs text-muted-foreground">
-                Your phone number (optional). Leave empty if you don't want to provide it.
+                Your phone number (optional). Leave empty if you don&apos;t want to provide it.
               </p>
             </div>
 

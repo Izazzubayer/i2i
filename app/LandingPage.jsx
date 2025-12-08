@@ -270,17 +270,16 @@ export default function LandingPage() {
                 whileHover={{ scale: 1.1, y: -4 }}
                 className="group flex items-center justify-center h-20 md:h-24 w-full p-4 rounded-xl bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 shadow-sm hover:shadow-md transition-all duration-300 grayscale hover:grayscale-0 opacity-70 hover:opacity-100"
               >
-                <img
-                  src={company.fallback || `https://cdn.simpleicons.org/${company.slug}/${company.color}`}
-                  alt={`${company.name} logo`}
-                  className="h-10 md:h-12 w-auto object-contain max-w-[120px]"
-                  loading="lazy"
-                  onError={(e) => {
-                    if (company.fallback && e.target.src !== company.fallback) {
-                      e.target.src = company.fallback
-                    }
-                  }}
-                />
+                <div className="relative h-10 md:h-12 w-auto max-w-[120px]">
+                  <Image
+                    src={company.fallback || `https://cdn.simpleicons.org/${company.slug}/${company.color}`}
+                    alt={`${company.name} logo`}
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 768px) 120px, 120px"
+                    unoptimized
+                  />
+                </div>
               </motion.div>
             ))}
           </div>
