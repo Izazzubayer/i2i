@@ -60,6 +60,7 @@ export default function ProcessingPanel() {
     }, 2000)
 
     return () => clearInterval(processingInterval)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batch?.id, batch?.status, batch?.totalImages])
 
   if (!batch) return null

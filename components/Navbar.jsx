@@ -279,7 +279,8 @@ export default function Navbar() {
   const userData = user ? {
     name: user.displayName || user.name || user.email?.split('@')[0] || 'User',
     email: user.email || '',
-    avatar: user.avatarUrl || user.avatar || '',
+    // Use same priority as account page: avatarUrl -> avatar -> profilePicture
+    avatar: user.avatarUrl || user.avatar || user.profilePicture || '',
     initials: getUserInitials(user),
     images: user.images || 0,
     tokens: user.tokens || 0,
