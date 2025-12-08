@@ -22,7 +22,7 @@ export const signup = async (signupData) => {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     console.log('📤 Signup Data:', {
       email: signupData.email,
-      displayName: signupData.displayName,
+      displayName: signupData.displayName, 
       companyName: signupData.companyName,
       phoneNo: signupData.phoneNo || '(empty)',
       termsAndCondition: signupData.termsAndCondition,
@@ -178,13 +178,22 @@ export const signin = async (signinData) => {
     
     const apiResponse = response.data
     
+    console.log('🔍 Signin: Processing API response', {
+      success: apiResponse?.success,
+      hasData: !!apiResponse?.data,
+      dataKeys: apiResponse?.data ? Object.keys(apiResponse.data) : [],
+      fullResponse: JSON.stringify(apiResponse, null, 2)
+    })
+    
     // Store user data and tokens if signin was successful
     // IMPORTANT: If user can sign in successfully, assume they are verified
     // Only skip storing if API explicitly says email is NOT verified
-    if (apiResponse.success && apiResponse.data) {
+    if (apiResponse && apiResponse.success && apiResponse.data) {
       // Check if API explicitly says email is NOT verified
       const explicitlyNotVerified = apiResponse.data.isVerified === false || 
                                     apiResponse.data.emailVerified === false
+      
+      console.log('🔍 Signin: Verification check', { explicitlyNotVerified })
       
       // If not explicitly unverified, assume verified (successful signin = verified)
       // Only skip storing if API explicitly says not verified
@@ -198,38 +207,71 @@ export const signin = async (signinData) => {
           isVerified: true, // Set to true since signin was successful
         }
         
+        console.log('💾 Signin: Preparing to store user data', userData)
+        
         // Store in localStorage
         if (typeof window !== 'undefined') {
-          // Store access token
-          if (apiResponse.data.accessToken) {
-            localStorage.setItem('authToken', apiResponse.data.accessToken)
-            console.log('💾 Stored accessToken')
+          try {
+            // Store access token - check multiple possible field names
+            const accessToken = apiResponse.data.accessToken || 
+                               apiResponse.data.token || 
+                               apiResponse.data.access_token ||
+                               apiResponse.data.authToken
+            if (accessToken) {
+              localStorage.setItem('authToken', accessToken)
+              console.log('✅ Signin: Stored accessToken', accessToken.substring(0, 20) + '...')
+            } else {
+              console.warn('⚠️ Signin: No accessToken in response. Available keys:', Object.keys(apiResponse.data))
+              console.warn('⚠️ Signin: Full data object:', apiResponse.data)
+            }
+            
+            // Store refresh token - check multiple possible field names
+            const refreshToken = apiResponse.data.refreshToken || 
+                                apiResponse.data.refresh_token
+            if (refreshToken) {
+              localStorage.setItem('refreshToken', refreshToken)
+              console.log('✅ Signin: Stored refreshToken')
+            }
+            
+            // Store user data
+            localStorage.setItem('user', JSON.stringify(userData))
+            console.log('✅ Signin: Stored user data:', JSON.stringify(userData, null, 2))
+            
+            // Verify storage
+            const storedToken = localStorage.getItem('authToken')
+            const storedUser = localStorage.getItem('user')
+            console.log('🔍 Signin: Verification after storage', {
+              hasToken: !!storedToken,
+              hasUser: !!storedUser,
+              tokenLength: storedToken?.length || 0
+            })
+            
+            // Trigger custom event to notify other components
+            window.dispatchEvent(new Event('localStorageChange'))
+            console.log('🔄 Signin: Triggered localStorageChange event')
+          } catch (storageError) {
+            console.error('❌ Signin: Error storing in localStorage:', storageError)
           }
-          
-          // Store refresh token
-          if (apiResponse.data.refreshToken) {
-            localStorage.setItem('refreshToken', apiResponse.data.refreshToken)
-            console.log('💾 Stored refreshToken')
-          }
-          
-          // Store user data
-          localStorage.setItem('user', JSON.stringify(userData))
-          console.log('💾 Stored user data:', JSON.stringify(userData, null, 2))
-          
-          // Trigger custom event to notify other components
-          window.dispatchEvent(new Event('localStorageChange'))
-          console.log('🔄 Triggered localStorageChange event')
+        } else {
+          console.warn('⚠️ Signin: window is undefined, cannot store in localStorage')
         }
       } else {
         // Email explicitly not verified - clear any existing user data
+        console.log('⚠️ Signin: Email not verified - clearing data')
         if (typeof window !== 'undefined') {
           localStorage.removeItem('user')
           localStorage.removeItem('authToken')
           localStorage.removeItem('refreshToken')
           window.dispatchEvent(new Event('localStorageChange'))
-          console.log('🧹 Cleared user data - email not verified')
+          console.log('🧹 Signin: Cleared user data - email not verified')
         }
       }
+    } else {
+      console.warn('⚠️ Signin: API response not successful or missing data', {
+        hasResponse: !!apiResponse,
+        success: apiResponse?.success,
+        hasData: !!apiResponse?.data
+      })
     }
     
     return apiResponse
@@ -440,6 +482,15 @@ export const verifyEmail = async (verifyData) => {
         data: data,
       })
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+      
+      // Clear localStorage when verification fails
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user')
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('refreshToken')
+        window.dispatchEvent(new Event('localStorageChange'))
+        console.log('🧹 Cleared user data - verification failed')
+      }
       
       // Throw in same format as apiClient
       throw {
@@ -730,6 +781,300 @@ export const resendVerificationEmail = async (resendData) => {
   }
 }
 
+/**
+ * Google Sign In
+ * Authenticates user with Google and sends idToken to backend
+ * @returns {Promise} API response
+ */
+export const googleSignIn = async () => {
+  try {
+    console.log('🔐 Google Sign In API Call')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    // Dynamically import Firebase to avoid build errors if not needed
+    const { signInWithPopup } = await import('firebase/auth')
+    const { auth, googleProvider } = await import('@/lib/firebase')
+    
+    // Sign in with Google using Firebase
+    const result = await signInWithPopup(auth, googleProvider)
+    const user = result.user
+    
+    // Get the ID token
+    const idToken = await user.getIdToken()
+    
+    console.log('✅ Google Sign In Successful')
+    console.log('📤 User Info:', {
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      uid: user.uid,
+    })
+    console.log('📤 ID Token:', idToken)
+    console.log('📤 ID Token Length:', idToken.length)
+    console.log('📤 ID Token Type:', typeof idToken)
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    // Call backend API with the idToken
+    const response = await axios.post(
+      `${BASE_URL}/api/v1/Auth/google-signin`,
+      {
+        idToken: idToken,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      }
+    )
+    
+    console.log('📥 Backend Response Status:', response.status)
+    console.log('📥 Backend Response Data:', JSON.stringify(response.data, null, 2))
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    const apiResponse = response.data
+    
+    // Store user data and tokens if signin was successful
+    if (apiResponse.success && apiResponse.data) {
+      const userData = {
+        userId: apiResponse.data.userId,
+        email: apiResponse.data.email || user.email,
+        displayName: apiResponse.data.displayName || user.displayName || user.email?.split('@')[0] || 'User',
+        companyId: apiResponse.data.CompanyId || apiResponse.data.companyId,
+        expiresAt: apiResponse.data.expiresAt,
+        isVerified: true, // Google sign-in means email is verified
+        avatar: user.photoURL || apiResponse.data.avatar || '',
+        authProvider: 'google', // Mark as OAuth user
+      }
+      
+      // Store in localStorage
+      if (typeof window !== 'undefined') {
+        // Store access token
+        if (apiResponse.data.accessToken) {
+          localStorage.setItem('authToken', apiResponse.data.accessToken)
+          console.log('💾 Stored accessToken')
+        }
+        
+        // Store refresh token
+        if (apiResponse.data.refreshToken) {
+          localStorage.setItem('refreshToken', apiResponse.data.refreshToken)
+          console.log('💾 Stored refreshToken')
+        }
+        
+        // Store user data
+        localStorage.setItem('user', JSON.stringify(userData))
+        console.log('💾 Stored user data:', JSON.stringify(userData, null, 2))
+        
+        // Trigger custom event to notify other components
+        window.dispatchEvent(new Event('localStorageChange'))
+        console.log('🔄 Triggered localStorageChange event')
+      }
+    }
+    
+    return apiResponse
+  } catch (error) {
+    console.error('❌ Google Sign In error:', error)
+    
+    // Handle Firebase errors
+    if (error.code) {
+      console.error('Firebase Error Code:', error.code)
+      console.error('Firebase Error Message:', error.message)
+      
+      let errorMessage = 'Google sign in failed. Please try again.'
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Sign in was cancelled. Please try again.'
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'Popup was blocked. Please allow popups and try again.'
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your connection.'
+      }
+      
+      throw {
+        message: errorMessage,
+        status: null,
+        code: error.code,
+      }
+    }
+    
+    // Handle axios errors (backend API errors)
+    if (error.response) {
+      const { status, data } = error.response
+      
+      let errorMessage = 'An error occurred'
+      if (data?.Message) {
+        errorMessage = data.Message
+      } else if (data?.message) {
+        errorMessage = data.message
+      }
+      
+      throw {
+        message: errorMessage,
+        status: status,
+        data: data,
+        code: data?.Code || data?.code,
+      }
+    } else if (error.request) {
+      throw {
+        message: 'Network error. Please check your connection.',
+        status: null,
+      }
+    } else {
+      throw {
+        message: error.message || 'An unexpected error occurred',
+        status: null,
+      }
+    }
+  }
+}
+
+/**
+ * Microsoft Sign In
+ * Authenticates user with Microsoft and sends idToken to backend
+ * @returns {Promise} API response
+ */
+export const microsoftSignIn = async () => {
+  try {
+    console.log('🔐 Microsoft Sign In API Call')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    // Dynamically import Firebase to avoid build errors if not needed
+    const { signInWithPopup } = await import('firebase/auth')
+    const { auth, microsoftProvider } = await import('@/lib/firebase')
+    
+    // Sign in with Microsoft using Firebase
+    const result = await signInWithPopup(auth, microsoftProvider)
+    const user = result.user
+    
+    // Get the ID token
+    const idToken = await user.getIdToken()
+    
+    console.log('✅ Microsoft Sign In Successful')
+    console.log('📤 User Info:', {
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      uid: user.uid,
+    })
+    console.log('📤 ID Token:', idToken)
+    console.log('📤 ID Token Length:', idToken.length)
+    console.log('📤 ID Token Type:', typeof idToken)
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    // Call backend API with the idToken
+    const response = await axios.post(
+      `${BASE_URL}/api/v1/Auth/microsoft-signin`,
+      {
+        idToken: idToken,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      }
+    )
+    
+    console.log('📥 Backend Response Status:', response.status)
+    console.log('📥 Backend Response Data:', JSON.stringify(response.data, null, 2))
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    const apiResponse = response.data
+    
+    // Store user data and tokens if signin was successful
+    if (apiResponse.success && apiResponse.data) {
+      const userData = {
+        userId: apiResponse.data.userId,
+        email: apiResponse.data.email || user.email,
+        displayName: apiResponse.data.displayName || user.displayName || user.email?.split('@')[0] || 'User',
+        companyId: apiResponse.data.CompanyId || apiResponse.data.companyId,
+        expiresAt: apiResponse.data.expiresAt,
+        isVerified: true, // Microsoft sign-in means email is verified
+        avatar: user.photoURL || apiResponse.data.avatar || '',
+        authProvider: 'microsoft', // Mark as OAuth user
+      }
+      
+      // Store in localStorage
+      if (typeof window !== 'undefined') {
+        // Store access token
+        if (apiResponse.data.accessToken) {
+          localStorage.setItem('authToken', apiResponse.data.accessToken)
+          console.log('💾 Stored accessToken')
+        }
+        
+        // Store refresh token
+        if (apiResponse.data.refreshToken) {
+          localStorage.setItem('refreshToken', apiResponse.data.refreshToken)
+          console.log('💾 Stored refreshToken')
+        }
+        
+        // Store user data
+        localStorage.setItem('user', JSON.stringify(userData))
+        console.log('💾 Stored user data:', JSON.stringify(userData, null, 2))
+        
+        // Trigger custom event to notify other components
+        window.dispatchEvent(new Event('localStorageChange'))
+        console.log('🔄 Triggered localStorageChange event')
+      }
+    }
+    
+    return apiResponse
+  } catch (error) {
+    console.error('❌ Microsoft Sign In error:', error)
+    
+    // Handle Firebase errors
+    if (error.code) {
+      console.error('Firebase Error Code:', error.code)
+      console.error('Firebase Error Message:', error.message)
+      
+      let errorMessage = 'Microsoft sign in failed. Please try again.'
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Sign in was cancelled. Please try again.'
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'Popup was blocked. Please allow popups and try again.'
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your connection.'
+      }
+      
+      throw {
+        message: errorMessage,
+        status: null,
+        code: error.code,
+      }
+    }
+    
+    // Handle axios errors (backend API errors)
+    if (error.response) {
+      const { status, data } = error.response
+      
+      let errorMessage = 'An error occurred'
+      if (data?.Message) {
+        errorMessage = data.Message
+      } else if (data?.message) {
+        errorMessage = data.message
+      }
+      
+      throw {
+        message: errorMessage,
+        status: status,
+        data: data,
+        code: data?.Code || data?.code,
+      }
+    } else if (error.request) {
+      throw {
+        message: 'Network error. Please check your connection.',
+        status: null,
+      }
+    } else {
+      throw {
+        message: error.message || 'An unexpected error occurred',
+        status: null,
+      }
+    }
+  }
+}
+
 // Export all auth functions as default object
 const authAPI = {
   signup,
@@ -740,6 +1085,8 @@ const authAPI = {
   resetPassword,
   refreshToken,
   resendVerificationEmail,
+  googleSignIn,
+  microsoftSignIn,
 }
 
 export default authAPI

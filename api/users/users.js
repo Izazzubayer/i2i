@@ -151,6 +151,36 @@ export const uploadAvatar = async (avatarFile) => {
   }
 }
 
+/**
+ * Delete user account
+ * Requires Authorization Bearer token
+ * @param {string} email - User email address
+ * @returns {Promise} API response
+ */
+export const deleteAccount = async (email) => {
+  try {
+    console.log('🗑️ Delete Account API Call')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('📤 Email:', email)
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    // URL encode the email to handle special characters like @
+    const encodedEmail = encodeURIComponent(email)
+    
+    const response = await apiClient.delete(`/api/v1/Users/${encodedEmail}`)
+    
+    console.log('✅ Delete Account Response received')
+    console.log('📥 Response Status:', response.status)
+    console.log('📥 Response Data:', JSON.stringify(response.data, null, 2))
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    return response.data
+  } catch (error) {
+    console.error('❌ Delete Account API error:', error)
+    throw error
+  }
+}
+
 // Export all user functions as default object
 export default {
   getProfile,
@@ -160,5 +190,6 @@ export default {
   updateUser,
   changePassword,
   uploadAvatar,
+  deleteAccount,
 }
 

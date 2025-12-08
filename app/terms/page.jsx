@@ -11,13 +11,11 @@ import {
   Mail,
   ChevronRight
 } from 'lucide-react'
-import Navbar from '@/components/Navbar'
 import Link from 'next/link'
 
 export default function TermsOfServicePage() {
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
 
       <div className="container mx-auto max-w-5xl px-4 py-12">
         {/* Header */}

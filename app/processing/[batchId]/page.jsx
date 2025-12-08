@@ -98,7 +98,8 @@ export default function ProcessingPage() {
       toast.error('Batch not found')
       router.push('/')
     }
-  }, [batch, batchId, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchId, router])
 
   // Monitor completion
   useEffect(() => {
@@ -110,7 +111,8 @@ export default function ProcessingPage() {
         addActivityLog('approve', 'All images approved', 'Batch completed successfully')
       }
     }
-  }, [batch, showCompletionBanner])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batch?.status, batch?.images, showCompletionBanner])
 
   // Calculate estimated time
   useEffect(() => {
@@ -119,7 +121,8 @@ export default function ProcessingPage() {
       const avgTimePerImage = 2.5 // seconds
       setEstimatedTimeRemaining(remaining * avgTimePerImage)
     }
-  }, [batch])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batch?.status, batch?.totalImages, batch?.processedCount])
 
   // Add activity log entry
   const addActivityLog = (
