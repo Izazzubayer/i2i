@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ThemeProvider from "@/components/ThemeProvider";
 import NavigationProgress from "@/components/NavigationProgress";
 import Footer from "@/components/Footer";
+import ErrorSuppression from "@/components/ErrorSuppression";
 
 const plusJakartaSans = Plus_Jakarta_Sans({ 
   subsets: ["latin"],
@@ -21,6 +22,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={plusJakartaSans.className}>
+        <ErrorSuppression />
         <ThemeProvider>
           <TooltipProvider>
             <NavigationProgress />
