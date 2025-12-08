@@ -5,6 +5,8 @@
  * Upload/processing interface has been moved to /upload
  */
 
+'use client'
+
 import LandingPage from './LandingPage'
 
 export default function Home() {
