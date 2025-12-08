@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
@@ -64,7 +64,7 @@ const STATUSES = {
   AMENDMENT: 'amendment',
 }
 
-export default function ProcessingResultsPage() {
+function ProcessingResultsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderId = searchParams?.get('orderId')
@@ -2473,4 +2473,21 @@ export default function ProcessingResultsPage() {
   )
 }
 
+export default function ProcessingResultsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background">
+        <AuthenticatedNav />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <ProcessingResultsContent />
+    </Suspense>
+  )
+}
 
