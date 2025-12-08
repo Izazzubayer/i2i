@@ -250,6 +250,7 @@ export default function DamSelectionDialog({
     })
 
     return { connectedProviders: connected, unconnectedProviders: unconnected }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveConnections])
 
   // Handle provider click

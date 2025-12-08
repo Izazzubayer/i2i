@@ -52,8 +52,12 @@ export default function OrderDetailPage() {
   const orderId = params?.orderId
   const { getOrder, addDamConnection, activeDamConnection, damConnections, setActiveDamConnection, removeDamConnection } = useStore()
   
+  const [order, setOrder] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [selectedImage, setSelectedImage] = useState(null)
   const [selectedVersionId, setSelectedVersionId] = useState(null)
+  const [selectedTab, setSelectedTab] = useState('all')
   const [viewMode, setViewMode] = useState('grid') // 'grid' or 'list'
   const [damDialogOpen, setDamDialogOpen] = useState(false)
   const [uploadingToDAM, setUploadingToDAM] = useState(false)
@@ -210,7 +214,8 @@ export default function OrderDetailPage() {
     }
     
     return transformedOrder
-  }, [order])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order?.orderId, order?.orderInputs, order?.orderVersions])
 
   // Helper to check if order is completed (for UUID statuses)
   const isOrderCompleted = useMemo(() => {
@@ -232,6 +237,17 @@ export default function OrderDetailPage() {
     }
     return false
   }, [displayOrder])
+
+  // Group images by status - must be before early returns
+  const imagesByStatus = useMemo(() => {
+    if (!displayOrder?.images) return { processed: [], amendment: [], deleted: [] }
+    
+    return {
+      processed: displayOrder.images.filter(img => img.status === 'processed' || img.status === 'approved'),
+      amendment: displayOrder.images.filter(img => img.status === 'amendment' || img.status === 'needs-retouch'),
+      deleted: displayOrder.images.filter(img => img.status === 'deleted'),
+    }
+  }, [displayOrder?.images])
 
   const getStatusBadge = (status, orderData = null) => {
     const icons = {
@@ -550,20 +566,9 @@ export default function OrderDetailPage() {
     setTimeout(() => setCopiedPrompt(null), 2000)
   }
 
-  const currentImage = selectedImage ? displayOrder.images?.find(img => img.id === selectedImage) : null
+  const currentImage = selectedImage ? displayOrder?.images?.find(img => img.id === selectedImage) : null
   const selectedVersion = currentImage?.versions?.find(v => v.id === selectedVersionId) || 
                          currentImage?.versions?.[0] || null
-
-  // Group images by status
-  const imagesByStatus = useMemo(() => {
-    if (!displayOrder.images) return { processed: [], amendment: [], deleted: [] }
-    
-    return {
-      processed: displayOrder.images.filter(img => img.status === 'processed' || img.status === 'approved'),
-      amendment: displayOrder.images.filter(img => img.status === 'amendment' || img.status === 'needs-retouch'),
-      deleted: displayOrder.images.filter(img => img.status === 'deleted'),
-    }
-  }, [displayOrder.images])
 
   if (!displayOrder) {
     return (
@@ -1103,7 +1108,7 @@ export default function OrderDetailPage() {
                           </CardHeader>
                           <CardContent>
                             <ScrollArea className="h-32">
-                              <p className="text-sm whitespace-pre-wrap font-mono text-xs leading-relaxed">
+                              <p className="text-xs whitespace-pre-wrap font-mono leading-relaxed">
                                 {selectedVersion.prompt}
                               </p>
                             </ScrollArea>
