@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffectuseState } from 'react'
-import { motionAnimatePresence } from 'framer-motion'
-import { Loader2CheckCircle2XCircleInfoChevronDownChevronUpExternalLink } from 'lucide-react'
-import { CardCardContentCardHeaderCardTitle } from '@/components/ui/card'
+import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Loader2, CheckCircle2, XCircle, Info, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,8 +11,8 @@ import { useStore } from '@/lib/store'
 import Link from 'next/link'
 
 export default function ProcessingPanel() {
-  const { batchupdateBatchProgressaddLogupdateImageStatussetSummarytoggleSummaryDrawer } = useStore()
-  const [isExpandedsetIsExpanded] = useState(true)
+  const { batch, updateBatchProgress, addLog, updateImageStatus, setSummary, toggleSummaryDrawer } = useStore()
+  const [isExpanded, setIsExpanded] = useState(true)
 
   useEffect(() => {
     if (!batch || batch.status !== 'processing') return
@@ -60,7 +60,7 @@ export default function ProcessingPanel() {
     }, 2000)
 
     return () => clearInterval(processingInterval)
-  }, [batch, updateImageStatus, addLog, updateBatchProgress, setSummary, toggleSummaryDrawer])
+  }, [batch?.id, batch?.status, batch?.totalImages])
 
   if (!batch) return null
 
