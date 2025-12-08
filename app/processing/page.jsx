@@ -319,12 +319,12 @@ export default function ProcessingOverviewPage() {
     }
   }
 
-  const handleRevert = (imageIdentrytivityLogEntry) => {
+  const handleRevert = (imageId, entry) => {
     setRevertImageId(imageId)
     setRevertDialogOpen(true)
   }
 
-  const handleSelectVersion = (imageIdversionId) => {
+  const handleSelectVersion = (imageId, versionId) => {
     setImages((prev) =>
       prev.map((img) => {
         if (img.id === imageId) {
@@ -354,7 +354,7 @@ export default function ProcessingOverviewPage() {
     }
   }
 
-  const toggleSelection = (imageIdchecked) => {
+  const toggleSelection = (imageId, checked) => {
     setSelectedImages((prev) => {
       const next = new Set(prev)
       if (checked) {
@@ -499,7 +499,7 @@ export default function ProcessingOverviewPage() {
                           {/* Main vertical line connecting all children to parent */}
                           <div className="absolute left-0 top-0 bottom-0 w-[1.5px] bg-muted-foreground/40" />
 
-                          {project.children?.map((childindex) => {
+                          {project.children?.map((child, index) => {
                             const isChildActive = activeFolder === child.id
                             const isLast = index === (project.children?.length ?? 0) - 1
 
@@ -665,7 +665,7 @@ export default function ProcessingOverviewPage() {
                           <div className="absolute left-3 top-3 rounded-full bg-white/95 p-1 shadow">
                             <Checkbox
                               checked={isSelected}
-                              onCheckedChange={(checked) => toggleSelection(image.idBoolean(checked))}
+                              onCheckedChange={(checked) => toggleSelection(image.id, Boolean(checked))}
                               aria-label={`Select ${image.name}`}
                               className="h-4 w-4"
                             />
@@ -714,7 +714,7 @@ export default function ProcessingOverviewPage() {
                               variant="ghost"
                               size="sm"
                               className="h-6 px-2 text-xs"
-                              onClick={() => entry.imageId && handleRevert(entry.imageIdentry)}
+                              onClick={() => entry.imageId && handleRevert(entry.imageId, entry)}
                             >
                               <RotateCcw className="h-3 w-3 mr-1" />
                               Revert
@@ -801,7 +801,7 @@ export default function ProcessingOverviewPage() {
                           ? 'border-primary bg-primary/5'
                           : 'border-muted hover:border-primary/50 cursor-pointer'
                           }`}
-                        onClick={() => !isCurrent && handleSelectVersion(image.idversion.id)}
+                        onClick={() => !isCurrent && handleSelectVersion(image.id, version.id)}
                       >
                         {isCurrent && (
                           <Badge className="absolute right-2 top-2">Current</Badge>
@@ -833,7 +833,7 @@ export default function ProcessingOverviewPage() {
                               className="w-full mt-2"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                handleSelectVersion(image.idversion.id)
+                                handleSelectVersion(image.id, version.id)
                               }}
                             >
                               <RotateCcw className="h-3 w-3 mr-2" />
