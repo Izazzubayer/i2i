@@ -506,6 +506,16 @@ export default function OrdersPage() {
     }
   }, [orders])
 
+  const handleUndoDelete = useCallback((order) => {
+    if (!order) return
+    
+    // Restore the order using the store's restoreOrder function
+    restoreOrder(order)
+    
+    toast.success('Order restored')
+    setDeletedOrder(null)
+  }, [restoreOrder])
+
   const confirmDeleteOrder = useCallback(() => {
     if (!orderToDelete) return
     
@@ -532,17 +542,7 @@ export default function OrdersPage() {
       },
       duration: 5000, // Show for 5 seconds
     })
-  }, [orderToDelete, deleteOrder])
-
-  const handleUndoDelete = useCallback((order) => {
-    if (!order) return
-    
-    // Restore the order using the store's restoreOrder function
-    restoreOrder(order)
-    
-    toast.success('Order restored')
-    setDeletedOrder(null)
-  }, [restoreOrder])
+  }, [orderToDelete, deleteOrder, handleUndoDelete])
 
   const resetFilters = useCallback(() => {
     setSearchQuery('')

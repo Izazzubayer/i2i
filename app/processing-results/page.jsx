@@ -2889,7 +2889,7 @@ function ProcessingResultsContent() {
               <div>
                 <h4 className="font-semibold mb-2">Selection & Bulk Actions</h4>
                 <ul className="space-y-1 text-muted-foreground list-disc list-inside">
-                  <li>Select individual images or use "Select All" to select all filtered images</li>
+                  <li>Select individual images or use &quot;Select All&quot; to select all filtered images</li>
                   <li>Reprocess Selected: Reprocess the first selected image with new instructions</li>
                   <li>Amend Selected: Apply amendments to selected images with custom instructions</li>
                   <li>Delete Selected: Remove selected images (can be undone)</li>
