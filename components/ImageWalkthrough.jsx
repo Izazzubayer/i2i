@@ -103,19 +103,23 @@ export function ImageWalkthrough({ isOpen, onClose, targetImageId }) {
   const handleClose = () => {
     setStep(0)
     onClose()
-    // Save to localStorage that user has seen the walkthrough
+    // Don't save to localStorage so it can show again during next processing
+  }
+
+  const handleNeverShowAgain = () => {
+    // Save to localStorage that user doesn't want to see walkthrough again
     if (typeof window !== 'undefined') {
       localStorage.setItem('imageWalkthroughSeen', 'true')
     }
+    handleClose()
   }
-
-  if (!isOpen) return null
 
   const currentStep = steps[step]
   const Icon = currentStep.icon
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="sync">
+      {isOpen && (
       <div className="fixed inset-0 z-[100] pointer-events-none">
         {/* Dark overlay */}
         <motion.div
@@ -243,7 +247,14 @@ export function ImageWalkthrough({ isOpen, onClose, targetImageId }) {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-between">
+                  <Button
+                    variant="ghost"
+                    onClick={handleNeverShowAgain}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    Never Show Again
+                  </Button>
                   <Button
                     onClick={handleNext}
                     className="gap-2"
@@ -257,6 +268,7 @@ export function ImageWalkthrough({ isOpen, onClose, targetImageId }) {
           </motion.div>
         </div>
       </div>
+      )}
     </AnimatePresence>
   )
 }

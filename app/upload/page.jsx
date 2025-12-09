@@ -41,6 +41,7 @@ import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
 import { formatFileSize } from '@/lib/utils'
 import { confirmOrder } from '@/api'
+import { setPendingOrder } from '@/lib/storage'
 import { 
   FaFilePdf, 
   FaFileWord, 
@@ -1243,12 +1244,18 @@ export default function PageChat() {
                       })
                     )
                     
-                    // Store in sessionStorage for processing-results page
-                    sessionStorage.setItem('pendingOrder', JSON.stringify({
-                      images: imagesData,
-                      instruction: instruction,
-                      timestamp: Date.now()
-                    }))
+                    // Store in sessionStorage (with IndexedDB fallback for large data)
+                    try {
+                      await setPendingOrder({
+                        images: imagesData,
+                        instruction: instruction,
+                        timestamp: Date.now()
+                      })
+                    } catch (error) {
+                      console.error('Failed to store order data:', error)
+                      toast.error(error.message || 'Failed to store order data. Please try with fewer images.')
+                      return
+                    }
                     
                     // Close modal and clear state
                     setShowAnalysisModal(false)
