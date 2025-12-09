@@ -64,18 +64,40 @@ export const updateProfile = async (userData) => {
   try {
     console.log('📝 Update Profile API Call')
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    // Prepare the request payload
+    // displayName is required, phoneNo and companyName are optional
+    const payload = {
+      displayName: (userData.displayName !== undefined && userData.displayName !== null) 
+        ? userData.displayName.trim() 
+        : '',
+    }
+    
+    // Only include phoneNo if it has a value (API validates format even for empty strings)
+    const trimmedPhoneNo = (userData.phoneNo !== undefined && userData.phoneNo !== null) 
+      ? userData.phoneNo.trim() 
+      : ''
+    if (trimmedPhoneNo) {
+      payload.phoneNo = trimmedPhoneNo
+    } else {
+      // Send null for empty phone number instead of empty string to avoid validation error
+      payload.phoneNo = null
+    }
+    
+    // Include companyName (can be empty string)
+    payload.companyName = (userData.companyName !== undefined && userData.companyName !== null) 
+      ? userData.companyName.trim() 
+      : ''
+    
     console.log('📤 Profile Data:', {
-      displayName: userData.displayName,
-      phoneNo: userData.phoneNo || '(empty)',
-      companyName: userData.companyName,
+      displayName: payload.displayName,
+      phoneNo: payload.phoneNo || '(empty)',
+      companyName: payload.companyName,
     })
+    console.log('📤 Full Payload:', JSON.stringify(payload, null, 2))
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     
-    const response = await apiClient.put('/api/v1/Users/profile', {
-      displayName: userData.displayName,
-      phoneNo: userData.phoneNo || '', // Send empty string if not provided
-      companyName: userData.companyName,
-    })
+    const response = await apiClient.put('/api/v1/Users/profile', payload)
     
     console.log('✅ Update Profile Response received')
     console.log('📥 Response Status:', response.status)
@@ -85,6 +107,26 @@ export const updateProfile = async (userData) => {
     return response.data
   } catch (error) {
     console.error('❌ Update Profile API error:', error)
+    
+    // Log detailed validation errors if available
+    if (error?.data) {
+      console.error('📋 Validation Error Details:', JSON.stringify(error.data, null, 2))
+      
+      // Check for common validation error formats
+      if (error.data.errors) {
+        console.error('🔍 Field Validation Errors:', error.data.errors)
+      }
+      if (error.data.Errors) {
+        console.error('🔍 Field Validation Errors (capitalized):', error.data.Errors)
+      }
+      if (error.data.validationErrors) {
+        console.error('🔍 Validation Errors:', error.data.validationErrors)
+      }
+      if (error.data.ValidationErrors) {
+        console.error('🔍 Validation Errors (capitalized):', error.data.ValidationErrors)
+      }
+    }
+    
     throw error
   }
 }

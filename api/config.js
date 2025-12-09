@@ -86,6 +86,33 @@ apiClient.interceptors.response.use(
         data: data
       })
       
+      // Log detailed validation errors if this is a validation error
+      if (status === 400 && (data?.Code === 'VALIDATION_FAILED' || data?.code === 'VALIDATION_FAILED')) {
+        console.error('🔍 Validation Error Details:', JSON.stringify(data, null, 2))
+        
+        // Check for Details field (common in .NET validation errors)
+        if (data.Details) {
+          console.error('📋 Field Validation Errors (Details):', JSON.stringify(data.Details, null, 2))
+        }
+        if (data.details) {
+          console.error('📋 Field Validation Errors (details):', JSON.stringify(data.details, null, 2))
+        }
+        
+        // Check for common validation error formats
+        if (data.errors) {
+          console.error('📋 Field Errors:', JSON.stringify(data.errors, null, 2))
+        }
+        if (data.Errors) {
+          console.error('📋 Field Errors (capitalized):', JSON.stringify(data.Errors, null, 2))
+        }
+        if (data.validationErrors) {
+          console.error('📋 Validation Errors:', JSON.stringify(data.validationErrors, null, 2))
+        }
+        if (data.ValidationErrors) {
+          console.error('📋 Validation Errors (capitalized):', JSON.stringify(data.ValidationErrors, null, 2))
+        }
+      }
+      
       return Promise.reject({
         message: errorMessage,
         status,

@@ -547,10 +547,20 @@ export default function AccountPage() {
       }
       
       // Then, update profile information
+      // Ensure displayName is not empty (required field)
+      if (!username.trim()) {
+        toast.error('Username/Display Name is required')
+        setIsSaving(false)
+        return
+      }
+      
+      // Prepare phone number - send null if empty to avoid validation error
+      const phoneNumber = phoneNo.trim() || null
+      
       const response = await updateProfile({
         displayName: username.trim(),
-        phoneNo: phoneNo.trim() || '', // Send empty string if not provided
-        companyName: companyName.trim(),
+        phoneNo: phoneNumber, // Send null if empty to avoid format validation error
+        companyName: companyName.trim() || '', // Send empty string if not provided
       })
 
       // Check if update was successful
@@ -591,7 +601,42 @@ export default function AccountPage() {
       let errorMessage = 'Failed to save profile. Please try again.'
       
       if (error?.status === 400) {
-        errorMessage = error?.message || error?.data?.Message || 'Invalid data. Please check your input and try again.'
+        // Check for validation errors - check Details first (common in .NET APIs)
+        const validationErrors = error?.data?.Details || error?.data?.details || 
+                                 error?.data?.errors || error?.data?.Errors || 
+                                 error?.data?.validationErrors || error?.data?.ValidationErrors
+        
+        if (validationErrors) {
+          // Format validation errors for display
+          const errorMessages = []
+          if (Array.isArray(validationErrors)) {
+            errorMessages.push(...validationErrors)
+          } else if (typeof validationErrors === 'object') {
+            // Handle object with field names as keys
+            Object.keys(validationErrors).forEach(field => {
+              const fieldErrors = Array.isArray(validationErrors[field]) 
+                ? validationErrors[field] 
+                : [validationErrors[field]]
+              fieldErrors.forEach(err => {
+                if (err) {
+                  // Format field name nicely (e.g., PhoneNo -> Phone Number)
+                  const formattedField = field === 'PhoneNo' ? 'Phone Number' : 
+                                        field === 'DisplayName' ? 'Display Name' : 
+                                        field === 'CompanyName' ? 'Company Name' : field
+                  errorMessages.push(`${formattedField}: ${err}`)
+                }
+              })
+            })
+          }
+          
+          if (errorMessages.length > 0) {
+            errorMessage = `Validation errors:\n${errorMessages.join('\n')}`
+          } else {
+            errorMessage = error?.message || error?.data?.Message || 'Invalid data. Please check your input and try again.'
+          }
+        } else {
+          errorMessage = error?.message || error?.data?.Message || 'Invalid data. Please check your input and try again.'
+        }
       } else if (error?.status === 401) {
         // Check if token exists
         const currentToken = localStorage.getItem('authToken')
@@ -790,49 +835,35 @@ export default function AccountPage() {
               </Avatar>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  {isOAuthUser ? (
+                  <Label htmlFor="avatar-upload" className="cursor-pointer">
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      disabled
-                      className="cursor-not-allowed opacity-60"
+                      asChild
                     >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Change Avatar
+                      <span>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Change Avatar
+                      </span>
                     </Button>
-                  ) : (
-                    <Label htmlFor="avatar-upload" className="cursor-pointer">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        asChild
-                      >
-                        <span>
-                          <Upload className="mr-2 h-4 w-4" />
-                          Change Avatar
-                        </span>
-                      </Button>
-                    </Label>
-                  )}
+                  </Label>
                   <Input
                     id="avatar-upload"
                     type="file"
                     accept="image/jpeg,image/jpg,image/png,image/gif,.jpg,.jpeg,.png,.gif"
                     className="hidden"
                     onChange={handleAvatarChange}
-                    disabled={isOAuthUser}
                   />
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleRemoveAvatar}
-                    disabled={!avatar && !avatarPreview || isOAuthUser}
-                    className={isOAuthUser ? 'cursor-not-allowed opacity-60' : ''}
+                    disabled={!avatar && !avatarPreview}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Remove Avatar
                   </Button>
-                  {avatarPreview && !isOAuthUser && (
+                  {avatarPreview && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -846,33 +877,24 @@ export default function AccountPage() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {isOAuthUser 
-                    ? 'Avatar is managed by your OAuth provider and cannot be changed here.'
-                    : 'JPG, PNG or GIF. Max size 2MB.'}
+                  JPG, PNG or GIF. Max size 2MB.
                 </p>
               </div>
             </div>
 
             {/* Username */}
             <div className="space-y-2">
-              <Label htmlFor="username" className={isOAuthUser ? 'cursor-not-allowed opacity-60' : ''}>
+              <Label htmlFor="username">
                 Username
-                {isOAuthUser && authProvider && (
-                  <span className="ml-2 text-xs text-muted-foreground">(Managed by {authProvider})</span>
-                )}
               </Label>
               <Input
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter your username"
-                disabled={isOAuthUser}
-                className={isOAuthUser ? 'cursor-not-allowed opacity-60' : ''}
               />
               <p className="text-xs text-muted-foreground">
-                {isOAuthUser 
-                  ? 'This field is managed by your OAuth provider and cannot be edited here.'
-                  : 'This is your unique identifier. You can change it at any time.'}
+                This is your unique identifier. You can change it at any time.
               </p>
             </div>
 
@@ -895,34 +917,24 @@ export default function AccountPage() {
 
             {/* Company Name */}
             <div className="space-y-2">
-              <Label htmlFor="companyName" className={isOAuthUser ? 'cursor-not-allowed opacity-60' : ''}>
+              <Label htmlFor="companyName">
                 Company Name
-                {isOAuthUser && authProvider && (
-                  <span className="ml-2 text-xs text-muted-foreground">(Managed by {authProvider})</span>
-                )}
               </Label>
               <Input
                 id="companyName"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="Enter your company name"
-                disabled={isOAuthUser}
-                className={isOAuthUser ? 'cursor-not-allowed opacity-60' : ''}
               />
               <p className="text-xs text-muted-foreground">
-                {isOAuthUser 
-                  ? 'This field is managed by your OAuth provider and cannot be edited here.'
-                  : 'The name of your company or organization.'}
+                The name of your company or organization.
               </p>
             </div>
 
             {/* Phone Number */}
             <div className="space-y-2">
-              <Label htmlFor="phoneNo" className={isOAuthUser ? 'cursor-not-allowed opacity-60' : ''}>
+              <Label htmlFor="phoneNo">
                 Phone Number
-                {isOAuthUser && authProvider && (
-                  <span className="ml-2 text-xs text-muted-foreground">(Managed by {authProvider})</span>
-                )}
               </Label>
               <Input
                 id="phoneNo"
@@ -930,18 +942,14 @@ export default function AccountPage() {
                 value={phoneNo}
                 onChange={(e) => setPhoneNo(e.target.value)}
                 placeholder="Enter your phone number (optional)"
-                disabled={isOAuthUser}
-                className={isOAuthUser ? 'cursor-not-allowed opacity-60' : ''}
               />
               <p className="text-xs text-muted-foreground">
-                {isOAuthUser 
-                  ? 'This field is managed by your OAuth provider and cannot be edited here.'
-                  : 'Your phone number (optional). Leave empty if you don\'t want to provide it.'}
+                Your phone number (optional). Leave empty if you don't want to provide it.
               </p>
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleSaveProfile} disabled={isSaving || isLoading || isOAuthUser}>
+              <Button onClick={handleSaveProfile} disabled={isSaving || isLoading}>
                 {isSaving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
