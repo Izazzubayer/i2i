@@ -217,12 +217,19 @@ export const signin = async (signinData) => {
                                apiResponse.data.token || 
                                apiResponse.data.access_token ||
                                apiResponse.data.authToken
+            
+            console.log('🔍 Signin: Checking for accessToken in response...')
+            console.log('🔍 Signin: apiResponse.data keys:', Object.keys(apiResponse.data || {}))
+            console.log('🔍 Signin: accessToken found:', !!accessToken)
+            
             if (accessToken) {
               localStorage.setItem('authToken', accessToken)
-              console.log('✅ Signin: Stored accessToken', accessToken.substring(0, 20) + '...')
+              console.log('✅ Signin: Stored accessToken (preview):', accessToken.substring(0, 20) + '...')
+              console.log('✅ Signin: Full accessToken:', accessToken)
+              console.log('✅ Signin: accessToken length:', accessToken.length)
             } else {
               console.warn('⚠️ Signin: No accessToken in response. Available keys:', Object.keys(apiResponse.data))
-              console.warn('⚠️ Signin: Full data object:', apiResponse.data)
+              console.warn('⚠️ Signin: Full data object:', JSON.stringify(apiResponse.data, null, 2))
             }
             
             // Store refresh token - check multiple possible field names
@@ -384,18 +391,28 @@ export const verifyEmail = async (verifyData) => {
       // Store tokens first (needed for fetching full profile)
       if (typeof window !== 'undefined') {
         // Store tokens if provided
-        if (apiResponse.data.accessToken) {
-          localStorage.setItem('authToken', apiResponse.data.accessToken)
-          console.log('💾 Stored accessToken')
+        const accessToken = apiResponse.data.accessToken || 
+                           apiResponse.data.token || 
+                           apiResponse.data.access_token ||
+                           apiResponse.data.authToken
+        
+        console.log('🔍 Verify Email: Checking for accessToken...')
+        console.log('🔍 Verify Email: apiResponse.data keys:', Object.keys(apiResponse.data || {}))
+        console.log('🔍 Verify Email: accessToken found:', !!accessToken)
+        
+        if (accessToken) {
+          localStorage.setItem('authToken', accessToken)
+          console.log('✅ Verify Email: Stored accessToken (preview):', accessToken.substring(0, 20) + '...')
+          console.log('✅ Verify Email: Full accessToken:', accessToken)
+          console.log('✅ Verify Email: accessToken length:', accessToken.length)
+        } else {
+          console.warn('⚠️ Verify Email: No accessToken in response. Available keys:', Object.keys(apiResponse.data))
+          console.warn('⚠️ Verify Email: Full data object:', JSON.stringify(apiResponse.data, null, 2))
         }
+        
         if (apiResponse.data.refreshToken) {
           localStorage.setItem('refreshToken', apiResponse.data.refreshToken)
           console.log('💾 Stored refreshToken')
-        }
-        // Also check for token field (alternative format)
-        if (apiResponse.data.token) {
-          localStorage.setItem('authToken', apiResponse.data.token)
-          console.log('💾 Stored token')
         }
       }
       
@@ -850,9 +867,23 @@ export const googleSignIn = async () => {
       // Store in localStorage
       if (typeof window !== 'undefined') {
         // Store access token
-        if (apiResponse.data.accessToken) {
-          localStorage.setItem('authToken', apiResponse.data.accessToken)
-          console.log('💾 Stored accessToken')
+        const accessToken = apiResponse.data.accessToken || 
+                           apiResponse.data.token || 
+                           apiResponse.data.access_token ||
+                           apiResponse.data.authToken
+        
+        console.log('🔍 Google Sign In: Checking for accessToken...')
+        console.log('🔍 Google Sign In: apiResponse.data keys:', Object.keys(apiResponse.data || {}))
+        console.log('🔍 Google Sign In: accessToken found:', !!accessToken)
+        
+        if (accessToken) {
+          localStorage.setItem('authToken', accessToken)
+          console.log('✅ Google Sign In: Stored accessToken (preview):', accessToken.substring(0, 20) + '...')
+          console.log('✅ Google Sign In: Full accessToken:', accessToken)
+          console.log('✅ Google Sign In: accessToken length:', accessToken.length)
+        } else {
+          console.warn('⚠️ Google Sign In: No accessToken in response. Available keys:', Object.keys(apiResponse.data))
+          console.warn('⚠️ Google Sign In: Full data object:', JSON.stringify(apiResponse.data, null, 2))
         }
         
         // Store refresh token
@@ -950,15 +981,24 @@ export const microsoftSignIn = async () => {
     const idToken = await user.getIdToken()
     
     console.log('✅ Microsoft Sign In Successful')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     console.log('📤 User Info:', {
       email: user.email,
       displayName: user.displayName,
       photoURL: user.photoURL,
       uid: user.uid,
     })
-    console.log('📤 ID Token:', idToken)
-    console.log('📤 ID Token Length:', idToken.length)
-    console.log('📤 ID Token Type:', typeof idToken)
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('🔑 FIREBASE ID TOKEN (to send to backend):')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('📤 idToken:', idToken)
+    console.log('📤 idToken Length:', idToken.length, 'characters')
+    console.log('📤 idToken Type:', typeof idToken)
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('📡 API Request Details:')
+    console.log('   Endpoint:', `${BASE_URL}/api/v1/Auth/microsoft-signin`)
+    console.log('   Method: POST')
+    console.log('   Request Body:', JSON.stringify({ idToken: idToken }, null, 2))
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     
     // Call backend API with the idToken
@@ -997,9 +1037,23 @@ export const microsoftSignIn = async () => {
       // Store in localStorage
       if (typeof window !== 'undefined') {
         // Store access token
-        if (apiResponse.data.accessToken) {
-          localStorage.setItem('authToken', apiResponse.data.accessToken)
-          console.log('💾 Stored accessToken')
+        const accessToken = apiResponse.data.accessToken || 
+                           apiResponse.data.token || 
+                           apiResponse.data.access_token ||
+                           apiResponse.data.authToken
+        
+        console.log('🔍 Microsoft Sign In: Checking for accessToken...')
+        console.log('🔍 Microsoft Sign In: apiResponse.data keys:', Object.keys(apiResponse.data || {}))
+        console.log('🔍 Microsoft Sign In: accessToken found:', !!accessToken)
+        
+        if (accessToken) {
+          localStorage.setItem('authToken', accessToken)
+          console.log('✅ Microsoft Sign In: Stored accessToken (preview):', accessToken.substring(0, 20) + '...')
+          console.log('✅ Microsoft Sign In: Full accessToken:', accessToken)
+          console.log('✅ Microsoft Sign In: accessToken length:', accessToken.length)
+        } else {
+          console.warn('⚠️ Microsoft Sign In: No accessToken in response. Available keys:', Object.keys(apiResponse.data))
+          console.warn('⚠️ Microsoft Sign In: Full data object:', JSON.stringify(apiResponse.data, null, 2))
         }
         
         // Store refresh token

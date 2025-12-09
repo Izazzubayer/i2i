@@ -20,6 +20,11 @@ apiClient.interceptors.request.use(
     const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+      console.log('🔑 Request Interceptor: Using accessToken (preview):', token.substring(0, 20) + '...')
+      console.log('🔑 Request Interceptor: Full accessToken:', token)
+      console.log('🔑 Request Interceptor: Request URL:', config.url)
+    } else {
+      console.warn('⚠️ Request Interceptor: No accessToken found in localStorage')
     }
     return config
   },
