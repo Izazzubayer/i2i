@@ -117,8 +117,8 @@ export default function LandingPage() {
               AI-Powered Image Processing
             </Badge>
             <h1 className="mb-6 text-5xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 md:text-7xl">
-              Transform Your Images
-              <span className="block text-zinc-600 dark:text-zinc-400">In Seconds</span>
+              Save Money on AI
+              <span className="block text-zinc-600 dark:text-zinc-400">with Studio-Quality Shots</span>
             </h1>
             <p className="mb-8 text-xl text-zinc-600 dark:text-zinc-400 md:text-2xl">
               Professional image processing powered by AI. Remove backgrounds, enhance quality, and automate your workflow.

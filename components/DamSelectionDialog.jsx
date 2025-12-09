@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { Cloud, Plus, CheckCircle2, Settings, Trash2, Cog } from 'lucide-react'
 import {
@@ -167,7 +167,7 @@ export default function DamSelectionDialog({
     return () => {
       Object.values(intervals).forEach(interval => clearInterval(interval))
     }
-  }, [selectedDamIds])
+  }, [selectedDamIds, uploadProgress])
 
   const handleSelectDam = (connection) => {
     if (allowMultiSelect) {
@@ -244,7 +244,7 @@ export default function DamSelectionDialog({
   }
 
   // Get connection for a provider - improved matching logic
-  const getProviderConnection = (providerName) => {
+  const getProviderConnection = useCallback((providerName) => {
     if (!effectiveConnections || effectiveConnections.length === 0) return null
     
     // Try exact match first
@@ -268,7 +268,7 @@ export default function DamSelectionDialog({
     )
     
     return connection || null
-  }
+  }, [effectiveConnections])
 
   // Organize providers into connected and unconnected
   const { connectedProviders, unconnectedProviders } = useMemo(() => {
@@ -285,7 +285,7 @@ export default function DamSelectionDialog({
     })
 
     return { connectedProviders: connected, unconnectedProviders: unconnected }
-  }, [effectiveConnections])
+  }, [effectiveConnections, getProviderConnection])
 
   // Handle provider click
   const handleProviderClick = (provider, connection = null) => {

@@ -67,6 +67,7 @@ import {
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
 import { getOrderDetails, confirmOrder, startOrder, processOrder } from '@/api'
+import { getPendingOrder, removePendingOrder } from '@/lib/storage'
 
 const STATUSES = {
   PROCESSED: 'processed',
@@ -147,10 +148,9 @@ function ProcessingResultsContent() {
       if (orderId) return // Don't process if we already have an orderId
       
       try {
-        const pendingOrderData = sessionStorage.getItem('pendingOrder')
-        if (!pendingOrderData) return
+        const pendingOrder = await getPendingOrder()
+        if (!pendingOrder) return
         
-        const pendingOrder = JSON.parse(pendingOrderData)
         const { images: imagesData, instruction } = pendingOrder
         
         // Show images immediately with processing status before API calls
@@ -173,7 +173,7 @@ function ProcessingResultsContent() {
         setLoading(false) // Don't block UI
         
         // Clear pending order from storage
-        sessionStorage.removeItem('pendingOrder')
+        await removePendingOrder()
         
         // Convert data URLs back to File objects
         const imageFiles = await Promise.all(
@@ -488,24 +488,25 @@ function ProcessingResultsContent() {
     }
   }, [orderId, batch])
 
-  // Show walkthrough when first processed image appears
+  // Show walkthrough during processing
   useEffect(() => {
     if (typeof window === 'undefined') return
     
-    // Check if user has already seen the walkthrough
+    // Check if user has selected "Never Show Again"
     const hasSeenWalkthrough = localStorage.getItem('imageWalkthroughSeen') === 'true'
     if (hasSeenWalkthrough) return
-
-    // Find first processed image
-    const firstProcessedImage = images.find((img) => 
-      img.status === STATUSES.PROCESSED && 
-      img.processedUrl
+    
+    // Find first processing image
+    const firstProcessingImage = images.find((img) => 
+      img.status === STATUSES.IN_PROGRESS || 
+      (!img.processedUrl && img.versions.length === 0)
     )
 
-    if (firstProcessedImage && !walkthroughOpen) {
+    // Show walkthrough when processing starts (every time, unless user selected "Never Show Again")
+    if (firstProcessingImage && !walkthroughOpen) {
       // Wait a bit for the image to render
       const timer = setTimeout(() => {
-        setWalkthroughTargetId(firstProcessedImage.id)
+        setWalkthroughTargetId(firstProcessingImage.id)
         setWalkthroughOpen(true)
       }, 1500)
 
@@ -2776,7 +2777,7 @@ function ProcessingResultsContent() {
             {getUserPlan() !== 'Enterprise' && (
               <Button onClick={() => {
                 setUpgradeModalOpen(false)
-                router.push('/pricing')
+                window.open('/pricing', '_blank', 'noopener,noreferrer')
               }}>
                 Upgrade Plan
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -2889,7 +2890,7 @@ function ProcessingResultsContent() {
               <div>
                 <h4 className="font-semibold mb-2">Selection & Bulk Actions</h4>
                 <ul className="space-y-1 text-muted-foreground list-disc list-inside">
-                  <li>Select individual images or use "Select All" to select all filtered images</li>
+                  <li>Select individual images or use &quot;Select All&quot; to select all filtered images</li>
                   <li>Reprocess Selected: Reprocess the first selected image with new instructions</li>
                   <li>Amend Selected: Apply amendments to selected images with custom instructions</li>
                   <li>Delete Selected: Remove selected images (can be undone)</li>
