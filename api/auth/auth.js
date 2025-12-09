@@ -151,6 +151,74 @@ export const signin = async (signinData) => {
     })
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     
+    // Dummy authentication for development/testing
+    const DUMMY_EMAIL = 'admin@admin.com'
+    const DUMMY_PASSWORD = '1234'
+    
+    if (signinData.email.trim().toLowerCase() === DUMMY_EMAIL.toLowerCase() && 
+        signinData.password === DUMMY_PASSWORD) {
+      console.log('✅ Dummy authentication successful')
+      
+      // Create mock response
+      const mockApiResponse = {
+        success: true,
+        code: 'OK',
+        message: 'Sign in successful',
+        data: {
+          userId: 'dummy-user-id-123',
+          accessToken: 'dummy-access-token-' + Date.now(),
+          refreshToken: 'dummy-refresh-token-' + Date.now(),
+          email: DUMMY_EMAIL,
+          displayName: 'Admin User',
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
+          CompanyId: 'dummy-company-id',
+          isVerified: true,
+        }
+      }
+      
+      // Store user data and tokens
+      const userData = {
+        userId: mockApiResponse.data.userId,
+        email: mockApiResponse.data.email,
+        displayName: mockApiResponse.data.displayName,
+        companyId: mockApiResponse.data.CompanyId,
+        expiresAt: mockApiResponse.data.expiresAt,
+        isVerified: true,
+      }
+      
+      console.log('💾 Dummy Signin: Preparing to store user data', userData)
+      
+      // Store in localStorage
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('authToken', mockApiResponse.data.accessToken)
+          console.log('✅ Dummy Signin: Stored accessToken')
+          
+          localStorage.setItem('refreshToken', mockApiResponse.data.refreshToken)
+          console.log('✅ Dummy Signin: Stored refreshToken')
+          
+          localStorage.setItem('user', JSON.stringify(userData))
+          console.log('✅ Dummy Signin: Stored user data:', JSON.stringify(userData, null, 2))
+          
+          // Verify storage
+          const storedToken = localStorage.getItem('authToken')
+          const storedUser = localStorage.getItem('user')
+          console.log('🔍 Dummy Signin: Verification after storage', {
+            hasToken: !!storedToken,
+            hasUser: !!storedUser,
+          })
+          
+          // Trigger custom event to notify other components
+          window.dispatchEvent(new Event('localStorageChange'))
+          console.log('🔄 Dummy Signin: Triggered localStorageChange event')
+        } catch (storageError) {
+          console.error('❌ Dummy Signin: Error storing in localStorage:', storageError)
+        }
+      }
+      
+      return mockApiResponse
+    }
+    
     const response = await apiClient.post('/api/v1/Auth/signin', {
       email: signinData.email,
       password: signinData.password,
