@@ -296,11 +296,21 @@ export const signout = async () => {
   try {
     const response = await apiClient.post('/api/v1/Auth/signout')
     
-    // Clear all authentication data
+    // Clear all authentication data from both localStorage and sessionStorage
+    // Note: We keep savedEmail and savedPassword so user can sign in again easily
     if (typeof window !== 'undefined') {
       localStorage.removeItem('authToken')
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('user')
+      localStorage.removeItem('staySignedIn')
+      
+      sessionStorage.removeItem('authToken')
+      sessionStorage.removeItem('refreshToken')
+      sessionStorage.removeItem('user')
+      sessionStorage.removeItem('staySignedIn')
+      
+      // Note: We don't clear savedEmail and savedPassword here
+      // They will be cleared if user unchecks "keep me signed in" on next sign-in
       
       // Trigger storage change event
       window.dispatchEvent(new Event('localStorageChange'))
@@ -313,6 +323,12 @@ export const signout = async () => {
       localStorage.removeItem('authToken')
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('user')
+      localStorage.removeItem('staySignedIn')
+      
+      sessionStorage.removeItem('authToken')
+      sessionStorage.removeItem('refreshToken')
+      sessionStorage.removeItem('user')
+      sessionStorage.removeItem('staySignedIn')
       
       // Trigger storage change event
       window.dispatchEvent(new Event('localStorageChange'))

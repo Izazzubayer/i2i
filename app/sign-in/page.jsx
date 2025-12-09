@@ -25,6 +25,31 @@ function SignInContent() {
   const [message, setMessage] = useState('')
   const [showPasswordResetSuccess, setShowPasswordResetSuccess] = useState(false)
 
+  // Load saved credentials on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedEmail = localStorage.getItem('savedEmail')
+      const savedPassword = localStorage.getItem('savedPassword')
+      const savedStaySignedIn = localStorage.getItem('staySignedIn') === 'true'
+      
+      // Load saved credentials if they exist (even if staySignedIn was cleared on signout)
+      if (savedEmail) {
+        setEmail(savedEmail)
+        console.log('📧 Loaded saved email:', savedEmail)
+      }
+      
+      if (savedPassword) {
+        setPassword(savedPassword)
+        console.log('🔑 Loaded saved password')
+      }
+      
+      // Set checkbox state if preference was saved
+      if (savedStaySignedIn) {
+        setStaySignedIn(true)
+      }
+    }
+  }, []) // Run only on mount
+
   useEffect(() => {
     if (searchParams.get('passwordReset') === 'true') {
       setShowPasswordResetSuccess(true)
@@ -53,20 +78,68 @@ function SignInContent() {
       // Check if signin was successful
       if (response.success && response.data) {
         // User data and tokens are already stored in localStorage by the API function
-        console.log('✅ Sign-in page: Signin successful - checking localStorage')
+        // Now move them to sessionStorage if "keep me signed in" is not checked
+        console.log('✅ Sign-in page: Signin successful - checking storage')
+        
+        const storage = staySignedIn ? localStorage : sessionStorage
+        
+        // Move tokens and user data to appropriate storage
+        if (typeof window !== 'undefined') {
+          const token = localStorage.getItem('authToken')
+          const refreshToken = localStorage.getItem('refreshToken')
+          const user = localStorage.getItem('user')
+          
+          if (token && user) {
+            if (staySignedIn) {
+              // Keep in localStorage (already there)
+              console.log('💾 Keeping session in localStorage (persistent)')
+            } else {
+              // Move to sessionStorage (temporary)
+              console.log('💾 Moving session to sessionStorage (temporary)')
+              sessionStorage.setItem('authToken', token)
+              if (refreshToken) {
+                sessionStorage.setItem('refreshToken', refreshToken)
+              }
+              sessionStorage.setItem('user', user)
+              
+              // Clear from localStorage
+              localStorage.removeItem('authToken')
+              localStorage.removeItem('refreshToken')
+              localStorage.removeItem('user')
+            }
+            
+            // Store preference
+            storage.setItem('staySignedIn', staySignedIn.toString())
+            
+            // Always save email and password if "keep me signed in" is checked
+            // This allows auto-fill even after signout
+            if (staySignedIn) {
+              localStorage.setItem('savedEmail', email.trim())
+              localStorage.setItem('savedPassword', password)
+              localStorage.setItem('staySignedIn', 'true')
+              console.log('💾 Saved email and password for next sign-in')
+            } else {
+              // Clear saved credentials if "keep me signed in" is not checked
+              localStorage.removeItem('savedEmail')
+              localStorage.removeItem('savedPassword')
+              localStorage.removeItem('staySignedIn')
+              console.log('🧹 Cleared saved credentials')
+            }
+          }
+        }
         
         // Verify data was stored
-        const token = localStorage.getItem('authToken')
-        const user = localStorage.getItem('user')
-        console.log('🔍 Sign-in page: localStorage check', { 
+        const token = storage.getItem('authToken')
+        const user = storage.getItem('user')
+        console.log('🔍 Sign-in page: Storage check', { 
+          storageType: staySignedIn ? 'localStorage' : 'sessionStorage',
           hasToken: !!token, 
           hasUser: !!user,
           tokenPreview: token ? token.substring(0, 20) + '...' : null,
-          userPreview: user ? JSON.parse(user) : null
         })
         
         if (!token || !user) {
-          console.error('❌ Sign-in page: Data not found in localStorage after signin!')
+          console.error('❌ Sign-in page: Data not found in storage after signin!')
           toast.error('Sign in successful but data not stored. Please try again.')
           setIsLoading(false)
           return
@@ -75,7 +148,7 @@ function SignInContent() {
         setMessage('Success! Redirecting to your workspace...')
         toast.success('Signed in successfully!')
         
-        // Trigger localStorageChange event to update navbar immediately
+        // Trigger storage change event to update navbar immediately
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new Event('localStorageChange'))
           console.log('🔄 Sign-in page: Triggered localStorageChange event')
@@ -213,7 +286,18 @@ function SignInContent() {
                   <label className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Checkbox
                       checked={staySignedIn}
-                      onCheckedChange={(checked) => setStaySignedIn(Boolean(checked))}
+                      onCheckedChange={(checked) => {
+                        const isChecked = Boolean(checked)
+                        setStaySignedIn(isChecked)
+                        
+                        // If user unchecks "keep me signed in", clear saved credentials
+                        if (!isChecked && typeof window !== 'undefined') {
+                          localStorage.removeItem('savedEmail')
+                          localStorage.removeItem('savedPassword')
+                          localStorage.removeItem('staySignedIn')
+                          console.log('🧹 Cleared saved credentials - keep me signed in unchecked')
+                        }
+                      }}
                     />
                     Keep me signed in
                   </label>

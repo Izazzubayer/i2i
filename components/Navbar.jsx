@@ -73,8 +73,10 @@ export default function Navbar() {
     const checkAuth = () => {
       if (typeof window === 'undefined') return
       
-      const userData = localStorage.getItem('user')
-      const authToken = localStorage.getItem('authToken')
+      // Check both localStorage and sessionStorage
+      const userData = localStorage.getItem('user') || sessionStorage.getItem('user')
+      const authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
+      const storage = localStorage.getItem('authToken') ? localStorage : sessionStorage
       
       // Debug logging to see what we're finding
       if (!authToken && !userData) {
@@ -101,9 +103,9 @@ export default function Navbar() {
           } catch (error) {
             console.error('❌ Navbar: Error parsing user data:', error)
             // Token exists but user data is corrupted - clear everything
-            localStorage.removeItem('user')
-            localStorage.removeItem('authToken')
-            localStorage.removeItem('refreshToken')
+            storage.removeItem('user')
+            storage.removeItem('authToken')
+            storage.removeItem('refreshToken')
             setIsAuthenticated(false)
             setUser(null)
             lastAuthStateRef.current = { authenticated: false }

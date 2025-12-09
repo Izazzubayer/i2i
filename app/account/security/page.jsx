@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { changePassword } from '@/api/users/users'
 
 export default function SecurityPage() {
   const [currentPassword, setCurrentPassword] = useState('')
@@ -16,6 +17,7 @@ export default function SecurityPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   const validatePassword = (password) => {
     // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special char
@@ -27,7 +29,8 @@ export default function SecurityPage() {
     return minLength && hasUpper && hasLower && hasNumber && hasSpecial
   }
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
+    // Validation
     if (!currentPassword) {
       toast.error('Please enter your current password')
       return
@@ -49,11 +52,68 @@ export default function SecurityPage() {
       return
     }
 
-    // In a real appthis would update the password on the backend
-    toast.success('Password updated successfully')
-    setCurrentPassword('')
-    setNewPassword('')
-    setConfirmPassword('')
+    setIsLoading(true)
+    try {
+      const response = await changePassword({
+        oldPassword: currentPassword,
+        newPassword: newPassword,
+      })
+
+      // Check if change was successful
+      if (response.success || response.status === 200) {
+        toast.success(response.message || 'Password updated successfully')
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+      } else {
+        throw new Error(response.message || 'Failed to update password')
+      }
+    } catch (error) {
+      console.error('Error changing password:', error)
+      
+      // Handle different error cases
+      let errorMessage = 'Failed to update password. Please try again.'
+      
+      if (error?.status === 400) {
+        // Check for validation errors
+        const validationErrors = error?.data?.Details || error?.data?.details || 
+                                 error?.data?.errors || error?.data?.Errors
+        if (validationErrors) {
+          const errorMessages = []
+          if (typeof validationErrors === 'object') {
+            Object.keys(validationErrors).forEach(field => {
+              const fieldErrors = Array.isArray(validationErrors[field]) 
+                ? validationErrors[field] 
+                : [validationErrors[field]]
+              fieldErrors.forEach(err => {
+                if (err) errorMessages.push(err)
+              })
+            })
+          }
+          if (errorMessages.length > 0) {
+            errorMessage = errorMessages.join('\n')
+          } else {
+            errorMessage = error?.message || error?.data?.Message || 'Invalid data. Please check your input and try again.'
+          }
+        } else {
+          errorMessage = error?.message || error?.data?.Message || 'Invalid data. Please check your input and try again.'
+        }
+      } else if (error?.status === 401) {
+        errorMessage = error?.message || 'Current password is incorrect. Please try again.'
+      } else if (error?.status === 403) {
+        errorMessage = error?.message || 'You do not have permission to change the password.'
+      } else if (error?.message) {
+        errorMessage = error.message
+      } else if (error?.data?.Message) {
+        errorMessage = error.data.Message
+      } else if (error?.data?.message) {
+        errorMessage = error.data.message
+      }
+      
+      toast.error(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -168,7 +228,16 @@ export default function SecurityPage() {
             </div>
 
             <div className="pt-2">
-              <Button onClick={handleChangePassword}>Update Password</Button>
+              <Button onClick={handleChangePassword} disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Password'
+                )}
+              </Button>
             </div>
           </CardContent>
         </Card>

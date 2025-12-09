@@ -44,9 +44,10 @@ export default function AccountPage() {
       try {
         setIsLoading(true)
         
-        // First, check verification status from localStorage
-        const localUser = localStorage.getItem('user')
-        const authToken = localStorage.getItem('authToken')
+        // First, check verification status from localStorage or sessionStorage
+        const localUser = localStorage.getItem('user') || sessionStorage.getItem('user')
+        const authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
+        const storage = localStorage.getItem('authToken') ? localStorage : sessionStorage
         let localUserData = null
         let localIsVerified = false
         

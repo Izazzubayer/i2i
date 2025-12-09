@@ -66,8 +66,10 @@ export default function AuthenticatedNav() {
     
     const getUserData = () => {
       try {
-        const userData = localStorage.getItem('user')
-        const authToken = localStorage.getItem('authToken')
+        // Check both localStorage and sessionStorage
+        const userData = localStorage.getItem('user') || sessionStorage.getItem('user')
+        const authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
+        const storage = localStorage.getItem('authToken') ? localStorage : sessionStorage
         
         // If user has a valid token, they should be authenticated
         // Token is only given after email verification, so trust it
@@ -87,10 +89,10 @@ export default function AuthenticatedNav() {
           } else {
             // Only clear if explicitly not verified AND no token
             // This prevents clearing on reload for verified users
-            console.log('⚠️ User email not verified and no token - clearing localStorage')
-            localStorage.removeItem('user')
-            localStorage.removeItem('authToken')
-            localStorage.removeItem('refreshToken')
+            console.log('⚠️ User email not verified and no token - clearing storage')
+            storage.removeItem('user')
+            storage.removeItem('authToken')
+            storage.removeItem('refreshToken')
             setUser(null)
             window.dispatchEvent(new Event('localStorageChange'))
           }
@@ -106,12 +108,13 @@ export default function AuthenticatedNav() {
       } catch (error) {
         console.error('❌ Error parsing user data:', error)
         // Only clear on parse error if we can't recover
-        const authToken = localStorage.getItem('authToken')
+        const authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
+        const storage = localStorage.getItem('authToken') ? localStorage : sessionStorage
         if (!authToken) {
           // No token, safe to clear corrupted data
-          localStorage.removeItem('user')
-          localStorage.removeItem('authToken')
-          localStorage.removeItem('refreshToken')
+          storage.removeItem('user')
+          storage.removeItem('authToken')
+          storage.removeItem('refreshToken')
         }
         setUser(null)
         window.dispatchEvent(new Event('localStorageChange'))

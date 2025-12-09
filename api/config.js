@@ -16,15 +16,24 @@ export const apiClient = axios.create({
 // Request interceptor (for adding auth tokens, etc.)
 apiClient.interceptors.request.use(
   (config) => {
-    // Add auth token if available
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
+    // Add auth token if available - check both localStorage and sessionStorage
+    let token = null
+    if (typeof window !== 'undefined') {
+      // First check localStorage (persistent session)
+      token = localStorage.getItem('authToken')
+      // If not found, check sessionStorage (temporary session)
+      if (!token) {
+        token = sessionStorage.getItem('authToken')
+      }
+    }
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
       console.log('🔑 Request Interceptor: Using accessToken (preview):', token.substring(0, 20) + '...')
       console.log('🔑 Request Interceptor: Full accessToken:', token)
       console.log('🔑 Request Interceptor: Request URL:', config.url)
     } else {
-      console.warn('⚠️ Request Interceptor: No accessToken found in localStorage')
+      console.warn('⚠️ Request Interceptor: No accessToken found in localStorage or sessionStorage')
     }
     return config
   },

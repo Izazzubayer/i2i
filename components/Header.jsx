@@ -43,8 +43,9 @@ export default function Header() {
   useEffect(() => {
     const getUserData = () => {
       try {
-        const userData = localStorage.getItem('user')
-        const token = localStorage.getItem('authToken')
+        // Check both localStorage and sessionStorage
+        const userData = localStorage.getItem('user') || sessionStorage.getItem('user')
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
         
         // User is authenticated if they have user data OR token
         if (userData) {

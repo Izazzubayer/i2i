@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
-import AuthenticatedNav from '@/components/AuthenticatedNav'
+import Navbar from '@/components/Navbar'
 import { BeforeAfterSliderImproved } from '@/components/BeforeAfterSliderImproved'
 import {
   ArrowLeft,
@@ -414,7 +414,7 @@ export default function OrderDetailPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-background">
-        <AuthenticatedNav />
+        <Navbar />
         <div className="container py-8 px-4 md:px-8">
           <div className="mx-auto max-w-7xl space-y-6">
             <div className="flex items-center justify-center py-20">
@@ -430,7 +430,7 @@ export default function OrderDetailPage() {
   if (error || !order) {
     return (
       <main className="min-h-screen bg-background">
-        <AuthenticatedNav />
+        <Navbar />
         <div className="container py-8 px-4 md:px-8">
           <div className="mx-auto max-w-7xl space-y-6">
             <Button variant="ghost" onClick={() => window.history.back()}>
@@ -573,7 +573,7 @@ export default function OrderDetailPage() {
   if (!displayOrder) {
     return (
       <div className="min-h-screen bg-background">
-        <AuthenticatedNav />
+        <Navbar />
         <div className="container mx-auto px-4 py-16 text-center">
           <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-semibold mb-2">Order Not Found</h2>
@@ -589,7 +589,7 @@ export default function OrderDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AuthenticatedNav />
+      <Navbar />
 
       {/* Sticky Header */}
       <div className="sticky top-16 z-40 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b shadow-sm">

@@ -143,15 +143,39 @@ export const updateUser = async (userData) => {
 /**
  * Change user password
  * @param {Object} passwordData - Password change data
- * @param {string} passwordData.currentPassword - Current password
+ * @param {string} passwordData.oldPassword - Current/old password
  * @param {string} passwordData.newPassword - New password
  * @returns {Promise} API response
  */
 export const changePassword = async (passwordData) => {
   try {
-    const response = await apiClient.post('/api/v1/Users/change-password', passwordData)
+    console.log('🔐 Change Password API Call')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('📤 Password Change Request')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    // Prepare request body with correct field names
+    const requestBody = {
+      oldPassword: passwordData.oldPassword || passwordData.currentPassword,
+      newPassword: passwordData.newPassword,
+    }
+    
+    console.log('📤 Request Body:', {
+      oldPassword: '***',
+      newPassword: '***',
+    })
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    const response = await apiClient.post('/api/v1/Auth/change-password', requestBody)
+    
+    console.log('✅ Change Password Response received')
+    console.log('📥 Response Status:', response.status)
+    console.log('📥 Response Data:', JSON.stringify(response.data, null, 2))
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
     return response.data
   } catch (error) {
+    console.error('❌ Change Password API error:', error)
     throw error
   }
 }

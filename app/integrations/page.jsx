@@ -1,8 +1,10 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
+import { getDamSystems } from '@/api/dam/dam'
+import { Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -39,66 +41,24 @@ import {
 import DamConnectDialog from '@/components/DamConnectDialog'
 import IntegrationConnectDialog from '@/components/IntegrationConnectDialog'
 
-// Provider logo mapping - using local images
-const providerLogos = {
-  'Creative Force': '/logos/integrations/creative-force.png',
-  'Dalim': '/logos/integrations/dalim.png',
-  'Spin Me': '/logos/integrations/spin-me.png',
-  'Facebook': '/logos/integrations/facebook.png',
-  'Instagram': '/logos/integrations/instagram.png',
-  'Shopify': '/logos/integrations/shopify.png',
-  'GlobalEdit': '/logos/integrations/globaledit.png',
-}
-
-const mockIntegrations = [
-  {
-    id: '1',
-    name: 'E-commerce Assets',
-    provider: 'Shopify',
-    status: 'connected',
-    workspace: 'acme-store',
-    targetFolder: '/products',
-    totalUploads: 1247,
-    totalDownloads: 89,
-    createdAt: 'Oct 152025',
-  },
-  {
-    id: '2',
-    name: 'Social Media Content',
-    provider: 'Facebook',
-    status: 'connected',
-    workspace: 'acme-media',
-    targetFolder: '/assets/images',
-    totalUploads: 3562,
-    totalDownloads: 234,
-    createdAt: 'Sep 222025',
-  },
-  {
-    id: '3',
-    name: 'Brand Assets',
-    provider: 'GlobalEdit',
-    status: 'error',
-    workspace: 'brand-central',
-    targetFolder: '/brand/assets',
-    totalUploads: 456,
-    totalDownloads: 12,
-    createdAt: 'Aug 102025',
-  },
-]
+// Note: Icons are now loaded from API iconUrl field only
+// If iconUrl is null, no icon will be displayed
 
 // Provider Logo Component
-const ProviderLogo = ({ provider, size = 'md' }) => {
-  const logoPath = providerLogos[provider]
-  const sizeClasses = {
-    sm: 'h-5 w-5',
-    md: 'h-6 w-6',
-    lg: 'h-8 w-8',
-  }
-  
-  if (logoPath) {
+// Only displays icon if iconUrl is provided from API
+// If iconUrl is null/empty/not provided, returns null (blank)
+const ProviderLogo = ({ provider, iconUrl, size = 'md' }) => {
+  // Only use iconUrl from API if it's valid (not null, not empty, not 'null' string)
+  if (iconUrl && typeof iconUrl === 'string' && iconUrl.trim() !== '' && iconUrl !== 'null') {
+    const sizeClasses = {
+      sm: 'h-5 w-5',
+      md: 'h-6 w-6',
+      lg: 'h-8 w-8',
+    }
+    
     return (
       <Image
-        src={logoPath}
+        src={iconUrl}
         alt={`${provider} logo`}
         width={size === 'lg' ? 32 : size === 'md' ? 24 : 20}
         height={size === 'lg' ? 32 : size === 'md' ? 24 : 20}
@@ -108,23 +68,14 @@ const ProviderLogo = ({ provider, size = 'md' }) => {
     )
   }
   
-  // Fallback to generic icon
-  return <Cog className={sizeClasses[size]} />
+  // Return null (blank) if no iconUrl from API
+  return null
 }
 
-const availableProviders = [
-  { id: 'creative-force', name: 'Creative Force', description: 'E-commerce content production management' },
-  { id: 'dalim', name: 'Dalim', description: 'Printpackagingand digital content solutions' },
-  { id: 'spin-me', name: 'Spin Me', description: 'Workflow solutions for managing digital assets' },
-  { id: 'facebook', name: 'Facebook', description: 'Social media platform integration' },
-  { id: 'instagram', name: 'Instagram', description: 'Photo and video sharing platform' },
-  { id: 'shopify', name: 'Shopify', description: 'E-commerce platform integration' },
-  { id: 'globaledit', name: 'GlobalEdit', description: 'Digital asset management platform' },
-  { id: 'custom', name: 'Custom platform', description: 'Connect to a custom DAM or API' },
-]
-
 export default function IntegrationsPage() {
-  const [integrations, setIntegrations] = useState(mockIntegrations)
+  const [integrations, setIntegrations] = useState([])
+  const [availableProviders, setAvailableProviders] = useState([])
+  const [isLoadingProviders, setIsLoadingProviders] = useState(true)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [damDialogOpen, setDamDialogOpen] = useState(false)
   const [integrationDialogOpen, setIntegrationDialogOpen] = useState(false)
@@ -132,6 +83,49 @@ export default function IntegrationsPage() {
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false)
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
   const [selectedIntegration, setSelectedIntegration] = useState(null)
+
+  // Fetch DAM systems from API
+  useEffect(() => {
+    const fetchDamSystems = async () => {
+      try {
+        setIsLoadingProviders(true)
+        const response = await getDamSystems({ onlyActive: true })
+        
+        if (response && response.systems) {
+          // Map API response to provider format
+          const providers = response.systems.map((system) => ({
+            id: system.systemCode.toLowerCase().replace(/\s+/g, '-'),
+            name: system.systemName,
+            description: system.description,
+            iconUrl: (system.iconUrl && system.iconUrl.trim() !== '' && system.iconUrl !== 'null') ? system.iconUrl : null,
+            systemCode: system.systemCode,
+            damSystemId: system.damSystemId,
+            // Include field information from API
+            requiredFields: system.requiredFields || [],
+            optionalFields: system.optionalFields || [],
+            defaultEndpoint: system.defaultEndpoint || null,
+          }))
+          
+          // Sort by displayOrder if available
+          const sortedProviders = providers.sort((a, b) => {
+            const systemA = response.systems.find(s => s.systemCode === a.systemCode)
+            const systemB = response.systems.find(s => s.systemCode === b.systemCode)
+            return (systemA?.displayOrder || 999) - (systemB?.displayOrder || 999)
+          })
+          
+          setAvailableProviders(sortedProviders)
+          console.log('✅ Loaded DAM systems:', sortedProviders)
+        }
+      } catch (error) {
+        console.error('❌ Error fetching DAM systems:', error)
+        toast.error('Failed to load DAM systems. Please try again.')
+      } finally {
+        setIsLoadingProviders(false)
+      }
+    }
+
+    fetchDamSystems()
+  }, [])
 
   const handleDisconnect = () => {
     if (!selectedIntegration) return
@@ -154,16 +148,17 @@ export default function IntegrationsPage() {
     }
   }
 
-  const handleIntegrationConnect = (config) => {
+  const handleIntegrationConnect = (apiResponse) => {
     if (!selectedProvider) return
 
+    // Use data from API response if available, otherwise use form data
     const newIntegration = {
-      id: Date.now().toString(),
-      name: `${selectedProvider.name} Integration`,
+      id: apiResponse?.connectionId || Date.now().toString(),
+      name: apiResponse?.connectionName || `${selectedProvider.name} Integration`,
       provider: selectedProvider.name,
       status: 'connected',
-      workspace: config.workspace || 'default-workspace',
-      targetFolder: config.targetFolder || '/uploads',
+      workspace: apiResponse?.workspace || 'default-workspace',
+      targetFolder: apiResponse?.targetFolder || '/uploads',
       totalUploads: 0,
       totalDownloads: 0,
       createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
@@ -171,6 +166,7 @@ export default function IntegrationsPage() {
     setIntegrations(prev => [...prev, newIntegration])
     setIntegrationDialogOpen(false)
     setSelectedProvider(null)
+    toast.success(`${selectedProvider.name} connected successfully!`)
   }
 
   const handleDamConnect = () => {
@@ -412,36 +408,43 @@ export default function IntegrationsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {availableProviders.map((provider) => {
-                const isConnected = integrations.some(i => i.provider === provider.name)
-                return (
-                  <div 
-                    key={provider.id}
-                    className={`flex items-center gap-4 p-4 border rounded-lg transition-all cursor-pointer hover:bg-muted/50 ${
-                      isConnected ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20' : ''
-                    }`}
-                    onClick={() => !isConnected && handleSelectProvider(provider)}
-                  >
-                    <ProviderLogo provider={provider.name} size="md" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{provider.name}</p>
-                        {isConnected && (
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        )}
+            {isLoadingProviders ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading integrations...</span>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {availableProviders.map((provider) => {
+                  const isConnected = integrations.some(i => i.provider === provider.name)
+                  return (
+                    <div 
+                      key={provider.id}
+                      className={`flex items-center gap-4 p-4 border rounded-lg transition-all cursor-pointer hover:bg-muted/50 ${
+                        isConnected ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20' : ''
+                      }`}
+                      onClick={() => !isConnected && handleSelectProvider(provider)}
+                    >
+                      <ProviderLogo provider={provider.name} iconUrl={provider.iconUrl} size="md" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{provider.name}</p>
+                          {isConnected && (
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{provider.description}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">{provider.description}</p>
+                      {!isConnected && (
+                        <Button variant="ghost" size="sm">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
-                    {!isConnected && (
-                      <Button variant="ghost" size="sm">
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -456,35 +459,42 @@ export default function IntegrationsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-4 max-h-[60vh] overflow-y-auto">
-            {availableProviders.map((provider) => {
-              const isConnected = integrations.some(i => i.provider === provider.name)
-              return (
-                <button
-                  key={provider.id}
-                  onClick={() => handleSelectProvider(provider)}
-                  disabled={isConnected}
-                  className={`flex items-center gap-4 p-4 border rounded-lg transition-all text-left ${
-                    isConnected 
-                      ? 'opacity-50 cursor-not-allowed' 
-                      : 'hover:bg-muted/50 hover:border-primary cursor-pointer'
-                  }`}
-                >
-                  <ProviderLogo provider={provider.name} size="lg" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold">{provider.name}</p>
-                      {isConnected && (
-                        <Badge variant="secondary" className="text-xs">Connected</Badge>
-                      )}
+            {isLoadingProviders ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading integrations...</span>
+              </div>
+            ) : (
+              availableProviders.map((provider) => {
+                const isConnected = integrations.some(i => i.provider === provider.name)
+                return (
+                  <button
+                    key={provider.id}
+                    onClick={() => handleSelectProvider(provider)}
+                    disabled={isConnected}
+                    className={`flex items-center gap-4 p-4 border rounded-lg transition-all text-left ${
+                      isConnected 
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : 'hover:bg-muted/50 hover:border-primary cursor-pointer'
+                    }`}
+                  >
+                    <ProviderLogo provider={provider.name} iconUrl={provider.iconUrl} size="lg" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold">{provider.name}</p>
+                        {isConnected && (
+                          <Badge variant="secondary" className="text-xs">Connected</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{provider.description}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground">{provider.description}</p>
-                  </div>
-                  {!isConnected && (
-                    <Plus className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </button>
-              )
-            })}
+                    {!isConnected && (
+                      <Plus className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </button>
+                )
+              })
+            )}
           </div>
         </DialogContent>
       </Dialog>

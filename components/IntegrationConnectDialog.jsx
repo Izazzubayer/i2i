@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import {
@@ -13,8 +13,10 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
+import { createDamConnection } from '@/api/dam/dam'
 
 // Provider logo mapping
 const providerLogos = {
@@ -195,7 +197,74 @@ export default function IntegrationConnectDialog({ open, onOpenChange, provider,
   const [connectionStatus, setConnectionStatus] = useState('idle')
   const [formData, setFormData] = useState({})
 
-  const fields = providerFields[provider.id] || []
+  // Use fields from API if available, otherwise fall back to hardcoded fields
+  const getFieldsFromApi = () => {
+    if (provider.requiredFields) {
+      const fields = []
+      
+      console.log('🔧 Generating fields from API for provider:', provider.name)
+      console.log('📋 Required Fields:', provider.requiredFields)
+      
+      // Add only required fields
+      if (provider.requiredFields && Array.isArray(provider.requiredFields)) {
+        provider.requiredFields.forEach((fieldName) => {
+          // Determine field type based on field name
+          const isPassword = fieldName.toLowerCase().includes('password') || 
+                            fieldName.toLowerCase().includes('secret') || 
+                            fieldName.toLowerCase().includes('token') ||
+                            (fieldName.toLowerCase().includes('key') && !fieldName.toLowerCase().includes('json'))
+          
+          // Check if it's a JSON field (should be textarea)
+          const isJson = fieldName.toLowerCase().includes('json')
+          
+          // Get placeholder based on field name and defaultEndpoint
+          let placeholder = `Enter ${fieldName.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`
+          if ((fieldName === 'Endpoint' || fieldName === 'ApiUrl') && provider.defaultEndpoint) {
+            placeholder = provider.defaultEndpoint
+          } else if (fieldName === 'Workspace') {
+            placeholder = 'workspace-name'
+          } else if (fieldName === 'TargetFolder') {
+            placeholder = '/assets'
+          } else if (isJson) {
+            placeholder = '{"key": "value"}'
+          }
+          
+          // Format field label nicely (e.g., "ApiUrl" -> "Api Url", "ProjectId" -> "Project Id")
+          const formattedLabel = fieldName
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, str => str.toUpperCase())
+            .trim()
+          
+          fields.push({
+            key: fieldName,
+            label: formattedLabel,
+            type: isPassword ? 'password' : 'text',
+            isTextarea: isJson,
+            placeholder: placeholder,
+            required: true,
+          })
+        })
+      }
+      
+      console.log('✅ Generated fields:', fields)
+      return fields
+    }
+    
+    // Fallback to hardcoded fields if API doesn't provide field info
+    console.log('⚠️ Using fallback hardcoded fields for:', provider.id)
+    return providerFields[provider.id] || []
+  }
+
+  const fields = getFieldsFromApi()
+
+  // Reset form when provider changes or dialog opens
+  useEffect(() => {
+    if (open && provider) {
+      setFormData({})
+      setConnectionStatus('idle')
+      console.log('🔄 Form reset for provider:', provider.name)
+    }
+  }, [open, provider?.damSystemId])
 
   const handleFieldChange = (key, value) => {
     setFormData(prev => ({ ...prev, [key]: value }))
@@ -226,46 +295,130 @@ export default function IntegrationConnectDialog({ open, onOpenChange, provider,
     }
   }
 
+  // Map form field names (PascalCase from requiredFields) to API request body field names (camelCase)
+  // This mapping ensures form fields match the connections API request body structure
+  const mapFieldToApiFormat = (fieldName, value) => {
+    if (!value || value.trim() === '') return null
+    
+    // Special handling for Instagram AccountId -> instagramAccountId
+    if (fieldName === 'AccountId' && provider.systemCode === 'Instagram') {
+      return { instagramAccountId: value.trim() }
+    }
+    
+    // Complete mapping of all possible fields from requiredFields to connections API request body
+    // Based on: POST /api/v1/dam/connections request body structure
+    const fieldMapping = {
+      // Connection info
+      'ConnectionName': 'connectionName',
+      
+      // Endpoint/URL fields
+      'Endpoint': 'endpoint',
+      'ApiUrl': 'apiUrl',
+      
+      // Authentication fields
+      'ApiKey': 'apiKey',
+      'ApiToken': 'apiToken',
+      'ApiSecret': 'apiSecret',
+      'Username': 'username',
+      'Password': 'password',
+      'AccessToken': 'accessToken',
+      
+      // Project/Workspace fields
+      'ProjectId': 'projectId',
+      'Workspace': 'workspace',
+      'TargetFolder': 'targetFolder',
+      'AccountId': 'accountId',
+      
+      // App/Platform fields
+      'AppId': 'appId',
+      'AppSecret': 'appSecret',
+      'PageId': 'pageId',
+      'ShopDomain': 'shopDomain',
+      'StoreName': 'storeName',
+      
+      // JSON configuration fields
+      'CredentialsJson': 'credentialsJson',
+      'ConfigurationJson': 'configurationJson',
+    }
+    
+    // Use mapping if available, otherwise convert PascalCase to camelCase
+    const apiFieldName = fieldMapping[fieldName] || fieldName.charAt(0).toLowerCase() + fieldName.slice(1)
+    return { [apiFieldName]: value.trim() }
+  }
+
   const handleConnect = async () => {
     // Validate required fields
     const missingFields = fields.filter(f => f.required && !formData[f.key])
     if (missingFields.length > 0) {
-      toast.error(`Please fill in all required fields: ${missingFields.map(f => f.label).join('')}`)
-      return
-    }
-
-    if (connectionStatus !== 'success') {
-      toast.error('Please test connection first')
+      toast.error(`Please fill in all required fields: ${missingFields.map(f => f.label).join(', ')}`)
       return
     }
 
     setConnecting(true)
 
     try {
-      // Simulate saving and connecting
-      await new Promise(resolve => setTimeout(resolve1000))
-      onConnect(formData)
+      // Build API request body
+      const requestBody = {
+        damSystem: provider.systemCode || provider.damSystemId, // Use systemCode or damSystemId
+      }
+
+      // Map all form fields to API format
+      Object.keys(formData).forEach((fieldName) => {
+        const value = formData[fieldName]
+        if (value && value.trim() !== '') {
+          const mappedField = mapFieldToApiFormat(fieldName, value)
+          if (mappedField) {
+            Object.assign(requestBody, mappedField)
+          }
+        }
+      })
+
+      // Handle ConfigurationJson - if it's a JSON string, try to parse it
+      if (requestBody.configurationJson) {
+        try {
+          const parsedConfig = JSON.parse(requestBody.configurationJson)
+          requestBody.configuration = parsedConfig
+        } catch (e) {
+          // If not valid JSON, keep it as string
+          console.warn('ConfigurationJson is not valid JSON, keeping as string')
+        }
+      }
+
+      console.log('📤 Sending connection request:', requestBody)
+
+      // Call the API
+      const response = await createDamConnection(requestBody)
+      
+      console.log('✅ Connection created successfully:', response)
+      
+      // Call the onConnect callback with the response data
+      onConnect(response || formData)
       onOpenChange(false)
       setFormData({})
       setConnectionStatus('idle')
       toast.success(`${provider.name} connected successfully!`)
     } catch (error) {
-      toast.error('Failed to connect')
+      console.error('❌ Failed to connect:', error)
+      let errorMessage = 'Failed to connect. Please try again.'
+      if (error?.message) {
+        errorMessage = error.message
+      } else if (error?.data?.message) {
+        errorMessage = error.data.message
+      }
+      toast.error(errorMessage)
     } finally {
       setConnecting(false)
     }
   }
-
-  const logoPath = providerLogos[provider.name]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            {logoPath && (
+            {provider.iconUrl && (
               <Image
-                src={logoPath}
+                src={provider.iconUrl}
                 alt={`${provider.name} logo`}
                 width={32}
                 height={32}
@@ -286,14 +439,26 @@ export default function IntegrationConnectDialog({ open, onOpenChange, provider,
               <Label htmlFor={field.key}>
                 {field.label} {field.required && <span className="text-destructive">*</span>}
               </Label>
-              <Input
-                id={field.key}
-                type={field.type}
-                placeholder={field.placeholder}
-                value={formData[field.key] || ''}
-                onChange={(e) => handleFieldChange(field.keye.target.value)}
-                required={field.required}
-              />
+              {field.isTextarea ? (
+                <Textarea
+                  id={field.key}
+                  placeholder={field.placeholder}
+                  value={formData[field.key] || ''}
+                  onChange={(e) => handleFieldChange(field.key, e.target.value)}
+                  required={field.required}
+                  rows={4}
+                  className="font-mono text-sm"
+                />
+              ) : (
+                <Input
+                  id={field.key}
+                  type={field.type}
+                  placeholder={field.placeholder}
+                  value={formData[field.key] || ''}
+                  onChange={(e) => handleFieldChange(field.key, e.target.value)}
+                  required={field.required}
+                />
+              )}
             </div>
           ))}
         </div>
