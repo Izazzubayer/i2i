@@ -2334,37 +2334,29 @@ function ProcessingResultsContent() {
                 {/* 2-Column Layout */}
                 <div className="flex flex-1 overflow-hidden">
                   {/* Left Column - Image Comparison */}
-                  <div className="flex-1 flex flex-col p-6 overflow-auto">
-                    <div className="relative w-full rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                  <div className="flex-1 flex flex-col p-6 overflow-hidden">
+                    <div className="relative flex-1 rounded-lg overflow-hidden bg-muted min-h-[400px]">
                       {beforeImage && afterImage ? (
                         <BeforeAfterSliderImproved
                           beforeImage={beforeImage}
                           afterImage={afterImage}
                         />
                       ) : beforeImage ? (
-                        <div className="relative w-full flex items-center justify-center" style={{ maxHeight: 'calc(95vh - 200px)' }}>
-                          <Image
-                            src={beforeImage}
-                            alt={currentImage.originalName}
-                            width={1920}
-                            height={1080}
-                            className="object-contain w-full h-auto max-h-[calc(95vh-200px)]"
-                            unoptimized={beforeImage?.startsWith('data:') || beforeImage?.includes('storage.googleapis.com')}
-                          />
-                        </div>
+                        <Image
+                          src={beforeImage}
+                          alt={currentImage.originalName}
+                          fill
+                          className="object-contain"
+                        />
                       ) : afterImage ? (
-                        <div className="relative w-full flex items-center justify-center" style={{ maxHeight: 'calc(95vh - 200px)' }}>
-                          <Image
-                            src={afterImage}
-                            alt={currentImage.originalName}
-                            width={1920}
-                            height={1080}
-                            className="object-contain w-full h-auto max-h-[calc(95vh-200px)]"
-                            unoptimized={afterImage?.startsWith('data:') || afterImage?.includes('storage.googleapis.com')}
-                          />
-                        </div>
+                        <Image
+                          src={afterImage}
+                          alt={currentImage.originalName}
+                          fill
+                          className="object-contain"
+                        />
                       ) : (
-                        <div className="flex items-center justify-center h-[400px]">
+                        <div className="flex items-center justify-center h-full">
                           <p className="text-muted-foreground">No image available</p>
                         </div>
                       )}
