@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import AuthenticatedNav from '@/components/AuthenticatedNav'
-import { BeforeAfterSliderImproved } from '@/components/BeforeAfterSliderImproved'
 import { ImageWalkthrough } from '@/components/ImageWalkthrough'
 import {
   CheckCircle2,
@@ -20,6 +19,7 @@ import {
   Eye,
   Download,
   MoreVertical,
+  Image as ImageIcon,
   Sparkles,
   CheckCircle,
   Undo2,
@@ -104,6 +104,55 @@ function ProcessingResultsContent() {
   const [damConnectModalOpen, setDamConnectModalOpen] = useState(false)
   const [confirmedOrderData, setConfirmedOrderData] = useState(null)
   const [isUploadingToDAM, setIsUploadingToDAM] = useState(false)
+  const [imageSizes, setImageSizes] = useState({})
+
+  // Helper function to format file size
+  const formatFileSize = (bytes) => {
+    if (!bytes || bytes === 0) return 'N/A'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  // Helper function to get file type from filename or URL
+  const getFileType = (filename, url) => {
+    if (filename) {
+      const ext = filename.split('.').pop()?.toUpperCase()
+      if (ext) return ext
+    }
+    if (url) {
+      const pathname = url.split('?')[0]
+      const ext = pathname.split('.').pop()?.toUpperCase()
+      if (ext) return ext
+    }
+    return 'N/A'
+  }
+
+  // Fetch image sizes
+  useEffect(() => {
+    if (!images || images.length === 0) return
+    
+    const fetchSizes = async () => {
+      const sizes = {}
+      for (const image of images) {
+        try {
+          if (image.originalUrl) {
+            const response = await fetch(image.originalUrl, { method: 'HEAD', mode: 'cors' })
+            const contentLength = response.headers.get('content-length')
+            if (contentLength) {
+              sizes[image.id] = parseInt(contentLength, 10)
+            }
+          }
+        } catch (e) {
+          // Ignore errors, will show N/A
+        }
+      }
+      setImageSizes(sizes)
+    }
+    
+    fetchSizes()
+  }, [images])
   const [walkthroughOpen, setWalkthroughOpen] = useState(false)
   const [walkthroughTargetId, setWalkthroughTargetId] = useState(null)
   const progressToastIdRef = useRef(null)
@@ -2318,6 +2367,49 @@ function ProcessingResultsContent() {
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={async () => {
+                            try {
+                              const imageUrl = afterImage || currentImage.originalUrl
+                              if (!imageUrl) {
+                                toast.error('No image URL available')
+                                return
+                              }
+                              
+                              toast.loading('Downloading image...', { id: 'download-viewing-image' })
+                              
+                              const response = await fetch(imageUrl, {
+                                mode: 'cors',
+                                credentials: 'omit',
+                              })
+                              
+                              if (!response.ok) {
+                                throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`)
+                              }
+                              
+                              const blob = await response.blob()
+                              const url = window.URL.createObjectURL(blob)
+                              const link = document.createElement('a')
+                              link.href = url
+                              link.download = currentImage.originalName || `image-${currentImage.id}.jpg`
+                              document.body.appendChild(link)
+                              link.click()
+                              document.body.removeChild(link)
+                              window.URL.revokeObjectURL(url)
+                              
+                              toast.dismiss('download-viewing-image')
+                              toast.success('Image downloaded')
+                            } catch (error) {
+                              console.error('Error downloading image:', error)
+                              toast.dismiss('download-viewing-image')
+                              toast.error(`Failed to download image: ${error.message || 'Unknown error'}`)
+                            }
+                          }}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Download
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                     
@@ -2334,80 +2426,81 @@ function ProcessingResultsContent() {
 
                 {/* 2-Column Layout */}
                 <div className="flex flex-1 overflow-hidden">
-                  {/* Left Column - Image Comparison */}
+                  {/* Left Column - Side by Side Layout */}
                   <div className="flex-1 flex flex-col p-6 overflow-hidden">
-                    <div className="relative flex-1 rounded-lg overflow-hidden bg-muted min-h-[400px]">
-                      {beforeImage && afterImage ? (
-                        <BeforeAfterSliderImproved
-                          beforeImage={beforeImage}
-                          afterImage={afterImage}
-                        />
-                      ) : beforeImage ? (
-                        <Image
-                          src={beforeImage}
-                          alt={currentImage.originalName}
-                          fill
-                          className="object-contain"
-                        />
-                      ) : afterImage ? (
-                        <Image
-                          src={afterImage}
-                          alt={currentImage.originalName}
-                          fill
-                          className="object-contain"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center h-full">
-                          <p className="text-muted-foreground">No image available</p>
+                    <div className="grid grid-cols-[40%_60%] gap-4 h-full">
+                      {/* Left: All Images List */}
+                      <div className="flex flex-col min-h-0">
+                        <h3 className="text-sm font-medium mb-3 flex-shrink-0">All Images</h3>
+                        <ScrollArea className="h-[650px]">
+                          <div className="space-y-3">
+                            {images.map((image) => {
+                              const fileSize = imageSizes[image.id] 
+                                ? formatFileSize(imageSizes[image.id])
+                                : 'N/A'
+                              const fileType = getFileType(image.originalName, image.originalUrl)
+                              
+                              return (
+                                <Card key={image.id} className="border-border">
+                                  <CardContent className="p-4">
+                                    <div className="flex gap-4">
+                                      {/* Thumbnail */}
+                                      <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+                                        {image.originalUrl ? (
+                                          <Image
+                                            src={image.originalUrl}
+                                            alt={image.originalName}
+                                            fill
+                                            className="object-cover"
+                                            sizes="80px"
+                                          />
+                                        ) : (
+                                          <div className="flex items-center justify-center h-full">
+                                            <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                                          </div>
+                                        )}
+                                      </div>
+                                      
+                                      {/* File Details */}
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate mb-1">
+                                          {(image.originalName || `Image ${image.id}`).length > 20 
+                                            ? (image.originalName || `Image ${image.id}`).substring(0, 20) + '...'
+                                            : (image.originalName || `Image ${image.id}`)}
+                                        </p>
+                                        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                                          <p>File Size: {fileSize}</p>
+                                          <p>File Type: {fileType}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )
+                            })}
+                          </div>
+                        </ScrollArea>
+                      </div>
+
+                      {/* Right: Processed Image */}
+                      <div className="flex flex-col">
+                        <h3 className="text-sm font-medium mb-3">Processed</h3>
+                        <div className="relative flex-1 rounded-lg overflow-hidden bg-muted min-h-[400px]">
+                          {afterImage ? (
+                            <Image
+                              src={afterImage}
+                              alt={currentImage.originalName || 'Processed image'}
+                              fill
+                              className="object-contain"
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-full">
+                              <p className="text-muted-foreground">No processed image available</p>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    
-                    {/* Download Button */}
-                    <div className="mt-4 flex justify-end">
-                      <Button
-                        onClick={async () => {
-                          try {
-                            const imageUrl = afterImage || currentImage.originalUrl
-                            if (!imageUrl) {
-                              toast.error('No image URL available')
-                              return
-                            }
-                            
-                            toast.loading('Downloading image...', { id: 'download-viewing-image' })
-                            
-                            const response = await fetch(imageUrl, {
-                              mode: 'cors',
-                              credentials: 'omit',
-                            })
-                            
-                            if (!response.ok) {
-                              throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`)
-                            }
-                            
-                            const blob = await response.blob()
-                            const url = window.URL.createObjectURL(blob)
-                            const link = document.createElement('a')
-                            link.href = url
-                            link.download = currentImage.originalName || `image-${currentImage.id}.jpg`
-                            document.body.appendChild(link)
-                            link.click()
-                            document.body.removeChild(link)
-                            window.URL.revokeObjectURL(url)
-                            
-                            toast.dismiss('download-viewing-image')
-                            toast.success('Image downloaded')
-                          } catch (error) {
-                            console.error('Error downloading image:', error)
-                            toast.dismiss('download-viewing-image')
-                            toast.error(`Failed to download image: ${error.message || 'Unknown error'}`)
-                          }
-                        }}
-                        className="gap-2"
-                      >
-                        <Download className="h-4 w-4" />
-                        Download
-                      </Button>
+                      </div>
                     </div>
                   </div>
 
