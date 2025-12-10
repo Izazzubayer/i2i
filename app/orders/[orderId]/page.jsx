@@ -5,7 +5,6 @@ import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
-import { BeforeAfterSliderImproved } from '@/components/BeforeAfterSliderImproved'
 import {
   ArrowLeft,
   Download,
@@ -31,7 +30,6 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -567,6 +565,56 @@ export default function OrderDetailPage() {
     setTimeout(() => setCopiedPrompt(null), 2000)
   }
 
+  // Helper function to format file size
+  const formatFileSize = (bytes) => {
+    if (!bytes || bytes === 0) return 'N/A'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  // Helper function to get file type from filename or URL
+  const getFileType = (filename, url) => {
+    if (filename) {
+      const ext = filename.split('.').pop()?.toUpperCase()
+      if (ext) return ext
+    }
+    if (url) {
+      const pathname = url.split('?')[0]
+      const ext = pathname.split('.').pop()?.toUpperCase()
+      if (ext) return ext
+    }
+    return 'N/A'
+  }
+
+  // Helper function to get file size from URL (async)
+  const [imageSizes, setImageSizes] = useState({})
+  
+  useEffect(() => {
+    if (!displayOrder?.images) return
+    
+    const fetchSizes = async () => {
+      const sizes = {}
+      for (const image of displayOrder.images) {
+        try {
+          if (image.inputUrl) {
+            const response = await fetch(image.inputUrl, { method: 'HEAD', mode: 'cors' })
+            const contentLength = response.headers.get('content-length')
+            if (contentLength) {
+              sizes[image.id] = parseInt(contentLength, 10)
+            }
+          }
+        } catch (e) {
+          // Ignore errors, will show N/A
+        }
+      }
+      setImageSizes(sizes)
+    }
+    
+    fetchSizes()
+  }, [displayOrder?.images])
+
   const currentImage = selectedImage ? displayOrder?.images?.find(img => img.id === selectedImage) : null
   const selectedVersion = currentImage?.versions?.find(v => v.id === selectedVersionId) || 
                          currentImage?.versions?.[0] || null
@@ -834,7 +882,11 @@ export default function OrderDetailPage() {
                             </div>
                           </div>
                           <CardContent className="p-4">
-                            <p className="text-sm font-medium truncate">{image.name}</p>
+                            <p className="text-sm font-medium truncate">
+                              {image.name && image.name.length > 20 
+                                ? image.name.substring(0, 20) + '...'
+                                : image.name}
+                            </p>
                             <p className="text-xs text-muted-foreground mt-1">
                               {image.size || `Version ${image.versionNumber || 'N/A'}`}
                             </p>
@@ -913,7 +965,11 @@ export default function OrderDetailPage() {
                           )}
                         </div>
                         <CardContent className="p-4">
-                          <p className="text-sm font-medium truncate mb-2">{image.originalName}</p>
+                          <p className="text-sm font-medium truncate mb-2">
+                            {image.originalName && image.originalName.length > 20 
+                              ? image.originalName.substring(0, 20) + '...'
+                              : image.originalName}
+                          </p>
                           {image.instruction && (
                             <p className="text-xs text-muted-foreground line-clamp-2">
                               {image.instruction}
@@ -947,7 +1003,11 @@ export default function OrderDetailPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2 mb-2">
-                              <p className="text-sm font-medium truncate">{image.originalName}</p>
+                              <p className="text-sm font-medium truncate">
+                                {image.originalName && image.originalName.length > 20 
+                                  ? image.originalName.substring(0, 20) + '...'
+                                  : image.originalName}
+                              </p>
                               {getImageStatusBadge(image.status)}
                             </div>
                             {image.instruction && (
@@ -1007,65 +1067,154 @@ export default function OrderDetailPage() {
               <div className="flex-1 overflow-hidden flex flex-col">
                 <div className="flex-1 overflow-y-auto p-6">
                   <div className="grid gap-6 lg:grid-cols-2">
-                    {/* Image Viewer */}
-                    <div className="space-y-4">
-                      <div className="relative aspect-[4/3] rounded-lg overflow-hidden bg-muted border border-border">
-                        {selectedVersion && (
-                          <BeforeAfterSliderImproved
-                            beforeImage={currentImage.originalUrl}
-                            afterImage={selectedVersion.processedUrl}
-                          />
-                        )}
-                      </div>
-
-                      {/* Version Selector */}
-                      {currentImage.versions && currentImage.versions.length > 1 && (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Layers className="h-4 w-4 text-muted-foreground" />
-                            <p className="text-sm font-medium">Select Version:</p>
-                          </div>
-                          <ScrollArea className="h-32">
-                            <div className="space-y-2">
-                              {currentImage.versions.map((version, idx) => {
-                                const isSelected = selectedVersionId === version.id
-                                const versionLabel = version.isAmendment 
-                                  ? `Amendment ${currentImage.versions.filter(v => v.isAmendment).indexOf(version) + 1}`
-                                  : version.isReprocess
-                                  ? `Reprocess ${currentImage.versions.filter(v => v.isReprocess && !v.isAmendment).indexOf(version) + 1}`
-                                  : 'Original Processed'
-                                
-                                return (
-                                  <button
-                                    key={version.id}
-                                    onClick={() => setSelectedVersionId(version.id)}
-                                    className={`w-full p-3 rounded-lg border text-left transition-all ${
-                                      isSelected
-                                        ? 'border-foreground bg-muted'
-                                        : 'border-border hover:bg-muted/50'
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium truncate">{versionLabel}</p>
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                          {formatDate(version.timestamp)}
-                                        </p>
+                    {/* Left Column: Image Viewer */}
+                    <div className="flex gap-4 h-full">
+                      {/* All Images List - Narrow Vertical Strip */}
+                      <div className="flex flex-col w-9 flex-shrink-0">
+                        <h3 className="text-[10px] font-medium mb-2 text-center">All Images</h3>
+                        <ScrollArea className="flex-1 h-full">
+                          <div className="space-y-2">
+                            {displayOrder?.images?.map((image) => {
+                              const truncatedName = image.name 
+                                ? (image.name.length > 20 ? image.name.substring(0, 20) + '...' : image.name)
+                                : `Image ${image.id?.substring(0, 8) || ''}`
+                              
+                              return (
+                                <div
+                                  key={image.id}
+                                  className="group relative cursor-pointer"
+                                  onClick={() => {
+                                    setSelectedImage(image.id)
+                                    setSelectedVersionId(image.versions?.[0]?.id || null)
+                                  }}
+                                >
+                                  {/* Thumbnail */}
+                                  <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted border border-border hover:border-foreground/50 transition-colors mb-1">
+                                    {image.inputUrl ? (
+                                      <Image
+                                        src={image.inputUrl}
+                                        alt={image.name}
+                                        fill
+                                        className="object-cover"
+                                        sizes="36px"
+                                      />
+                                    ) : (
+                                      <div className="flex items-center justify-center h-full">
+                                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
                                       </div>
-                                      {isSelected && (
-                                        <CheckCircle2 className="h-4 w-4 text-foreground flex-shrink-0 ml-2" />
+                                    )}
+                                  </div>
+                                  
+                                  {/* Truncated Filename */}
+                                  <p className="text-[9px] text-muted-foreground truncate text-center leading-tight" title={image.name}>
+                                    {truncatedName}
+                                  </p>
+                                  
+                                  {/* Hover Preview */}
+                                  <div className="absolute left-full ml-3 top-0 z-50 hidden group-hover:block pointer-events-none">
+                                    <div className="relative w-64 h-64 rounded-lg overflow-hidden bg-background border-2 border-border shadow-xl">
+                                      {image.inputUrl ? (
+                                        <Image
+                                          src={image.inputUrl}
+                                          alt={image.name}
+                                          fill
+                                          className="object-contain"
+                                          sizes="256px"
+                                        />
+                                      ) : (
+                                        <div className="flex items-center justify-center h-full">
+                                          <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                                        </div>
                                       )}
                                     </div>
-                                  </button>
-                                )
-                              })}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </ScrollArea>
+                      </div>
+
+                      {/* Processed Image */}
+                      <div className="flex flex-col flex-1">
+                        <h3 className="text-sm font-medium mb-3">Processed</h3>
+                        <div className="relative flex-1 rounded-lg overflow-hidden bg-muted border border-border min-h-[400px]">
+                          {selectedVersion?.processedUrl ? (
+                            <Image
+                              src={selectedVersion.processedUrl}
+                              alt={currentImage.name || 'Processed image'}
+                              fill
+                              className="object-contain"
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            />
+                          ) : currentImage?.processedUrl ? (
+                            <Image
+                              src={currentImage.processedUrl}
+                              alt={currentImage.name || 'Processed image'}
+                              fill
+                              className="object-contain"
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-full">
+                              <p className="text-muted-foreground">No processed image available</p>
                             </div>
-                          </ScrollArea>
+                          )}
                         </div>
-                      )}
+                        
+                        {/* Version Selector */}
+                        {currentImage.versions && currentImage.versions.length > 1 && (
+                          <div className="space-y-3 mt-4">
+                            <div className="flex items-center gap-2">
+                              <Layers className="h-4 w-4 text-muted-foreground" />
+                              <p className="text-sm font-medium">Select Version:</p>
+                            </div>
+                            <ScrollArea className="h-32">
+                              <div className="space-y-2">
+                                {currentImage.versions.map((version, idx) => {
+                                  const isSelected = selectedVersionId === version.id
+                                  const versionLabel = version.isAmendment 
+                                    ? `Amendment ${currentImage.versions.filter(v => v.isAmendment).indexOf(version) + 1}`
+                                    : version.isReprocess
+                                    ? `Reprocess ${currentImage.versions.filter(v => v.isReprocess && !v.isAmendment).indexOf(version) + 1}`
+                                    : 'Original Processed'
+                                  
+                                  return (
+                                    <button
+                                      key={version.id}
+                                      onClick={() => setSelectedVersionId(version.id)}
+                                      className={`w-full p-3 rounded-lg border text-left transition-all ${
+                                        isSelected
+                                          ? 'border-foreground bg-muted'
+                                          : 'border-border hover:bg-muted/50'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm font-medium truncate">
+                                            {versionLabel && versionLabel.length > 20 
+                                              ? versionLabel.substring(0, 20) + '...'
+                                              : versionLabel}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            {formatDate(version.timestamp)}
+                                          </p>
+                                        </div>
+                                        {isSelected && (
+                                          <CheckCircle2 className="h-4 w-4 text-foreground flex-shrink-0 ml-2" />
+                                        )}
+                                      </div>
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </ScrollArea>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Details Panel */}
+                    {/* Right Column: Details Panel */}
                     <div className="space-y-4">
                       {/* Instructions */}
                       {currentImage.instruction && (
