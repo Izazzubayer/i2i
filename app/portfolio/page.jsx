@@ -353,16 +353,6 @@ export default function PortfolioPage() {
                     <h3 className="text-xl font-bold text-white">
                       {item.title}
                     </h3>
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {item.tags.slice(0, 3).map((tag) => (
-                        <span 
-                          key={tag}
-                          className="text-xs text-zinc-300"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
                     <button
                       className="mt-3 text-sm text-white underline hover:text-zinc-200 transition-colors"
                       onClick={(e) => {
@@ -373,14 +363,6 @@ export default function PortfolioPage() {
                       View Prompt
                     </button>
                   </div>
-                </div>
-
-                {/* Category Icon Badge */}
-                <div className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm dark:bg-zinc-900/90">
-                  {(() => {
-                    const Icon = categories.find(c => c.id === item.category)?.icon || Sparkles
-                    return <Icon className="h-5 w-5 text-zinc-900 dark:text-zinc-100" />
-                  })()}
                 </div>
               </motion.div>
             )

@@ -63,6 +63,7 @@ export default function OrderDetailPage() {
   const [uploadingToDAM, setUploadingToDAM] = useState(false)
   const [copiedPrompt, setCopiedPrompt] = useState(null)
   const [selectedDams, setSelectedDams] = useState([]) // Track selected DAMs for this order
+  const [showSummary, setShowSummary] = useState(false)
 
   // Fetch order details from API
   useEffect(() => {

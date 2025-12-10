@@ -41,35 +41,57 @@ import {
 import DamConnectDialog from '@/components/DamConnectDialog'
 import IntegrationConnectDialog from '@/components/IntegrationConnectDialog'
 
-// Note: Icons are now loaded from API iconUrl field only
-// If iconUrl is null, no icon will be displayed
+// Provider logo mapping (fallback for when API doesn't provide iconUrl)
+const providerLogos = {
+  'Creative Force': '/logos/integrations/creative-force.png',
+  'Dalim': '/logos/integrations/dalim.png',
+  'Spin Me': '/logos/integrations/spin-me.png',
+  'Facebook': '/logos/integrations/facebook.png',
+  'Instagram': '/logos/integrations/instagram.png',
+  'Shopify': '/logos/integrations/shopify.png',
+  'GlobalEdit': '/logos/integrations/globaledit.png',
+}
 
 // Provider Logo Component
-// Only displays icon if iconUrl is provided from API
-// If iconUrl is null/empty/not provided, returns null (blank)
+// First tries iconUrl from API, then falls back to local logo mapping
 const ProviderLogo = ({ provider, iconUrl, size = 'md' }) => {
-  // Only use iconUrl from API if it's valid (not null, not empty, not 'null' string)
+  const sizeClasses = {
+    sm: 'h-5 w-5',
+    md: 'h-6 w-6',
+    lg: 'h-8 w-8',
+  }
+  
+  // Try API iconUrl first
   if (iconUrl && typeof iconUrl === 'string' && iconUrl.trim() !== '' && iconUrl !== 'null') {
-    const sizeClasses = {
-      sm: 'h-5 w-5',
-      md: 'h-6 w-6',
-      lg: 'h-8 w-8',
-    }
-    
     return (
       <Image
         src={iconUrl}
         alt={`${provider} logo`}
         width={size === 'lg' ? 32 : size === 'md' ? 24 : 20}
         height={size === 'lg' ? 32 : size === 'md' ? 24 : 20}
-        className={`${sizeClasses[size]} object-contain`}
+        className={`${sizeClasses[size]} object-contain rounded`}
         unoptimized
       />
     )
   }
   
-  // Return null (blank) if no iconUrl from API
-  return null
+  // Fallback to local logo mapping
+  const logoPath = providerLogos[provider]
+  if (logoPath) {
+    return (
+      <Image
+        src={logoPath}
+        alt={`${provider} logo`}
+        width={size === 'lg' ? 32 : size === 'md' ? 24 : 20}
+        height={size === 'lg' ? 32 : size === 'md' ? 24 : 20}
+        className={`${sizeClasses[size]} object-contain rounded`}
+        unoptimized
+      />
+    )
+  }
+  
+  // Final fallback to generic icon
+  return <Cog className={`${sizeClasses[size]} text-muted-foreground`} />
 }
 
 export default function IntegrationsPage() {

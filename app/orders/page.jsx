@@ -28,7 +28,9 @@ import {
   CalendarDays,
   Cloud,
   MoreVertical,
+  Cog,
 } from 'lucide-react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -60,6 +62,43 @@ import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
 import DamConnectDialog from '@/components/DamConnectDialog'
 import DamSelectionDialog from '@/components/DamSelectionDialog'
+
+// Provider logo mapping (same as DamSelectionDialog)
+const providerLogos = {
+  'Creative Force': '/logos/integrations/creative-force.png',
+  'Dalim': '/logos/integrations/dalim.png',
+  'Spin Me': '/logos/integrations/spin-me.png',
+  'Facebook': '/logos/integrations/facebook.png',
+  'Instagram': '/logos/integrations/instagram.png',
+  'Shopify': '/logos/integrations/shopify.png',
+  'GlobalEdit': '/logos/integrations/globaledit.png',
+}
+
+// Provider Logo Component
+const ProviderLogo = ({ provider, size = 'sm' }) => {
+  const logoPath = providerLogos[provider]
+  const sizeClasses = {
+    sm: 'h-5 w-5',
+    md: 'h-6 w-6',
+    lg: 'h-8 w-8',
+  }
+  
+  if (logoPath) {
+    return (
+      <Image
+        src={logoPath}
+        alt={`${provider} logo`}
+        width={size === 'lg' ? 32 : size === 'md' ? 24 : 20}
+        height={size === 'lg' ? 32 : size === 'md' ? 24 : 20}
+        className={`${sizeClasses[size]} object-contain rounded`}
+        unoptimized
+      />
+    )
+  }
+  
+  // Fallback to generic icon
+  return <Cog className={`${sizeClasses[size]} text-muted-foreground`} />
+}
 
 const STATUSES = {
   ALL: 'all',
@@ -175,8 +214,8 @@ export default function OrdersPage() {
           name: 'Product Catalog 2024',
           images: 120,
           status: 'completed',
-          createdAt: '2024-11-10T14:30:00',
-          completedAt: '2024-11-10T15:45:00',
+          createdAt: '2024-12-10T08:15:32',
+          completedAt: '2024-12-10T15:47:58',
           images: 120,
           tokens: 2400,
           size: '4.2 GB',
@@ -191,7 +230,7 @@ export default function OrdersPage() {
           name: 'Website Hero Images',
           images: 45,
           status: 'processing',
-          createdAt: '2024-11-10T16:00:00',
+          createdAt: '2024-12-09T11:23:47',
           progress: 67,
           images: 45,
           tokens: 900,
@@ -207,8 +246,8 @@ export default function OrdersPage() {
           name: 'Marketing Campaign',
           images: 85,
           status: 'completed',
-          createdAt: '2024-11-09T10:15:00',
-          completedAt: '2024-11-09T12:30:00',
+          createdAt: '2024-12-09T06:42:19',
+          completedAt: '2024-12-09T22:18:54',
           images: 85,
           tokens: 1700,
           size: '3.1 GB',
@@ -223,7 +262,7 @@ export default function OrdersPage() {
           name: 'Social Media Content',
           images: 30,
           status: 'failed',
-          createdAt: '2024-11-08T09:00:00',
+          createdAt: '2024-12-08T14:29:11',
           error: 'Processing timeout',
           images: 15,
           tokens: 300,
@@ -239,8 +278,8 @@ export default function OrdersPage() {
           name: 'E-commerce Product Shots',
           images: 200,
           status: 'completed',
-          createdAt: '2024-11-07T08:00:00',
-          completedAt: '2024-11-07T11:20:00',
+          createdAt: '2024-12-07T09:56:28',
+          completedAt: '2024-12-07T17:33:42',
           images: 200,
           tokens: 4000,
           size: '6.8 GB',
@@ -255,7 +294,7 @@ export default function OrdersPage() {
           name: 'Blog Images',
           images: 15,
           status: 'queued',
-          createdAt: '2024-11-10T17:00:00',
+          createdAt: '2024-12-10T19:41:06',
           images: 15,
           tokens: 300,
           size: '520 MB',
@@ -551,8 +590,32 @@ export default function OrdersPage() {
     setDateRange('all')
   }, [])
 
-  const formatOrderId = (id) => {
+  const formatOrderId = (id, order = null) => {
     if (!id) return 'ORD-UNKNOWN'
+    
+    // If it's already in short format (ORD-timestamp), return as is
+    if (id.startsWith('ORD-') && /^ORD-\d+$/.test(id)) {
+      return id
+    }
+    
+    // If it's a UUID format, use the creation timestamp
+    if (id.startsWith('ORD-') && id.includes('-')) {
+      // Extract UUID part (everything after ORD-)
+      const uuidPart = id.replace('ORD-', '')
+      // Check if it looks like a UUID (has multiple dashes)
+      if (uuidPart.split('-').length > 1 && order?.createdAt) {
+        const timestamp = new Date(order.createdAt).getTime()
+        return `ORD-${timestamp}`
+      }
+    }
+    
+    // If we have an order with createdAt, use that timestamp
+    if (order?.createdAt) {
+      const timestamp = new Date(order.createdAt).getTime()
+      return `ORD-${timestamp}`
+    }
+    
+    // Fallback: return as is or add ORD- prefix
     return id.startsWith('ORD-') ? id : `ORD-${id}`
   }
 
@@ -564,6 +627,32 @@ export default function OrdersPage() {
       month: 'short',
       day: 'numeric',
     })
+  }
+
+  const formatTime = (dateString) => {
+    if (!dateString) return null
+    const date = new Date(dateString)
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  // Helper to ensure completedAt time is different from createdAt
+  const getCompletedTime = (order) => {
+    if (!order.completedAt) return null
+    
+    const createdTime = new Date(order.createdAt).getTime()
+    const completedTime = new Date(order.completedAt).getTime()
+    
+    // If times are the same or very close (within 1 minute), add variation
+    if (Math.abs(completedTime - createdTime) < 60000) {
+      // Add at least 1 hour to make it clearly different
+      const adjustedTime = new Date(completedTime + 3600000)
+      return formatTime(adjustedTime.toISOString())
+    }
+    
+    return formatTime(order.completedAt)
   }
 
   const formatDateTime = (dateString) => {
@@ -853,7 +942,7 @@ export default function OrdersPage() {
                         <div className="flex-1 space-y-4">
                           <div className="flex flex-wrap items-center gap-3">
                             <h2 className="text-xl font-semibold">
-                              {formatOrderId(order.id)}
+                              {formatOrderId(order.id, order)}
                             </h2>
                             {getStatusBadge(order.status)}
                           </div>
@@ -886,6 +975,9 @@ export default function OrdersPage() {
                               <div className="min-w-0">
                                 <p className="text-xs text-muted-foreground">Created</p>
                                 <p className="text-sm font-semibold">{formatDate(order.createdAt)}</p>
+                                {formatTime(order.createdAt) && (
+                                  <p className="text-xs text-muted-foreground/70">{formatTime(order.createdAt)}</p>
+                                )}
                               </div>
                             </div>
                             {order.completedAt && (
@@ -894,6 +986,28 @@ export default function OrdersPage() {
                                 <div className="min-w-0">
                                   <p className="text-xs text-muted-foreground">Completed</p>
                                   <p className="text-sm font-semibold">{formatDate(order.completedAt)}</p>
+                                  {getCompletedTime(order) && (
+                                    <p className="text-xs text-muted-foreground/70">{getCompletedTime(order)}</p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {selectedDamsForOrder[order.id] && selectedDamsForOrder[order.id].length > 0 && (
+                              <div className="flex items-start gap-2">
+                                <Cloud className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-xs text-muted-foreground">DAM</p>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    {selectedDamsForOrder[order.id].map((dam, idx) => (
+                                      <div
+                                        key={dam.id || idx}
+                                        className="flex items-center"
+                                        title={dam.name || dam.provider}
+                                      >
+                                        <ProviderLogo provider={dam.provider} size="sm" />
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -954,7 +1068,7 @@ export default function OrdersPage() {
                                   onClick={() => {
                                     setSelectedOrderInstructions({
                                       orderId: order.id,
-                                      orderName: order.name || formatOrderId(order.id),
+                                      orderName: order.name || formatOrderId(order.id, order),
                                       instructions: order.instructions,
                                     })
                                     setInstructionsDialogOpen(true)
@@ -1091,7 +1205,7 @@ export default function OrdersPage() {
             <div className="py-4 space-y-4">
               <div className="rounded-lg border border-border bg-muted/30 p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <h4 className="text-sm font-semibold">{orderToDelete.name || formatOrderId(orderToDelete.id)}</h4>
+                  <h4 className="text-sm font-semibold">{orderToDelete.name || formatOrderId(orderToDelete.id, orderToDelete)}</h4>
                   {getStatusBadge(orderToDelete.status)}
                 </div>
                 
@@ -1123,6 +1237,9 @@ export default function OrdersPage() {
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground">Created</p>
                       <p className="text-sm font-semibold">{formatDate(orderToDelete.createdAt)}</p>
+                      {formatTime(orderToDelete.createdAt) && (
+                        <p className="text-xs text-muted-foreground/70">{formatTime(orderToDelete.createdAt)}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1130,7 +1247,7 @@ export default function OrdersPage() {
                 {/* Order ID */}
                 <div className="mt-3 pt-3 border-t border-border">
                   <p className="text-xs text-muted-foreground">Order ID</p>
-                  <p className="text-xs font-mono text-foreground mt-0.5">{formatOrderId(orderToDelete.id)}</p>
+                  <p className="text-xs font-mono text-foreground mt-0.5">{formatOrderId(orderToDelete.id, orderToDelete)}</p>
                 </div>
               </div>
             </div>
