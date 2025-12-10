@@ -47,7 +47,24 @@ push_to_git() {
     
     # Push to GitHub (main branch)
     echo -e "${BLUE}Pushing to GitHub (branch: main)...${NC}"
-    git push "$github_remote" main
+    current_branch=$(git branch --show-current)
+    
+    # If not on main, we need to push current branch to main
+    if [ "$current_branch" != "main" ]; then
+        echo -e "${YELLOW}⚠ Currently on '$current_branch' branch. Pushing to main...${NC}"
+        git push "$github_remote" "$current_branch:main" || {
+            echo -e "${YELLOW}⚠ Direct push failed. Trying force push...${NC}"
+            read -p "Force push to main? (y/n): " force_confirm
+            if [ "$force_confirm" = "y" ]; then
+                git push "$github_remote" "$current_branch:main" --force
+            else
+                echo -e "${RED}Push cancelled${NC}"
+                exit 1
+            fi
+        }
+    else
+        git push "$github_remote" main
+    fi
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ Successfully pushed to GitHub!${NC}"
