@@ -49,8 +49,7 @@ push_to_git() {
     if ! git remote get-url github &>/dev/null; then
         git remote add github https://github.com/Izazzubayer/i2i.git
     fi
-    current_branch=$(git branch --show-current)
-    git push github "$current_branch"
+    git push github main
     echo "✅ Pushed to GitHub!"
 }
 

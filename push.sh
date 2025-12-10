@@ -45,12 +45,9 @@ push_to_git() {
     fi
     github_remote="github"
     
-    # Get current branch
-    current_branch=$(git branch --show-current)
-    
-    # Push to GitHub
-    echo -e "${BLUE}Pushing to GitHub (branch: $current_branch)...${NC}"
-    git push "$github_remote" "$current_branch"
+    # Push to GitHub (main branch)
+    echo -e "${BLUE}Pushing to GitHub (branch: main)...${NC}"
+    git push "$github_remote" main
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ Successfully pushed to GitHub!${NC}"
