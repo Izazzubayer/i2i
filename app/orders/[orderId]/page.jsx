@@ -38,6 +38,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
 import { getOrderDetails } from '@/api'
@@ -62,6 +63,7 @@ export default function OrderDetailPage() {
   const [copiedPrompt, setCopiedPrompt] = useState(null)
   const [selectedDams, setSelectedDams] = useState([]) // Track selected DAMs for this order
   const [showSummary, setShowSummary] = useState(false)
+  const [imageSizes, setImageSizes] = useState({})
 
   // Fetch order details from API
   useEffect(() => {
@@ -246,6 +248,31 @@ export default function OrderDetailPage() {
       amendment: displayOrder.images.filter(img => img.status === 'amendment' || img.status === 'needs-retouch'),
       deleted: displayOrder.images.filter(img => img.status === 'deleted'),
     }
+  }, [displayOrder?.images])
+
+  // Fetch image sizes - must be before early returns
+  useEffect(() => {
+    if (!displayOrder?.images) return
+    
+    const fetchSizes = async () => {
+      const sizes = {}
+      for (const image of displayOrder.images) {
+        try {
+          if (image.inputUrl) {
+            const response = await fetch(image.inputUrl, { method: 'HEAD', mode: 'cors' })
+            const contentLength = response.headers.get('content-length')
+            if (contentLength) {
+              sizes[image.id] = parseInt(contentLength, 10)
+            }
+          }
+        } catch (e) {
+          // Ignore errors, will show N/A
+        }
+      }
+      setImageSizes(sizes)
+    }
+    
+    fetchSizes()
   }, [displayOrder?.images])
 
   const getStatusBadge = (status, orderData = null) => {
@@ -587,33 +614,6 @@ export default function OrderDetailPage() {
     }
     return 'N/A'
   }
-
-  // Helper function to get file size from URL (async)
-  const [imageSizes, setImageSizes] = useState({})
-  
-  useEffect(() => {
-    if (!displayOrder?.images) return
-    
-    const fetchSizes = async () => {
-      const sizes = {}
-      for (const image of displayOrder.images) {
-        try {
-          if (image.inputUrl) {
-            const response = await fetch(image.inputUrl, { method: 'HEAD', mode: 'cors' })
-            const contentLength = response.headers.get('content-length')
-            if (contentLength) {
-              sizes[image.id] = parseInt(contentLength, 10)
-            }
-          }
-        } catch (e) {
-          // Ignore errors, will show N/A
-        }
-      }
-      setImageSizes(sizes)
-    }
-    
-    fetchSizes()
-  }, [displayOrder?.images])
 
   const currentImage = selectedImage ? displayOrder?.images?.find(img => img.id === selectedImage) : null
   const selectedVersion = currentImage?.versions?.find(v => v.id === selectedVersionId) || 
