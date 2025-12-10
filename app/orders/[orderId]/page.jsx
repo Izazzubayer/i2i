@@ -436,7 +436,6 @@ export default function OrderDetailPage() {
     }
   }
 
-
   if (loading) {
     return (
       <main className="min-h-screen bg-background">

@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Navbar from '@/components/Navbar'
 import { 
   Upload, 
   MessageSquare, 
@@ -127,6 +128,7 @@ const features = [
 export default function HowI2IWorksPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900">
+      <Navbar />
       {/* Hero Section */}
       <section className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="container px-4 py-20 md:py-32">
