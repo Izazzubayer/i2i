@@ -331,12 +331,12 @@ export default function Navbar() {
             <Link href="/" className="flex items-center gap-2">
               <Image
                 src="/logo.png"
-                alt="i2i Logo"
+                alt="Omnimage Logo"
                 width={40}
                 height={40}
                 className="h-10 w-10 object-contain"
               />
-              <span className="text-xl font-bold">i2i</span>
+              <span className="text-xl font-bold">Omnimage</span>
             </Link>
           </div>
         </div>
@@ -357,14 +357,14 @@ export default function Navbar() {
             >
               <Image
                 src="/logo.png"
-                alt="i2i Logo"
+                alt="Omnimage Logo"
                 width={40}
                 height={40}
                 className="h-10 w-10 object-contain"
               />
             </motion.div>
             <span className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-              i2i
+              Omnimage
             </span>
           </Link>
 

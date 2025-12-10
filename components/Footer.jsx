@@ -12,12 +12,12 @@ export default function Footer() {
             <div className="mb-4 flex items-center gap-2">
               <Image
                 src="/logo.png"
-                alt="i2i Logo"
+                alt="Omnimage Logo"
                 width={32}
                 height={32}
                 className="h-8 w-8 object-contain"
               />
-              <span className="text-lg font-bold text-zinc-900 dark:text-zinc-50">i2i</span>
+              <span className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Omnimage</span>
             </div>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               AI-powered image processing for modern businesses
@@ -90,7 +90,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-12 border-t border-zinc-200 dark:border-zinc-800 pt-8 text-center text-sm text-zinc-600 dark:text-zinc-400">
-          <p>&copy; {new Date().getFullYear()} i2i. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Omnimage. All rights reserved.</p>
         </div>
       </div>
     </footer>

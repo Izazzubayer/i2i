@@ -1,5 +1,6 @@
 'use client'
 
+import Navbar from '@/components/Navbar'
 import {
   Accordion,
   AccordionContent,
@@ -175,6 +176,7 @@ const faqData = {
 export default function FAQPage() {
   return (
     <div className="min-h-screen bg-background">
+      <Navbar />
       <div className="container mx-auto px-4 py-10 space-y-8 max-w-4xl">
         <div>
           <h1 className="text-3xl font-bold leading-tight">Frequently Asked Questions</h1>

@@ -40,7 +40,8 @@ import {
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
 import { formatFileSize } from '@/lib/utils'
-import { startOrder, processOrder, confirmOrder } from '@/api'
+import { confirmOrder } from '@/api'
+import { setPendingOrder } from '@/lib/storage'
 import { 
   FaFilePdf, 
   FaFileWord, 
@@ -1224,87 +1225,50 @@ export default function PageChat() {
                     
                     const instruction = editableText || input
                     
-                    try {
-                      // Start order
-                      toast.loading('Starting order...', { id: 'order-start' })
-                      const orderResponse = await startOrder()
-                      const orderId = orderResponse.orderId
-                      const orderNumber = orderResponse.orderNumber
-                      
-                      toast.success('Order started successfully', { id: 'order-start' })
-                      
-                      // Process each image
-                      toast.loading(`Processing ${allImages.length} image(s)...`, { id: 'order-process' })
-                      
-                      let successCount = 0
-                      let errorCount = 0
-                      
-                      for (let i = 0; i < allImages.length; i++) {
-                        const image = allImages[i]
-                        try {
-                          const processResponse = await processOrder({
-                            orderId: orderId,
-                            image: image,
-                            prompt: instruction || '',
-                          })
-                          
-                          successCount++
-                          toast.success(`Image ${i + 1}/${allImages.length} processed`, { 
-                            id: `image-${i}`,
-                            duration: 2000 
-                          })
-                        } catch (error) {
-                          console.error(`Error processing image ${i + 1}:`, error)
-                          errorCount++
-                          toast.error(`Failed to process image ${i + 1}: ${error.message || 'Unknown error'}`, {
-                            id: `image-${i}`,
-                            duration: 3000
+                    // Store images and instructions for processing-results page
+                    // Convert File objects to data that can be stored
+                    const imagesData = await Promise.all(
+                      allImages.map(async (file) => {
+                        return {
+                          name: file.name,
+                          size: file.size,
+                          type: file.type,
+                          lastModified: file.lastModified,
+                          // Store as data URL for transfer
+                          dataUrl: await new Promise((resolve) => {
+                            const reader = new FileReader()
+                            reader.onload = (e) => resolve(e.target?.result)
+                            reader.readAsDataURL(file)
                           })
                         }
-                      }
-                      
-                      // Show final status
-                      if (errorCount === 0) {
-                        toast.success(`All ${allImages.length} image(s) processed successfully`, { id: 'order-process' })
-                      } else if (successCount > 0) {
-                        toast.warning(`${successCount} processed, ${errorCount} failed`, { id: 'order-process' })
-                      } else {
-                        toast.error('All images failed to process', { id: 'order-process' })
-                        return // Don't navigate if all failed
-                      }
-                      
-                      // Close modal and clear state
-                      setShowAnalysisModal(false)
-                      setIsAnalyzing(false)
-                      setParaphrasedText('')
-                      setEditableText('')
-                      setInput('')
-                      setUploadedImages([])
-                      setAttachedFiles([])
-                      
-                      // Navigate to processing results page with orderId
-                      // The processing-results page will fetch order details from API
-                      router.push(`/processing-results?orderId=${orderId}`)
-                    } catch (error) {
-                      console.error('Error processing order:', error)
-                      
-                      // Handle authentication errors
-                      if (error?.status === 401) {
-                        toast.error('Your session has expired. Please sign in again.', {
-                          id: 'order-process',
-                          duration: 5000
-                        })
-                        // Redirect to sign-in after a delay
-                        setTimeout(() => {
-                          router.push('/sign-in')
-                        }, 2000)
-                        return
-                      }
-                      toast.error(`Failed to process order: ${error.message || 'Unknown error'}`, {
-                        id: 'order-error',
-                        duration: 5000
                       })
+                    )
+                    
+                    // Store in sessionStorage (with IndexedDB fallback for large data)
+                    try {
+                      await setPendingOrder({
+                        images: imagesData,
+                        instruction: instruction,
+                        timestamp: Date.now()
+                      })
+                    } catch (error) {
+                      console.error('Failed to store order data:', error)
+                      toast.error(error.message || 'Failed to store order data. Please try with fewer images.')
+                      return
                     }
+                    
+                    // Close modal and clear state
+                    setShowAnalysisModal(false)
+                    setIsAnalyzing(false)
+                    setParaphrasedText('')
+                    setEditableText('')
+                    setInput('')
+                    setUploadedImages([])
+                    setAttachedFiles([])
+                    
+                    // Navigate to processing results page
+                    // The processing-results page will handle starting order, uploading, and processing
+                    router.push('/processing-results')
                   }}
                 >
                   Confirm & Process
