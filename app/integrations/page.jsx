@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
-import { getDamSystems } from '@/api/dam/dam'
+import { getDamSystems, getDamConnections } from '@/api/dam/dam'
 import { Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -149,6 +149,129 @@ export default function IntegrationsPage() {
     fetchDamSystems()
   }, [])
 
+  // Fetch DAM connections from API
+  const fetchConnections = useCallback(async () => {
+    try {
+      const response = await getDamConnections()
+      
+      if (response && response.connections) {
+        // Map API response to integration format
+        const mappedIntegrations = response.connections.map((connection) => {
+          // Try to infer systemCode if it's null
+          let inferredSystemCode = connection.systemCode
+          
+          // If systemCode is null, try to infer from configuration or endpoint
+          if (!inferredSystemCode) {
+            // Check for SFTP/FTP characteristics (Username, Password, Port)
+            if (connection.configuration?.Username && 
+                connection.configuration?.Password && 
+                connection.configuration?.Port !== undefined) {
+              // Check if endpoint suggests SFTP (usually port 22) or FTP (usually port 21)
+              const port = connection.configuration.Port
+              if (port === 22) {
+                inferredSystemCode = 'SFTP'
+              } else if (port === 21) {
+                inferredSystemCode = 'FTP'
+              } else {
+                // Default to SFTP if port is not 21
+                inferredSystemCode = 'SFTP'
+              }
+            }
+            // Check for Shopify
+            else if (connection.endpoint && connection.endpoint.includes('shopify')) {
+              inferredSystemCode = 'Shopify'
+            }
+          }
+          
+          // Find provider from availableProviders using systemCode
+          let provider = null
+          let systemName = 'Unknown'
+          let systemCode = inferredSystemCode
+          
+          if (systemCode) {
+            provider = availableProviders.find(p => 
+              p.systemCode === systemCode || 
+              p.damSystemId === systemCode
+            )
+            if (provider) {
+              systemName = provider.name // Use systemName from systems API
+              systemCode = provider.systemCode // Use the correct systemCode from provider
+            } else {
+              // Provider not found in availableProviders, use systemCode as name
+              systemName = systemCode
+            }
+          }
+          
+          // Extract display name from configuration
+          let displayName = connection.connectionName
+          
+          if (!displayName) {
+            // Use Username for SFTP/FTP
+            if ((systemName === 'SFTP' || systemName === 'FTP') && connection.configuration?.Username) {
+              displayName = `${systemName} - ${connection.configuration.Username}`
+            }
+            // For Shopify: use StoreName or shopDomain
+            else if (systemName === 'Shopify') {
+              const storeName = connection.configuration?.StoreName || 
+                               connection.configuration?.ShopDomain?.split('.')[0] ||
+                               connection.shopDomain?.split('.')[0] ||
+                               connection.endpoint?.match(/https?:\/\/([^.]+)\./)?.[1] ||
+                               'default'
+              displayName = `${systemName} - ${storeName}`
+            }
+            // For other systems: use endpoint or default
+            else {
+              const identifier = connection.configuration?.StoreName ||
+                               connection.configuration?.Username ||
+                               connection.endpoint?.match(/https?:\/\/([^.]+)\./)?.[1] ||
+                               connection.endpoint?.split('/').pop() ||
+                               'default'
+              displayName = `${systemName} - ${identifier}`
+            }
+          }
+          
+          // Extract workspace/identifier for subtitle
+          const workspace = connection.workspace || 
+                           connection.configuration?.Username ||
+                           connection.configuration?.StoreName ||
+                           connection.configuration?.shopDomain?.split('.')[0] ||
+                           connection.endpoint?.match(/https?:\/\/([^.]+)\./)?.[1] ||
+                           'default'
+          
+          return {
+            id: connection.connectionId,
+            name: displayName,
+            provider: systemName, // Use systemName from systems API
+            systemCode: systemCode, // Store systemCode for matching
+            status: connection.isActive ? 'connected' : 'disconnected',
+            workspace: workspace,
+            targetFolder: connection.targetFolder || '/uploads',
+            totalUploads: 0, // These would come from other API calls
+            totalDownloads: 0,
+            createdAt: connection.createdAt 
+              ? new Date(connection.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            // Store full connection data for details
+            connectionData: connection,
+          }
+        })
+        
+        setIntegrations(mappedIntegrations)
+        console.log('✅ Loaded DAM connections:', mappedIntegrations)
+      }
+    } catch (error) {
+      console.error('❌ Error fetching DAM connections:', error)
+      // Don't show error toast on initial load, just log it
+    }
+  }, [availableProviders])
+
+  // Fetch connections on mount and when availableProviders change
+  useEffect(() => {
+    if (availableProviders.length > 0) {
+      fetchConnections()
+    }
+  }, [availableProviders.length, fetchConnections])
+
   const handleDisconnect = () => {
     if (!selectedIntegration) return
     
@@ -170,22 +293,12 @@ export default function IntegrationsPage() {
     }
   }
 
-  const handleIntegrationConnect = (apiResponse) => {
+  const handleIntegrationConnect = async (apiResponse) => {
     if (!selectedProvider) return
 
-    // Use data from API response if available, otherwise use form data
-    const newIntegration = {
-      id: apiResponse?.connectionId || Date.now().toString(),
-      name: apiResponse?.connectionName || `${selectedProvider.name} Integration`,
-      provider: selectedProvider.name,
-      status: 'connected',
-      workspace: apiResponse?.workspace || 'default-workspace',
-      targetFolder: apiResponse?.targetFolder || '/uploads',
-      totalUploads: 0,
-      totalDownloads: 0,
-      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    }
-    setIntegrations(prev => [...prev, newIntegration])
+    // Refresh connections from API to get the latest data
+    await fetchConnections()
+    
     setIntegrationDialogOpen(false)
     setSelectedProvider(null)
     toast.success(`${selectedProvider.name} connected successfully!`)
@@ -438,7 +551,11 @@ export default function IntegrationsPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {availableProviders.map((provider) => {
-                  const isConnected = integrations.some(i => i.provider === provider.name)
+                  // Check if provider has an active connection by matching systemCode
+                  const isConnected = integrations.some(i => 
+                    i.status === 'connected' && 
+                    (i.systemCode === provider.systemCode || i.provider === provider.name)
+                  )
                   return (
                     <div 
                       key={provider.id}
@@ -488,7 +605,11 @@ export default function IntegrationsPage() {
               </div>
             ) : (
               availableProviders.map((provider) => {
-                const isConnected = integrations.some(i => i.provider === provider.name)
+                // Check if provider has an active connection by matching systemCode
+                const isConnected = integrations.some(i => 
+                  i.status === 'connected' && 
+                  (i.systemCode === provider.systemCode || i.provider === provider.name)
+                )
                 return (
                   <button
                     key={provider.id}
@@ -525,7 +646,12 @@ export default function IntegrationsPage() {
       {selectedProvider && selectedProvider.id !== 'custom' && (
         <IntegrationConnectDialog
           open={integrationDialogOpen}
-          onOpenChange={setIntegrationDialogOpen}
+          onOpenChange={(open) => {
+            setIntegrationDialogOpen(open)
+            if (!open) {
+              setSelectedProvider(null)
+            }
+          }}
           provider={selectedProvider}
           onConnect={handleIntegrationConnect}
         />
