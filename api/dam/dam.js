@@ -127,11 +127,41 @@ export const createDamConnection = async (connectionData) => {
   }
 }
 
+/**
+ * Update DAM connection status (activate/deactivate/delete)
+ * @param {Object} statusData - Status update data
+ * @param {string} statusData.connectionId - Connection ID
+ * @param {boolean} statusData.isActive - Active status
+ * @param {boolean} statusData.isDeleted - Deleted status
+ * @returns {Promise} API response
+ */
+export const updateDamConnectionStatus = async (statusData) => {
+  try {
+    console.log('🔌 Update DAM Connection Status API Call')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('📤 Status Data:', JSON.stringify(statusData, null, 2))
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    const response = await apiClient.put('/api/v1/dam/connections/isactive', statusData)
+    
+    console.log('✅ Update DAM Connection Status Response received')
+    console.log('📥 Response Status:', response.status)
+    console.log('📥 Response Data:', JSON.stringify(response.data, null, 2))
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    
+    return response.data
+  } catch (error) {
+    console.error('❌ Update DAM Connection Status API error:', error)
+    throw error
+  }
+}
+
 // Export all DAM functions as default object
 export default {
   getDamSystems,
   testDamConnection,
   getDamConnections,
   createDamConnection,
+  updateDamConnectionStatus,
 }
 
