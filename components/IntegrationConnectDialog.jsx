@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Loader2, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -196,6 +196,7 @@ export default function IntegrationConnectDialog({ open, onOpenChange, provider,
   const [testingConnection, setTestingConnection] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState('idle')
   const [formData, setFormData] = useState({})
+  const [passwordVisibility, setPasswordVisibility] = useState({})
 
   // Use fields from API if available, otherwise fall back to hardcoded fields
   const getFieldsFromApi = () => {
@@ -449,6 +450,33 @@ export default function IntegrationConnectDialog({ open, onOpenChange, provider,
                   rows={4}
                   className="font-mono text-sm"
                 />
+              ) : field.type === 'password' ? (
+                <div className="relative">
+                  <Input
+                    id={field.key}
+                    type={passwordVisibility[field.key] ? 'text' : 'password'}
+                    placeholder={field.placeholder}
+                    value={formData[field.key] || ''}
+                    onChange={(e) => handleFieldChange(field.key, e.target.value)}
+                    required={field.required}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPasswordVisibility(prev => ({
+                      ...prev,
+                      [field.key]: !prev[field.key]
+                    }))}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    {passwordVisibility[field.key] ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               ) : (
                 <Input
                   id={field.key}
