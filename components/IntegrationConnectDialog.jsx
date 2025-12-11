@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { createDamConnection } from '@/api/dam/dam'
+import { createDamConnection, testDamConnection } from '@/api/dam/dam'
 
 // Provider logo mapping
 const providerLogos = {
@@ -275,7 +275,7 @@ export default function IntegrationConnectDialog({ open, onOpenChange, provider,
     // Validate required fields
     const missingFields = fields.filter(f => f.required && !formData[f.key])
     if (missingFields.length > 0) {
-      toast.error(`Please fill in all required fields: ${missingFields.map(f => f.label).join('')}`)
+      toast.error(`Please fill in all required fields: ${missingFields.map(f => f.label).join(', ')}`)
       return
     }
 
@@ -283,13 +283,49 @@ export default function IntegrationConnectDialog({ open, onOpenChange, provider,
     setConnectionStatus('idle')
 
     try {
-      // Simulate API connection test
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // Get systemCode from provider (from dam system API response)
+      const systemCode = provider.systemCode || provider.damSystemId || ''
+      
+      // Build test request body - API expects PascalCase
+      const testData = {
+        SystemCode: systemCode,
+      }
+      
+      // Map all form fields to API format (API expects PascalCase)
+      Object.keys(formData).forEach((fieldName) => {
+        const value = formData[fieldName]
+        if (value && value.trim() !== '') {
+          // Handle numeric fields like Port
+          if (fieldName === 'Port' || fieldName === 'port') {
+            const portValue = parseInt(value, 10)
+            if (!isNaN(portValue)) {
+              testData.Port = portValue
+            } else {
+              testData.Port = value.trim()
+            }
+          } else {
+            // Keep PascalCase for all other fields (form already uses PascalCase)
+            testData[fieldName] = value.trim()
+          }
+        }
+      })
+      
+      console.log('🧪 Testing connection with data:', testData)
+      
+      // Call the test connection API
+      const response = await testDamConnection(testData)
+      
+      // Check if the test was successful (double check even though API should throw)
+      if (response && response.isSuccess === false) {
+        throw new Error(response.message || 'Test connection failed')
+      }
+      
       setConnectionStatus('success')
-      toast.success('Connection successful!')
+      toast.success('Test successful!')
     } catch (error) {
       setConnectionStatus('error')
-      toast.error(error.message || 'Connection failed')
+      const errorMessage = error?.message || error?.data?.message || error?.errorCode || 'Connection failed'
+      toast.error(errorMessage)
     } finally {
       setTestingConnection(false)
     }
@@ -328,6 +364,7 @@ export default function IntegrationConnectDialog({ open, onOpenChange, provider,
       'Workspace': 'workspace',
       'TargetFolder': 'targetFolder',
       'AccountId': 'accountId',
+      'Port': 'port',
       
       // App/Platform fields
       'AppId': 'appId',
@@ -346,6 +383,20 @@ export default function IntegrationConnectDialog({ open, onOpenChange, provider,
     return { [apiFieldName]: value.trim() }
   }
 
+  // Map form fields to PascalCase for connection API (API expects PascalCase)
+  const mapFieldToPascalCase = (fieldName, value) => {
+    if (!value || value.trim() === '') return null
+    
+    // Special handling for Instagram AccountId
+    if (fieldName === 'AccountId' && provider.systemCode === 'Instagram') {
+      return { InstagramAccountId: value.trim() }
+    }
+    
+    // API expects PascalCase, so keep field names as-is (form already uses PascalCase)
+    // Just ensure the value is trimmed
+    return { [fieldName]: value.trim() }
+  }
+
   const handleConnect = async () => {
     // Validate required fields
     const missingFields = fields.filter(f => f.required && !formData[f.key])
@@ -357,32 +408,35 @@ export default function IntegrationConnectDialog({ open, onOpenChange, provider,
     setConnecting(true)
 
     try {
-      // Build API request body
+      // Get systemCode from provider (from dam system API response)
+      const systemCode = provider.systemCode || provider.damSystemId || ''
+      
+      // Build connection request body - API expects PascalCase
       const requestBody = {
-        damSystem: provider.systemCode || provider.damSystemId, // Use systemCode or damSystemId
+        SystemCode: systemCode,
       }
-
-      // Map all form fields to API format
+      
+      // Map all form fields to API format (API expects PascalCase)
       Object.keys(formData).forEach((fieldName) => {
         const value = formData[fieldName]
         if (value && value.trim() !== '') {
-          const mappedField = mapFieldToApiFormat(fieldName, value)
-          if (mappedField) {
-            Object.assign(requestBody, mappedField)
+          // Handle numeric fields like Port
+          if (fieldName === 'Port' || fieldName === 'port') {
+            const portValue = parseInt(value, 10)
+            if (!isNaN(portValue)) {
+              requestBody.Port = portValue
+            } else {
+              requestBody.Port = value.trim()
+            }
+          } else {
+            // Keep PascalCase for all other fields
+            const mappedField = mapFieldToPascalCase(fieldName, value)
+            if (mappedField) {
+              Object.assign(requestBody, mappedField)
+            }
           }
         }
       })
-
-      // Handle ConfigurationJson - if it's a JSON string, try to parse it
-      if (requestBody.configurationJson) {
-        try {
-          const parsedConfig = JSON.parse(requestBody.configurationJson)
-          requestBody.configuration = parsedConfig
-        } catch (e) {
-          // If not valid JSON, keep it as string
-          console.warn('ConfigurationJson is not valid JSON, keeping as string')
-        }
-      }
 
       console.log('📤 Sending connection request:', requestBody)
 
@@ -478,7 +532,7 @@ export default function IntegrationConnectDialog({ open, onOpenChange, provider,
             ) : connectionStatus === 'success' ? (
               <>
                 <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
-                Connection Successful
+                Test Successful
               </>
             ) : connectionStatus === 'error' ? (
               <>
