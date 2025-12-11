@@ -19,6 +19,7 @@ import {
   Eye,
   Download,
   MoreVertical,
+  MoreHorizontal,
   Image as ImageIcon,
   Sparkles,
   CheckCircle,
@@ -66,7 +67,7 @@ import {
 } from '@/components/ui/tooltip'
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
-import { getOrderDetails, confirmOrder, startOrder, processOrder } from '@/api'
+import { confirmOrder, startOrder, processOrder } from '@/api'
 import { getPendingOrder, removePendingOrder } from '@/lib/storage'
 
 const STATUSES = {
@@ -181,13 +182,13 @@ function ProcessingResultsContent() {
   const getReprocessLimit = useCallback((plan) => {
     switch (plan) {
       case 'Starter':
-        return 3
+        return 10
       case 'Pro':
         return 10
       case 'Enterprise':
         return Infinity // Unlimited
       default:
-        return 3
+        return 10
     }
   }, [])
 
@@ -327,7 +328,74 @@ function ProcessingResultsContent() {
         // setLoading(true) // Removed to avoid blocking UI
         setError(null)
         
-        const orderDetails = await getOrderDetails(orderId, { expirationMinutes: 60 })
+        // DUMMY DATA - Replace real API call with mock data
+        const getOrderDetailsDummy = async (orderId, params = {}) => {
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 500))
+          
+          // Generate dummy data based on orderId or use default
+          const dummyOrderDetails = {
+            orderId: orderId || 'dummy-order-123',
+            orderNumber: 'ORD-2024-001',
+            orderName: 'Sample Order',
+            status: 'processed',
+            createdAt: new Date().toISOString(),
+            inputs: [
+              {
+                orderInputId: 'input-1',
+                downloadUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop',
+                promptText: 'Make this image more vibrant and colorful',
+              },
+              {
+                orderInputId: 'input-2',
+                downloadUrl: 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=800&h=600&fit=crop',
+                promptText: 'Apply vintage film effect',
+              },
+            ],
+            versions: [
+              {
+                versionId: 'version-1-1',
+                orderInputId: 'input-1',
+                downloadUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop',
+                createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
+                versionNumber: 1,
+                isActive: true,
+                promptUsed: 'Make this image more vibrant and colorful',
+                statusLookupId: 'processed',
+                processingTimeMS: 3450,
+                tokensUsed: 250,
+                price: 0.05,
+              },
+              {
+                versionId: 'version-2-1',
+                orderInputId: 'input-2',
+                downloadUrl: 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=800&h=600&fit=crop',
+                createdAt: new Date(Date.now() - 1000 * 60 * 3).toISOString(), // 3 minutes ago
+                versionNumber: 1,
+                isActive: true,
+                promptUsed: 'Apply vintage film effect',
+                statusLookupId: 'processed',
+                processingTimeMS: 2890,
+                tokensUsed: 220,
+                price: 0.04,
+              },
+            ],
+            images: [
+              {
+                orderInputId: 'input-1',
+                imageId: 'img-1',
+              },
+              {
+                orderInputId: 'input-2',
+                imageId: 'img-2',
+              },
+            ],
+          }
+          
+          return dummyOrderDetails
+        }
+        
+        const orderDetails = await getOrderDetailsDummy(orderId, { expirationMinutes: 60 })
         
         if (!isMounted) return
         
@@ -567,10 +635,13 @@ function ProcessingResultsContent() {
   useEffect(() => {
     if (!orderId || images.length === 0) return
 
-    const inProgressImages = images.filter((img) => 
-      img.status === STATUSES.IN_PROGRESS || 
-      (!img.processedUrl && img.versions.length === 0)
-    )
+    // Filter out reprocessing images (images that are IN_PROGRESS but have existing versions)
+    const inProgressImages = images.filter((img) => {
+      const isReprocessing = img.status === STATUSES.IN_PROGRESS && (img.versions || []).length > 0
+      if (isReprocessing) return false // Exclude reprocessing images
+      return img.status === STATUSES.IN_PROGRESS || 
+        (!img.processedUrl && img.versions.length === 0)
+    })
     const processedImages = images.filter((img) => 
       img.status === STATUSES.PROCESSED && 
       img.processedUrl
@@ -579,7 +650,7 @@ function ProcessingResultsContent() {
     const processedCount = processedImages.length
     const inProgressCount = inProgressImages.length
 
-    // Show or update progress toast
+    // Show or update progress toast (only for initial processing, not reprocessing)
     if (inProgressCount > 0) {
       const progressPercentage = totalImages > 0 ? Math.round((processedCount / totalImages) * 100) : 0
       
@@ -624,25 +695,36 @@ function ProcessingResultsContent() {
       }
     } else if (progressToastIdRef.current && processedCount === totalImages && totalImages > 0) {
       // All images processed - dismiss progress toast and show completion
-      toast.dismiss(progressToastIdRef.current)
-      progressToastIdRef.current = null
-      
-      toast.success(
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-black dark:text-white">
-              All images processed
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-              {totalImages} {totalImages === 1 ? 'image' : 'images'} completed successfully
-            </p>
-          </div>
-        </div>,
-        { duration: 3000 }
+      // Only show if there are no reprocessing images in progress
+      const hasReprocessingImages = images.some((img) => 
+        img.status === STATUSES.IN_PROGRESS && (img.versions || []).length > 0
       )
+      
+      if (!hasReprocessingImages) {
+        toast.dismiss(progressToastIdRef.current)
+        progressToastIdRef.current = null
+        
+        toast.success(
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-black dark:text-white">
+                All images processed
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                {totalImages} {totalImages === 1 ? 'image' : 'images'} completed successfully
+              </p>
+            </div>
+          </div>,
+          { duration: 3000 }
+        )
+      } else {
+        // Just dismiss the progress toast if reprocessing is happening
+        toast.dismiss(progressToastIdRef.current)
+        progressToastIdRef.current = null
+      }
     } else if (progressToastIdRef.current && inProgressCount === 0) {
       // No more processing - dismiss toast
       toast.dismiss(progressToastIdRef.current)
@@ -929,16 +1011,18 @@ function ProcessingResultsContent() {
     })
     
     // Clear selections after bulk delete
+    const deletedImageIds = imagesToDelete
+    
     if (imagesToDelete.length > 1) {
       setSelectedImages((prev) => {
         const newSet = new Set(prev)
         imagesToDelete.forEach(id => newSet.delete(id))
         return newSet
       })
-      toast.success(
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <Trash2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+      toast.warning(
+        <div className="flex items-start gap-3 w-full">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+            <Trash2 className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm text-black dark:text-white">
@@ -948,13 +1032,21 @@ function ProcessingResultsContent() {
               You can undo this action
             </p>
           </div>
+          <button
+            onClick={() => {
+              deletedImageIds.forEach(id => handleUndo(id))
+            }}
+            className="ml-2 px-3 py-1.5 text-xs font-medium bg-background hover:bg-accent border border-border rounded-md transition-colors"
+          >
+            Undo
+          </button>
         </div>
       )
     } else {
-      toast.success(
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <Trash2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+      toast.warning(
+        <div className="flex items-start gap-3 w-full">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+            <Trash2 className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm text-black dark:text-white">
@@ -964,6 +1056,14 @@ function ProcessingResultsContent() {
               You can undo this action
             </p>
           </div>
+          <button
+            onClick={() => {
+              handleUndo(deletedImageIds[0])
+            }}
+            className="ml-2 px-3 py-1.5 text-xs font-medium bg-background hover:bg-accent border border-border rounded-md transition-colors"
+          >
+            Undo
+          </button>
         </div>
       )
     }
@@ -1005,6 +1105,204 @@ function ProcessingResultsContent() {
     }
     setContextMenu(null)
   }, [])
+
+  // Handle restore single deleted image (for context menu)
+  const handleRestoreSingle = useCallback((imageId) => {
+    const image = images.find(i => i.id === imageId)
+    if (!image || image.status !== STATUSES.DELETED) return
+
+    setImages((prev) => {
+      return prev.map((img) => {
+        if (img.id === imageId) {
+          const previousState = imageHistoryRef.current.get(imageId)
+          if (previousState) {
+            return {
+              ...img,
+              status: previousState.status,
+              processedUrl: previousState.processedUrl,
+              amendmentInstruction: previousState.amendmentInstruction,
+            }
+          }
+          // If no history, restore to PROCESSED
+          return { ...img, status: STATUSES.PROCESSED }
+        }
+        return img
+      })
+    })
+
+    // Clear history for restored image
+    imageHistoryRef.current.delete(imageId)
+    
+    toast.success(
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm text-black dark:text-white">
+            Image restored
+          </p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+            The image has been restored
+          </p>
+        </div>
+      </div>
+    )
+  }, [images])
+
+  // Handle delete forever single image (for context menu)
+  const handleDeleteForeverSingle = useCallback((imageId) => {
+    const image = images.find(i => i.id === imageId)
+    if (!image || image.status !== STATUSES.DELETED) return
+
+    // Confirm permanent deletion
+    if (!confirm('Are you sure you want to permanently delete this image? This action cannot be undone.')) {
+      return
+    }
+
+    setImages((prev) => prev.filter((img) => img.id !== imageId))
+    
+    // Clear history for permanently deleted image
+    imageHistoryRef.current.delete(imageId)
+    
+    toast.error(
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+          <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm text-black dark:text-white">
+            Image permanently deleted
+          </p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+            The image has been removed
+          </p>
+        </div>
+      </div>
+    )
+  }, [images])
+
+  // Handle restore deleted images
+  const handleRestore = useCallback(() => {
+    const selectedIds = Array.from(selectedImages).filter(id => {
+      const img = images.find(i => i.id === id)
+      return img?.status === STATUSES.DELETED
+    })
+    
+    if (selectedIds.length === 0) {
+      toast.error(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              No deleted images selected
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Please select at least one deleted image to restore
+            </p>
+          </div>
+        </div>
+      )
+      return
+    }
+
+    setImages((prev) => {
+      return prev.map((img) => {
+        if (selectedIds.includes(img.id)) {
+          const previousState = imageHistoryRef.current.get(img.id)
+          if (previousState) {
+            return {
+              ...img,
+              status: previousState.status,
+              processedUrl: previousState.processedUrl,
+              amendmentInstruction: previousState.amendmentInstruction,
+            }
+          }
+          // If no history, restore to PROCESSED
+          return { ...img, status: STATUSES.PROCESSED }
+        }
+        return img
+      })
+    })
+
+    // Clear history for restored images
+    selectedIds.forEach(id => imageHistoryRef.current.delete(id))
+    
+    setSelectedImages(new Set())
+    
+    toast.success(
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm text-black dark:text-white">
+            {selectedIds.length === 1 ? 'Image restored' : `${selectedIds.length} images restored`}
+          </p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+            {selectedIds.length === 1 ? 'The image has been restored' : 'The images have been restored'}
+          </p>
+        </div>
+      </div>
+    )
+  }, [images, selectedImages])
+
+  // Handle delete forever (permanent deletion)
+  const handleDeleteForever = useCallback(() => {
+    const selectedIds = Array.from(selectedImages).filter(id => {
+      const img = images.find(i => i.id === id)
+      return img?.status === STATUSES.DELETED
+    })
+    
+    if (selectedIds.length === 0) {
+      toast.error(
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-black dark:text-white">
+              No deleted images selected
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Please select at least one deleted image to permanently delete
+            </p>
+          </div>
+        </div>
+      )
+      return
+    }
+
+    // Confirm permanent deletion
+    if (!confirm(`Are you sure you want to permanently delete ${selectedIds.length === 1 ? 'this image' : `${selectedIds.length} images`}? This action cannot be undone.`)) {
+      return
+    }
+
+    setImages((prev) => prev.filter((img) => !selectedIds.includes(img.id)))
+    
+    // Clear history for permanently deleted images
+    selectedIds.forEach(id => imageHistoryRef.current.delete(id))
+    
+    setSelectedImages(new Set())
+    
+    toast.error(
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+          <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm text-black dark:text-white">
+            {selectedIds.length === 1 ? 'Image permanently deleted' : `${selectedIds.length} images permanently deleted`}
+          </p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+            {selectedIds.length === 1 ? 'The image has been removed' : 'The images have been removed'}
+          </p>
+        </div>
+      </div>
+    )
+  }, [images, selectedImages])
 
   // Handle version selection
   const handleSelectVersion = useCallback((imageId, versionId) => {
@@ -1405,10 +1703,8 @@ function ProcessingResultsContent() {
         <AuthenticatedNav />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
-            <p className="text-muted-foreground mb-4">{error || 'No order found'}</p>
-            <Button onClick={() => router.push('/orders')} className="mt-4">
-              Go to Orders
-            </Button>
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading order details...</p>
           </div>
         </div>
       </div>
@@ -1613,106 +1909,92 @@ function ProcessingResultsContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="mb-4">
-              <h1 className="text-3xl font-bold tracking-tight">Processing Results</h1>
-            </div>
+            {/* Status Tabs */}
+            <div className="flex items-center gap-4 border-b border-border w-fit">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setSelectedStatusFilter(STATUSES.PROCESSED)}
+                className={`
+                  relative flex items-center gap-2 px-1 py-4 text-sm font-medium transition-colors
+                  ${selectedStatusFilter === STATUSES.PROCESSED 
+                    ? 'text-foreground' 
+                    : 'text-muted-foreground hover:text-foreground'
+                  }
+                `}
+                aria-pressed={selectedStatusFilter === STATUSES.PROCESSED}
+              >
+                {hasProcessingImages ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" />
+                )}
+                <span>{allImagesTabLabel}</span>
+                <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-5">
+                  {statusCounts.processed}
+                </Badge>
+                {selectedStatusFilter === STATUSES.PROCESSED && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
+              </motion.button>
 
-            {/* Status Filter - Radio Button Group */}
-            <div className="flex flex-wrap items-center gap-3 w-full">
-              <span className="text-sm font-medium text-muted-foreground mr-2">Filter by:</span>
-              
-              <div className="flex items-center rounded-lg border border-border bg-muted/50 p-1 gap-1 flex-1">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setSelectedStatusFilter(STATUSES.PROCESSED)}
-                  className={`
-                    relative flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all flex-1
-                    ${selectedStatusFilter === STATUSES.PROCESSED 
-                      ? 'bg-background text-foreground shadow-sm' 
-                      : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-                    }
-                  `}
-                  aria-pressed={selectedStatusFilter === STATUSES.PROCESSED}
-                >
-                  {selectedStatusFilter === STATUSES.PROCESSED && (
-                    <motion.div
-                      layoutId="activeFilter"
-                      className="absolute inset-0 rounded-md bg-background border border-border shadow-sm"
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    />
-                  )}
-                  <span className="relative z-10 flex items-center gap-2">
-                    {hasProcessingImages ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="h-4 w-4" />
-                    )}
-                    <span>{allImagesTabLabel}</span>
-                    <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-5">
-                      {statusCounts.processed}
-                    </Badge>
-                  </span>
-                </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setSelectedStatusFilter(STATUSES.DELETED)}
+                className={`
+                  relative flex items-center gap-2 px-1 py-4 text-sm font-medium transition-colors
+                  ${selectedStatusFilter === STATUSES.DELETED 
+                    ? 'text-foreground' 
+                    : 'text-muted-foreground hover:text-foreground'
+                  }
+                `}
+                aria-pressed={selectedStatusFilter === STATUSES.DELETED}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Deleted</span>
+                <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-5">
+                  {statusCounts.deleted}
+                </Badge>
+                {selectedStatusFilter === STATUSES.DELETED && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
+              </motion.button>
 
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setSelectedStatusFilter(STATUSES.DELETED)}
-                  className={`
-                    relative flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all flex-1
-                    ${selectedStatusFilter === STATUSES.DELETED 
-                      ? 'bg-background text-foreground shadow-sm' 
-                      : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-                    }
-                  `}
-                  aria-pressed={selectedStatusFilter === STATUSES.DELETED}
-                >
-                  {selectedStatusFilter === STATUSES.DELETED && (
-                    <motion.div
-                      layoutId="activeFilter"
-                      className="absolute inset-0 rounded-md bg-background border border-border shadow-sm"
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    />
-                  )}
-                  <span className="relative z-10 flex items-center gap-2">
-                    <Trash2 className="h-4 w-4" />
-                    <span>Deleted</span>
-                    <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-5">
-                      {statusCounts.deleted}
-                    </Badge>
-                  </span>
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setSelectedStatusFilter(STATUSES.AMENDMENT)}
-                  className={`
-                    relative flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all flex-1
-                    ${selectedStatusFilter === STATUSES.AMENDMENT 
-                      ? 'bg-background text-foreground shadow-sm' 
-                      : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-                    }
-                  `}
-                  aria-pressed={selectedStatusFilter === STATUSES.AMENDMENT}
-                >
-                  {selectedStatusFilter === STATUSES.AMENDMENT && (
-                    <motion.div
-                      layoutId="activeFilter"
-                      className="absolute inset-0 rounded-md bg-background border border-border shadow-sm"
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    />
-                  )}
-                  <span className="relative z-10 flex items-center gap-2">
-                    <FileEdit className="h-4 w-4" />
-                    <span>Amendment</span>
-                    <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-5">
-                      {statusCounts.amendment}
-                    </Badge>
-                  </span>
-                </motion.button>
-              </div>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setSelectedStatusFilter(STATUSES.AMENDMENT)}
+                className={`
+                  relative flex items-center gap-2 px-1 py-4 text-sm font-medium transition-colors
+                  ${selectedStatusFilter === STATUSES.AMENDMENT 
+                    ? 'text-foreground' 
+                    : 'text-muted-foreground hover:text-foreground'
+                  }
+                `}
+                aria-pressed={selectedStatusFilter === STATUSES.AMENDMENT}
+              >
+                <FileEdit className="h-4 w-4" />
+                <span>Amendment</span>
+                <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-5">
+                  {statusCounts.amendment}
+                </Badge>
+                {selectedStatusFilter === STATUSES.AMENDMENT && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
+              </motion.button>
             </div>
         </motion.div>
         </div>
@@ -1742,89 +2024,94 @@ function ProcessingResultsContent() {
             </motion.div>
             {selectedImages.size > 0 && (
               <>
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 200 }}
-                >
-                  <Badge variant="secondary" className="gap-1.5">
-                    <CheckCircle2 className="h-3 w-3" />
-                    {selectedImages.size} selected
-                  </Badge>
-                </motion.div>
+                <Badge variant="secondary" className="gap-1.5">
+                  <CheckCircle2 className="h-3 w-3" />
+                  {selectedImages.size} selected
+                </Badge>
                 
                 {/* Bulk Actions */}
                 <div className="flex items-center gap-2 ml-auto">
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const firstSelectedId = Array.from(selectedImages)[0]
-                        if (firstSelectedId) {
-                          handleOpenReprocess(firstSelectedId)
-                        }
-                      }}
-                      disabled={Array.from(selectedImages).every(id => {
-                        const img = images.find(i => i.id === id)
-                        return img?.status === STATUSES.IN_PROGRESS || img?.status === STATUSES.DELETED
-                      })}
-                      className="gap-2"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                      Reprocess Selected
-                    </Button>
-                  </motion.div>
-                  
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenAmendment()}
-                      disabled={Array.from(selectedImages).every(id => {
-                        const img = images.find(i => i.id === id)
-                        return img?.status === STATUSES.IN_PROGRESS
-                      })}
-                      className="gap-2"
-                    >
-                      <FileEdit className="h-4 w-4" />
-                      Amend Selected
-                    </Button>
-                  </motion.div>
-                  
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => {
-                        const selectedIds = Array.from(selectedImages)
-                        selectedIds.forEach(id => {
+                  {selectedStatusFilter === STATUSES.DELETED ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={handleRestore}
+                        disabled={Array.from(selectedImages).every(id => {
                           const img = images.find(i => i.id === id)
-                          if (img && img.status !== STATUSES.DELETED) {
-                            handleDelete(id)
+                          return img?.status !== STATUSES.DELETED
+                        })}
+                        className="gap-2"
+                      >
+                        <Undo2 className="h-4 w-4" />
+                        Restore
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleDeleteForever}
+                        disabled={Array.from(selectedImages).every(id => {
+                          const img = images.find(i => i.id === id)
+                          return img?.status !== STATUSES.DELETED
+                        })}
+                        className="gap-2 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete Forever
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const firstSelectedId = Array.from(selectedImages)[0]
+                          if (firstSelectedId) {
+                            handleOpenReprocess(firstSelectedId)
                           }
-                        })
-                        setSelectedImages(new Set())
-                      }}
-                      disabled={Array.from(selectedImages).every(id => {
-                        const img = images.find(i => i.id === id)
-                        return img?.status === STATUSES.DELETED
-                      })}
-                      className="gap-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete Selected
-                    </Button>
-                  </motion.div>
+                        }}
+                        disabled={Array.from(selectedImages).every(id => {
+                          const img = images.find(i => i.id === id)
+                          return img?.status === STATUSES.IN_PROGRESS || img?.status === STATUSES.DELETED
+                        })}
+                        className="gap-2"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                        Reprocess
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleOpenAmendment()}
+                        disabled={Array.from(selectedImages).every(id => {
+                          const img = images.find(i => i.id === id)
+                          return img?.status === STATUSES.IN_PROGRESS
+                        })}
+                        className="gap-2"
+                      >
+                        <FileEdit className="h-4 w-4" />
+                        Amendment
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const selectedIds = Array.from(selectedImages)
+                          selectedIds.forEach(id => {
+                            const img = images.find(i => i.id === id)
+                            if (img && img.status !== STATUSES.DELETED) {
+                              handleDelete(id)
+                            }
+                          })
+                          setSelectedImages(new Set())
+                        }}
+                        disabled={Array.from(selectedImages).every(id => {
+                          const img = images.find(i => i.id === id)
+                          return img?.status === STATUSES.DELETED
+                        })}
+                        className="gap-2 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </Button>
+                    </>
+                  )}
                 </div>
               </>
             )}
@@ -1850,9 +2137,9 @@ function ProcessingResultsContent() {
                   data-image-id={image.id}
                   className={`overflow-hidden transition-all duration-200 cursor-pointer border-2 ${
                     selectedImages.has(image.id) 
-                      ? 'ring-2 ring-primary ring-offset-2 shadow-lg border-primary' 
+                      ? 'border-primary shadow-lg' 
                       : 'border-border hover:border-primary/50 hover:shadow-lg'
-                  } ${image.status === STATUSES.DELETED ? 'opacity-60' : ''} bg-card`}
+                  } bg-card`}
                   onContextMenu={(e) => handleContextMenu(e, image)}
                   onClick={() => {
                     // Allow viewing processed images and amendments (amendments are in their own section)
@@ -1916,20 +2203,25 @@ function ProcessingResultsContent() {
                         </motion.div>
                       </motion.div>
                     ) : image.status === STATUSES.DELETED ? (
-                      <div className="absolute inset-0 flex items-center justify-center bg-muted/80">
-                        {/* Show original image faded when deleted */}
-                        {image.originalUrl && (
-                          <div className="absolute inset-0 opacity-20">
-                            <Image
-                              src={image.originalUrl}
-                              alt={image.originalName}
-                              fill
-                              className="object-cover grayscale"
-                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            />
-                          </div>
-                        )}
-                        <Trash2 className="h-12 w-12 text-muted-foreground relative z-10" />
+                      <div className="relative w-full h-full">
+                        {/* Show image normally with a subtle deleted indicator */}
+                        {displayImageUrl ? (
+                          <Image
+                            src={displayImageUrl}
+                            alt={image.originalName}
+                            fill
+                            className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          />
+                        ) : image.originalUrl ? (
+                          <Image
+                            src={image.originalUrl}
+                            alt={image.originalName}
+                            fill
+                            className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          />
+                        ) : null}
                       </div>
                     ) : displayImageUrl ? (
                       <div className="relative w-full h-full">
@@ -1960,44 +2252,10 @@ function ProcessingResultsContent() {
                     )
                     })()}
 
-                    {/* Selection Checkbox - Modern Design */}
-                    <div className="absolute top-3 left-3 z-20">
-                      <motion.div
-                        initial={false}
-                        animate={{
-                          scale: selectedImages.has(image.id) ? 1 : 0.9,
-                          opacity: selectedImages.has(image.id) ? 1 : 0.7
-                        }}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        className={`
-                          w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all
-                          ${selectedImages.has(image.id)
-                            ? 'bg-primary border-primary shadow-lg'
-                            : 'bg-background/95 backdrop-blur-md border-white/80 shadow-md hover:border-primary/50'
-                          }
-                        `}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleImageSelection(image.id)
-                        }}
-                      >
-                        {selectedImages.has(image.id) && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                          >
-                            <CheckCircle2 className="h-4 w-4 text-primary-foreground" />
-                          </motion.div>
-                        )}
-                      </motion.div>
-                    </div>
-
                     {/* Top Right Badges Container */}
                     <div className="absolute top-3 right-3 z-20 flex flex-col items-end gap-2">
-                      {/* Version Count Badge */}
-                      {image.versions && image.versions.length > 1 && (
+                      {/* Version Count Badge - Hide for deleted images */}
+                      {image.versions && image.versions.length > 1 && image.status !== STATUSES.DELETED && (
                         <motion.div 
                           initial={{ scale: 0, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
@@ -2013,8 +2271,8 @@ function ProcessingResultsContent() {
                         </motion.div>
                       )}
 
-                      {/* Status Badge - Only show for non-processed images */}
-                      {image.status !== STATUSES.PROCESSED && image.status !== STATUSES.AMENDMENT && (
+                      {/* Status Badge - Only show for non-processed, non-deleted images */}
+                      {image.status !== STATUSES.PROCESSED && image.status !== STATUSES.AMENDMENT && image.status !== STATUSES.DELETED && (
                         <motion.div 
                           initial={{ scale: 0, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
@@ -2044,60 +2302,7 @@ function ProcessingResultsContent() {
                       </motion.div>
                     )}
 
-                    {/* Undo Button for Deleted/Amendment */}
-                    {(image.status === STATUSES.DELETED || image.status === STATUSES.AMENDMENT) && (
-                      <motion.div 
-                        className="absolute inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-30 rounded-t-lg"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <motion.div
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <Button
-                            size="lg"
-                            variant="secondary"
-                            className="gap-2 shadow-xl bg-background border-2 hover:bg-background/95"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleUndo(image.id)
-                            }}
-                          >
-                            <Undo2 className="h-5 w-5" />
-                            Undo Action
-                          </Button>
-                        </motion.div>
-                      </motion.div>
-                    )}
 
-                    {/* Hover Overlay - Quick Actions */}
-                    {image.status !== STATUSES.IN_PROGRESS && image.status !== STATUSES.DELETED && image.status !== STATUSES.AMENDMENT && (
-                      <motion.div 
-                        className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-end justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                      >
-                        <motion.div 
-                          className="mb-4"
-                          initial={{ y: 10, opacity: 0 }}
-                          whileHover={{ y: 0, opacity: 1 }}
-                          transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                        >
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="gap-2 shadow-lg bg-background/95 backdrop-blur-md hover:bg-background"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setViewingImage(image)
-                            }}
-                          >
-                            <Eye className="h-4 w-4" />
-                            View
-                          </Button>
-                        </motion.div>
-                      </motion.div>
-                    )}
                   </div>
 
                   {/* Card Footer - Improved Design */}
@@ -2107,9 +2312,26 @@ function ProcessingResultsContent() {
                         <p className="text-sm font-semibold text-foreground truncate flex-1" title={image.originalName}>
                           {image.originalName}
                         </p>
-                        {image.status === STATUSES.PROCESSED && (
-                          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        )}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {image.status === STATUSES.PROCESSED && (
+                            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5" />
+                          )}
+                          {/* Undo Action for Deleted/Amendment */}
+                          {(image.status === STATUSES.DELETED || image.status === STATUSES.AMENDMENT) && (
+                            <Button
+                              size="icon"
+                              variant="secondary"
+                              className="h-8 w-8 bg-background/95 backdrop-blur-md border shadow-md hover:bg-background"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleUndo(image.id)
+                              }}
+                              title="Undo Action"
+                            >
+                              <Undo2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       {image.amendmentInstruction && (
                         <div className="pt-1">
@@ -2119,11 +2341,135 @@ function ProcessingResultsContent() {
                         </div>
                       )}
                       {image.versions && image.versions.length > 0 && (
-                        <div className="flex items-center gap-1.5 pt-1">
-                          <div className="h-1.5 w-1.5 rounded-full bg-primary/60" />
-                          <p className="text-xs text-muted-foreground">
-                            {image.versions.length} {image.versions.length === 1 ? 'version' : 'versions'}
-                          </p>
+                        <div className="flex items-center justify-between gap-2 pt-1">
+                          <div className="flex items-center gap-1.5">
+                            <div className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+                            <p className="text-xs text-muted-foreground">
+                              {image.versions.length} {image.versions.length === 1 ? 'version' : 'versions'}
+                            </p>
+                          </div>
+                          {/* 3-Dot Menu Button */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <motion.button
+                                type="button"
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ delay: 0.05, type: "spring" }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-1 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus-visible:outline-none"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </motion.button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                              {image.status === STATUSES.DELETED ? (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleRestoreSingle(image.id)
+                                    }}
+                                    className="gap-2"
+                                  >
+                                    <Undo2 className="h-4 w-4" />
+                                    Restore
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDeleteForeverSingle(image.id)
+                                    }}
+                                    className="gap-2 text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    Delete Forever
+                                  </DropdownMenuItem>
+                                </>
+                              ) : (
+                                <>
+                                  {/* Undo option for amendment */}
+                                  {image.status === STATUSES.AMENDMENT && (
+                                    <>
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleUndo(image.id)
+                                        }}
+                                        className="gap-2"
+                                      >
+                                        <Undo2 className="h-4 w-4" />
+                                        Undo
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                    </>
+                                  )}
+                                  
+                                  {/* View option - for processed and amendment images */}
+                                  {(image.status === STATUSES.PROCESSED || image.status === STATUSES.AMENDMENT) && (
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setViewingImage(image)
+                                      }}
+                                      className="gap-2"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                      View
+                                    </DropdownMenuItem>
+                                  )}
+                                  
+                                  {/* Reprocess option - hide for deleted and in-progress images */}
+                                  {image.status !== STATUSES.DELETED && image.status !== STATUSES.IN_PROGRESS && (
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleOpenReprocess(image.id)
+                                      }}
+                                      className="gap-2"
+                                    >
+                                      <RotateCcw className="h-4 w-4" />
+                                      Reprocess
+                                    </DropdownMenuItem>
+                                  )}
+                                  
+                                  {/* Amendment option - hide for deleted and in-progress images */}
+                                  {image.status !== STATUSES.DELETED && image.status !== STATUSES.IN_PROGRESS && (
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleOpenAmendment(image.id)
+                                      }}
+                                      className="gap-2"
+                                    >
+                                      <FileEdit className="h-4 w-4" />
+                                      Amendment
+                                    </DropdownMenuItem>
+                                  )}
+                                  
+                                  {/* Delete option - hide for deleted images */}
+                                  {image.status !== STATUSES.DELETED && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleDelete(image.id)
+                                        }}
+                                        className="gap-2 text-destructive focus:text-destructive"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       )}
                     </div>
@@ -2205,66 +2551,116 @@ function ProcessingResultsContent() {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="p-1">
-            {/* Undo option for deleted/amendment */}
-            {(contextMenu.image.status === STATUSES.DELETED || contextMenu.image.status === STATUSES.AMENDMENT) && (
+            {contextMenu.image.status === STATUSES.DELETED ? (
               <>
+                {/* Restore option for deleted images */}
                 <div
                   className="flex items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer"
-                  onClick={() => handleUndo(contextMenu.image.id)}
+                  onClick={() => {
+                    handleRestoreSingle(contextMenu.image.id)
+                    setContextMenu(null)
+                  }}
                   onMouseDown={(e) => {
                     e.stopPropagation()
-                    handleUndo(contextMenu.image.id)
+                    handleRestoreSingle(contextMenu.image.id)
+                    setContextMenu(null)
                   }}
                 >
                   <Undo2 className="mr-2 h-4 w-4" />
-                  Undo
+                  Restore
                 </div>
                 <div className="-mx-1 my-1 h-px bg-muted" />
+                {/* Delete Forever option for deleted images */}
+                <div
+                  className="flex items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer text-destructive focus:bg-accent focus:text-accent-foreground"
+                  onClick={() => {
+                    handleDeleteForeverSingle(contextMenu.image.id)
+                    setContextMenu(null)
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation()
+                    handleDeleteForeverSingle(contextMenu.image.id)
+                    setContextMenu(null)
+                  }}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Forever
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Undo option for amendment */}
+                {contextMenu.image.status === STATUSES.AMENDMENT && (
+                  <>
+                    <div
+                      className="flex items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                      onClick={() => handleUndo(contextMenu.image.id)}
+                      onMouseDown={(e) => {
+                        e.stopPropagation()
+                        handleUndo(contextMenu.image.id)
+                      }}
+                    >
+                      <Undo2 className="mr-2 h-4 w-4" />
+                      Undo
+                    </div>
+                    <div className="-mx-1 my-1 h-px bg-muted" />
+                  </>
+                )}
+                
+                {/* Reprocess option - hide for deleted images */}
+                {contextMenu.image.status !== STATUSES.DELETED && (
+                  <div
+                    className="flex items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer disabled:pointer-events-none disabled:opacity-50"
+                    onClick={() => handleOpenReprocess(contextMenu.image.id)}
+                    onMouseDown={(e) => {
+                      e.stopPropagation()
+                      if (contextMenu.image.status !== STATUSES.IN_PROGRESS) {
+                        handleOpenReprocess(contextMenu.image.id)
+                      }
+                    }}
+                  >
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Reprocess
+                  </div>
+                )}
+                
+                {/* Amendment option - hide for deleted images */}
+                {contextMenu.image.status !== STATUSES.DELETED && (
+                  <div
+                    className="flex items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer disabled:pointer-events-none disabled:opacity-50"
+                    onClick={() => handleOpenAmendment(contextMenu.image.id)}
+                    onMouseDown={(e) => {
+                      e.stopPropagation()
+                      // Allow amending: processed and amendment images (all except IN_PROGRESS and DELETED)
+                      if (contextMenu.image.status !== STATUSES.IN_PROGRESS) {
+                        handleOpenAmendment(contextMenu.image.id)
+                      }
+                    }}
+                  >
+                    <FileEdit className="mr-2 h-4 w-4" />
+                    Amendment
+                  </div>
+                )}
+                
+                {/* Delete option - hide for deleted images */}
+                {contextMenu.image.status !== STATUSES.DELETED && (
+                  <>
+                    <div className="-mx-1 my-1 h-px bg-muted" />
+                    <div
+                      className="flex items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer text-destructive focus:bg-accent focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                      onClick={() => handleDelete(contextMenu.image.id)}
+                      onMouseDown={(e) => {
+                        e.stopPropagation()
+                        handleDelete(contextMenu.image.id)
+                      }}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </div>
+                  </>
+                )}
               </>
             )}
-            
-            <div
-              className="flex items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer disabled:pointer-events-none disabled:opacity-50"
-              onClick={() => handleOpenReprocess(contextMenu.image.id)}
-              onMouseDown={(e) => {
-                e.stopPropagation()
-                if (contextMenu.image.status !== STATUSES.IN_PROGRESS) {
-                  handleOpenReprocess(contextMenu.image.id)
-                }
-              }}
-            >
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Reprocess
-            </div>
-            <div
-              className="flex items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer disabled:pointer-events-none disabled:opacity-50"
-              onClick={() => handleOpenAmendment(contextMenu.image.id)}
-              onMouseDown={(e) => {
-                e.stopPropagation()
-                // Allow amending: processed, deleted, and amendment images (all except IN_PROGRESS)
-                if (contextMenu.image.status !== STATUSES.IN_PROGRESS) {
-                  handleOpenAmendment(contextMenu.image.id)
-                }
-              }}
-            >
-              <FileEdit className="mr-2 h-4 w-4" />
-              Amendment
-            </div>
-            <div className="-mx-1 my-1 h-px bg-muted" />
-            <div
-              className="flex items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer text-destructive focus:bg-accent focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
-              onClick={() => handleDelete(contextMenu.image.id)}
-              onMouseDown={(e) => {
-                e.stopPropagation()
-                // Allow deleting: processed, in_progress, and amendment images (all except already deleted)
-                if (contextMenu.image.status !== STATUSES.DELETED) {
-                  handleDelete(contextMenu.image.id)
-                }
-              }}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </div>
           </div>
         </motion.div>
       )}
@@ -2299,14 +2695,12 @@ function ProcessingResultsContent() {
             const currentVersion = allVersions.find(v => v.isActive && v.processedUrl) || allVersions[0]
             const isCurrentVersion = selectedVersion?.id === currentVersion?.id
             
-            // Calculate reprocess numbers for non-amendment versions
-            const reprocessCounts = new Map()
-            let reprocessCounter = 0
-            nonAmendmentVersions.forEach(v => {
-              if (v.isReprocess) {
-                reprocessCounter++
-                reprocessCounts.set(v.id, reprocessCounter)
-              }
+            // Calculate version numbers for all versions (oldest = Version 1, newest = highest number)
+            const versionNumbers = new Map()
+            // Reverse the sorted array to get oldest first, then assign version numbers
+            const versionsOldestFirst = [...allVersions].reverse()
+            versionsOldestFirst.forEach((v, index) => {
+              versionNumbers.set(v.id, index + 1)
             })
 
             return (
@@ -2431,7 +2825,6 @@ function ProcessingResultsContent() {
                     <div className="grid grid-cols-[40%_60%] gap-4 h-full">
                       {/* Left: All Images List */}
                       <div className="flex flex-col min-h-0">
-                        <h3 className="text-sm font-medium mb-3 flex-shrink-0">All Images</h3>
                         <ScrollArea className="h-[650px]">
                           <div className="space-y-3">
                             {images.map((image) => {
@@ -2484,7 +2877,6 @@ function ProcessingResultsContent() {
 
                       {/* Right: Processed Image */}
                       <div className="flex flex-col">
-                        <h3 className="text-sm font-medium mb-3">Processed</h3>
                         <div className="relative flex-1 rounded-lg overflow-hidden bg-muted min-h-[400px]">
                           {afterImage ? (
                             <Image
@@ -2505,53 +2897,15 @@ function ProcessingResultsContent() {
                   </div>
 
                   {/* Right Column - Instructions & Version Timeline */}
-                  <div className="w-96 border-l bg-muted/30 flex flex-col overflow-hidden">
-                    <ScrollArea className="flex-1">
+                  <div className="w-96 flex flex-col overflow-hidden min-h-0">
+                    <ScrollArea className="flex-1 h-full">
                       <div className="p-6 space-y-6">
                         {/* User Instruction */}
                         <div>
-                          <div className="flex items-center gap-2 mb-3">
-                            <FileEdit className="h-4 w-4 text-muted-foreground" />
-                            <h3 className="text-sm font-semibold">Processing Instructions</h3>
-                          </div>
                           <div className="p-4 rounded-lg bg-background border">
                             <p className="text-sm text-foreground whitespace-pre-wrap">
                               {selectedVersion?.prompt || currentImage.instruction || 'No instructions provided'}
                             </p>
-                          </div>
-                        </div>
-
-                        {/* Current Version Indicator */}
-                        <div>
-                          <div className="flex items-center gap-2 mb-3">
-                            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                            <h3 className="text-sm font-semibold">Current Version</h3>
-                          </div>
-                          <div className="p-4 rounded-lg bg-background border">
-                            <div className="flex items-center justify-between mb-2">
-                              <Badge variant={isCurrentVersion ? "default" : "secondary"} className="w-fit">
-                                {selectedVersion?.isReprocess 
-                                  ? `Reprocess ${reprocessCounts.get(selectedVersion.id) || 1}`
-                                  : 'Original Processed'
-                                }
-                              </Badge>
-                              {!isCurrentVersion && currentVersion && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleSelectVersion(currentImage.id, currentVersion.id)}
-                                  className="h-7 text-xs"
-                                >
-                                  Rollback to Current
-                                </Button>
-                              )}
-                            </div>
-                            {selectedVersion?.timestamp && (
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
-                                <Clock className="h-3 w-3" />
-                                <span>{new Date(selectedVersion.timestamp).toLocaleString()}</span>
-                              </div>
-                            )}
                           </div>
                         </div>
 
@@ -2561,26 +2915,25 @@ function ProcessingResultsContent() {
                             <History className="h-4 w-4 text-muted-foreground" />
                             <h3 className="text-sm font-semibold">Version History</h3>
                           </div>
-                          <div className="space-y-2">
-                            {allVersions.length === 0 ? (
-                              <div className="p-4 rounded-lg bg-background border text-center text-sm text-muted-foreground">
-                                No versions available
-                              </div>
-                            ) : (
-                              allVersions.map((version, index) => {
+                          <ScrollArea className="h-[550px]">
+                            <div className="space-y-2 pr-2">
+                              {allVersions.length === 0 ? (
+                                <div className="p-4 rounded-lg bg-background border text-center text-sm text-muted-foreground">
+                                  No versions available
+                                </div>
+                              ) : (
+                                allVersions.map((version, index) => {
                                 const isSelected = version.id === selectedVersion?.id
                                 const isActive = index === 0
                                 const isReprocess = version.isReprocess
                                 const isAmendment = version.isAmendment || version.amendmentInstruction
                                 
                                 return (
-                                  <motion.div
+                                  <div
                                     key={version.id}
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
                                     onClick={() => !isSelected && handleSelectVersion(currentImage.id, version.id)}
                                     className={`
-                                      p-4 rounded-lg border cursor-pointer transition-all
+                                      p-2 rounded-lg border cursor-pointer transition-colors
                                       ${isSelected 
                                         ? 'bg-primary/10 border-primary shadow-sm' 
                                         : 'bg-background border-border hover:border-primary/50'
@@ -2600,23 +2953,9 @@ function ProcessingResultsContent() {
                                             <CheckCircle2 className="h-3 w-3 text-muted-foreground" />
                                           )}
                                           <span className="text-xs font-medium">
-                                            {isReprocess 
-                                              ? `Reprocess ${reprocessCounts.get(version.id) || 1}`
-                                              : isAmendment
-                                              ? 'Amendment'
-                                              : 'Original Processed'
-                                            }
+                                            Version {versionNumbers.get(version.id) || 1}
+                                            {index === 0 && ' (Latest)'}
                                           </span>
-                                          {version.id === currentVersion?.id && (
-                                            <Badge variant="default" className="h-4 px-1.5 text-xs">
-                                              Current
-                                            </Badge>
-                                          )}
-                                          {isSelected && version.id !== currentVersion?.id && (
-                                            <Badge variant="secondary" className="h-4 px-1.5 text-xs">
-                                              Viewing
-                                            </Badge>
-                                          )}
                                         </div>
                                         {version.timestamp && (
                                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -2630,20 +2969,6 @@ function ProcessingResultsContent() {
                                           </p>
                                         )}
                                       </div>
-                                      {!isSelected && (
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          className="h-7 w-7 p-0"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleSelectVersion(currentImage.id, version.id)
-                                          }}
-                                          title="View this version"
-                                        >
-                                          <Eye className="h-3 w-3" />
-                                        </Button>
-                                      )}
                                       {isSelected && version.id !== currentVersion?.id && (
                                         <Button
                                           size="sm"
@@ -2661,11 +2986,12 @@ function ProcessingResultsContent() {
                                         </Button>
                                       )}
                                     </div>
-                                  </motion.div>
+                                  </div>
                                 )
                               })
                             )}
-                          </div>
+                            </div>
+                          </ScrollArea>
                         </div>
                       </div>
                     </ScrollArea>
@@ -2820,7 +3146,7 @@ function ProcessingResultsContent() {
                       <Badge variant="outline" className="text-xs">Current</Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">3 reprocesses per image</p>
+                  <p className="text-xs text-muted-foreground">10 reprocesses per image</p>
                 </div>
               </div>
               

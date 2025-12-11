@@ -14,7 +14,8 @@ import {
   Image as ImageIcon,
   X,
   Folder,
-  CheckCircle2
+  CheckCircle2,
+  ArrowRight
 } from 'lucide-react'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
@@ -38,7 +39,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useStore } from '@/lib/store'
-import { toast } from 'sonner'
 import { formatFileSize } from '@/lib/utils'
 import { confirmOrder } from '@/api'
 import { setPendingOrder } from '@/lib/storage'
@@ -274,47 +274,11 @@ export default function PageChat() {
     // Add images to the sidebar (uploadedImages)
     if (imageFiles.length > 0) {
       setUploadedImages(prev => [...prev, ...imageFiles])
-      toast.success(
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <ImageIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-black dark:text-white">
-              Images Added
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-              {imageFiles.length} {imageFiles.length === 1 ? 'image' : 'images'} ready for processing
-            </p>
-          </div>
-        </div>,
-        {
-          duration: 3000,
-        }
-      )
     }
     
     // Add non-image files (PDFs, DOCX, TXT, etc.) to attachments
     if (nonImageFiles.length > 0) {
       setAttachedFiles(prev => [...prev, ...nonImageFiles])
-      toast.success(
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-black dark:text-white">
-              Files Attached
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-              {nonImageFiles.length} {nonImageFiles.length === 1 ? 'file' : 'files'} attached successfully
-            </p>
-          </div>
-        </div>,
-        {
-          duration: 3000,
-        }
-      )
     }
     
     // Reset input to allow selecting the same files again
@@ -329,43 +293,6 @@ export default function PageChat() {
     const imageFiles = files.filter(file => file.type.startsWith('image/'))
     if (imageFiles.length > 0) {
       setUploadedImages(prev => [...prev, ...imageFiles])
-      toast.success(
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <Folder className="h-4 w-4 text-green-600 dark:text-green-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-black dark:text-white">
-              Folder Imported
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-              {imageFiles.length} {imageFiles.length === 1 ? 'image' : 'images'} imported from folder
-            </p>
-          </div>
-        </div>,
-        {
-          duration: 3000,
-        }
-      )
-    } else {
-      toast.error(
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-            <X className="h-4 w-4 text-red-600 dark:text-red-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-black dark:text-white">
-              No Images Found
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-              The selected folder does not contain any image files
-            </p>
-          </div>
-        </div>,
-        {
-          duration: 3000,
-        }
-      )
     }
     // Reset input to allow selecting the same folder again
     if (e.target) {
@@ -375,24 +302,6 @@ export default function PageChat() {
 
   const onDropImages = useCallback((acceptedFiles) => {
     setUploadedImages(prev => [...prev, ...acceptedFiles])
-      toast.success(
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-black dark:text-white">
-              Images Uploaded Successfully
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-              {acceptedFiles.length} {acceptedFiles.length === 1 ? 'image' : 'images'} ready for processing
-            </p>
-          </div>
-        </div>,
-        {
-          duration: 3000,
-        }
-      )
   }, [])
 
   const {
@@ -409,6 +318,10 @@ export default function PageChat() {
 
   const removeUploadedImage = (index) => {
     setUploadedImages(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const clearAllUploadedImages = () => {
+    setUploadedImages([])
   }
 
   const removeAttachment = (index) => {
@@ -601,9 +514,21 @@ export default function PageChat() {
                       {uploadedImages.length}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {formatFileSize(uploadedImages.reduce((acc, file) => acc + file.size, 0))} total
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      {formatFileSize(uploadedImages.reduce((acc, file) => acc + file.size, 0))} total
+                    </p>
+                    {uploadedImages.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={clearAllUploadedImages}
+                      >
+                        Clear all
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                   {/* Images List */}
@@ -684,7 +609,7 @@ export default function PageChat() {
             {/* Empty State */}
             {messages.length === 0 ? (
               <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
-                <div className="text-center max-w-2xl px-4 space-y-8">
+                <div className="text-center max-w-2xl px-4 space-y-6">
                   {/* AI Avatar */}
                   <motion.div
                     initial={{ scale: 0 }}
@@ -715,11 +640,11 @@ export default function PageChat() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 mt-8"
+                    className="flex flex-row gap-3 w-full mt-6"
                   >
                     <Card 
                       {...getImageRootProps()}
-                      className="p-4 hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-primary/50"
+                      className="p-3 rounded-2xl border transition-all shadow-sm border-border/50 bg-background hover:border-border hover:shadow-md cursor-pointer flex-1"
                     >
                       <input {...getImageInputProps()} />
                       <div className="flex items-start gap-3">
@@ -734,7 +659,7 @@ export default function PageChat() {
                         </div>
                       </div>
                     </Card>
-                    <Card 
+                    {/* <Card 
                       className="p-4 hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-primary/50"
                       onClick={() => folderInputRef.current?.click()}
                     >
@@ -749,9 +674,9 @@ export default function PageChat() {
                           </p>
                         </div>
                       </div>
-                    </Card>
+                    </Card> */}
                     <Card 
-                      className="p-4 hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-primary/50"
+                      className="p-3 rounded-2xl border transition-all shadow-sm border-border/50 bg-background hover:border-border hover:shadow-md cursor-pointer flex-1"
                       onClick={() => {
                         // Trigger document file picker
                         documentInputRef.current?.click()
@@ -771,41 +696,143 @@ export default function PageChat() {
                     </Card>
                   </motion.div>
 
-                  {/* Example Prompts */}
-                  <AnimatePresence>
-                    {!input && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ delay: 0.6 }}
-                        className="pt-4"
-                      >
-                        <div className="space-y-4 max-w-2xl text-left">
-                          <p className="text-sm font-medium text-muted-foreground mb-4 text-left">Try asking:</p>
-                          {[
-                            "Place the image objects in a serene background where sun is shining from the left side with sun rays hitting the objects, soft shadows",
-                            "Remove the background and place products on a clean white background with natural lighting and subtle shadows",
-                            "Enhance the colors to be vibrant and saturated, adjust brightness and contrast for a professional product photography look",
-                            "Create a lifestyle scene with the products placed naturally in a modern interior setting with warm ambient lighting"
-                          ].map((prompt) => (
-                            <div
-                              key={prompt}
-                              className="flex gap-3 items-start cursor-pointer group text-left"
-                              onClick={() => setInput(prompt)}
-                            >
-                              <span className="text-muted-foreground/50 text-sm mt-1 flex-shrink-0">
-                                •
-                              </span>
-                              <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors leading-relaxed text-left">
-                                {prompt}
-                              </p>
+                  {/* Input Area - Moved here for empty state */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="w-full max-w-2xl mt-6"
+                  >
+                    {/* Attached Files Preview (PDFs and other non-image files) */}
+                    <AnimatePresence>
+                      {attachedFiles.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="mb-4 w-full"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <FaFile className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">
+                              {attachedFiles.length} file(s) attached
+                            </span>
+                          </div>
+                          <TooltipProvider>
+                            <div className="flex flex-wrap gap-2">
+                              {attachedFiles.map((file, index) => (
+                                <motion.div
+                                  key={`attached-${index}`}
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  exit={{ scale: 0 }}
+                                  className="flex items-center gap-2 pl-3 pr-2 py-2 rounded-full border-2 border-border hover:border-primary transition-colors bg-muted"
+                                >
+                                  {getFileIcon(file.name, 16)}
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="text-sm font-medium cursor-default">{truncateFileName(file.name)}</span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs break-words">{file.name}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 rounded-full hover:bg-destructive hover:text-destructive-foreground"
+                                    onClick={() => removeAttachment(index)}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </motion.div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                          </TooltipProvider>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Input Box */}
+                    <div className="relative w-full">
+                      <input {...getImageInputProps()} />
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        onChange={handleFileSelect}
+                      />
+                      <input
+                        ref={folderInputRef}
+                        type="file"
+                        webkitdirectory=""
+                        directory=""
+                        multiple
+                        className="hidden"
+                        onChange={handleFolderSelect}
+                      />
+                      <input
+                        ref={documentInputRef}
+                        type="file"
+                        multiple
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+                        className="hidden"
+                        onChange={handleFileSelect}
+                      />
+
+                      {/* Drag & Drop Overlay */}
+                      {isImageDragActive && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="absolute inset-0 flex items-center justify-center bg-primary/10 rounded-2xl z-10 pointer-events-none border-2 border-primary border-dashed"
+                        >
+                          <div className="text-center">
+                            <Upload className="h-10 w-10 text-primary mx-auto mb-2" />
+                            <p className="text-sm font-semibold text-primary">Drop your images here</p>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      <div 
+                        {...getImageRootProps()}
+                        className={`flex items-end gap-2 p-3 rounded-2xl border transition-all shadow-sm ${
+                          isImageDragActive
+                            ? 'border-primary bg-primary/5 shadow-primary/20'
+                            : 'border-border/50 bg-background hover:border-border hover:shadow-md'
+                        }`}
+                      >
+                        <Textarea
+                          ref={textareaRef}
+                          id="chat-input"
+                          value={input}
+                          onChange={(e) => setInput(e.target.value)}
+                          onKeyDown={handleKeyPress}
+                          placeholder="Type your message..."
+                          className="flex-1 min-h-[40px] max-h-[200px] resize-none border-0 focus-visible:ring-0 shadow-none text-sm bg-transparent placeholder:text-muted-foreground/50 py-2.5 px-3 leading-relaxed"
+                          onClick={(e) => e.stopPropagation()}
+                          rows={1}
+                        />
+
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleSend()
+                          }}
+                          size="icon"
+                          disabled={!input.trim() && attachedFiles.length === 0 && uploadedImages.length === 0}
+                          className="flex-shrink-0 h-9 w-9 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Send message"
+                        >
+                          <ArrowRight className="h-4 w-4 text-primary-foreground" />
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+
                 </div>
               </div>
             ) : (
@@ -965,9 +992,10 @@ export default function PageChat() {
             )}
           </ScrollArea>
 
-          {/* Input Area */}
+          {/* Input Area - Only show when there are messages */}
+          {messages.length > 0 && (
           <div className="border-t bg-background shrink-0">
-            <div className="mx-auto max-w-4xl p-6">
+            <div className="mx-auto max-w-4xl p-6 flex flex-col items-center justify-center">
               {/* Attached Files Preview (PDFs and other non-image files) */}
               <AnimatePresence>
                 {attachedFiles.length > 0 && (
@@ -975,7 +1003,7 @@ export default function PageChat() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="mb-4"
+                    className="mb-4 w-full max-w-2xl"
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <FaFile className="h-4 w-4 text-muted-foreground" />
@@ -1018,8 +1046,8 @@ export default function PageChat() {
                 )}
               </AnimatePresence>
 
-              {/* Input Box */}
-              <div className="relative">
+              {/* Input Box - Centered */}
+              <div className="relative w-full max-w-2xl">
                 <input {...getImageInputProps()} />
                 <input
                   ref={fileInputRef}
@@ -1098,6 +1126,7 @@ export default function PageChat() {
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
 
@@ -1205,21 +1234,6 @@ export default function PageChat() {
                     const allImages = [...uploadedImages, ...attachedFiles.filter(f => f.type.startsWith('image/'))]
                     
                     if (allImages.length === 0) {
-                      toast.error(
-                        <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                            <X className="h-4 w-4 text-red-600 dark:text-red-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm text-black dark:text-white">
-                              No images selected
-                            </p>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                              Please upload at least one image
-                            </p>
-                          </div>
-                        </div>
-                      )
                       return
                     }
                     
@@ -1253,7 +1267,6 @@ export default function PageChat() {
                       })
                     } catch (error) {
                       console.error('Failed to store order data:', error)
-                      toast.error(error.message || 'Failed to store order data. Please try with fewer images.')
                       return
                     }
                     
