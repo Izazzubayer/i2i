@@ -1,7 +1,7 @@
 {
   "name": "i2i-platform",
   "version": "1.0.0",
-  "description": "Image-to-Image  AI Processing Platform",
+  "description": "Image-to-Image AI Processing Platform",
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",

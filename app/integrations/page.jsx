@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
-import { getDamSystems, getDamConnections } from '@/api/dam/dam'
+import { getDamSystems, getDamConnections, updateDamConnectionStatus } from '@/api/dam/dam'
 import { Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -272,13 +272,36 @@ export default function IntegrationsPage() {
     }
   }, [availableProviders.length, fetchConnections])
 
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
     if (!selectedIntegration) return
     
-    setIntegrations(prev => prev.filter(i => i.id !== selectedIntegration.id))
-    setDisconnectDialogOpen(false)
-    setSelectedIntegration(null)
-    toast.success('Integration disconnected')
+    try {
+      // Get connectionId from the integration
+      const connectionId = selectedIntegration.id || selectedIntegration.connectionData?.connectionId
+      
+      if (!connectionId) {
+        toast.error('Connection ID not found')
+        return
+      }
+      
+      // Call API to deactivate and delete the connection
+      await updateDamConnectionStatus({
+        connectionId: connectionId,
+        isActive: false,
+        isDeleted: true,
+      })
+      
+      // Refresh connections from API
+      await fetchConnections()
+      
+      setDisconnectDialogOpen(false)
+      setSelectedIntegration(null)
+      toast.success('Integration disconnected successfully')
+    } catch (error) {
+      console.error('❌ Failed to disconnect:', error)
+      const errorMessage = error?.message || error?.data?.message || 'Failed to disconnect integration'
+      toast.error(errorMessage)
+    }
   }
 
 
