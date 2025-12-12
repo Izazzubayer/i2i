@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import AuthenticatedNav from '@/components/AuthenticatedNav'
@@ -89,6 +89,7 @@ const STATUSES = {
 
 function ProcessingResultsContent() {
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const orderId = searchParams?.get('orderId')
   const { batch, updateImageStatus, addOrder, damConnections, activeDamConnection } = useStore()
@@ -182,6 +183,7 @@ function ProcessingResultsContent() {
   const allowLeaveRef = useRef(false) // Track if user confirmed leaving
   const pollIntervalRef = useRef(null) // Poll interval for order updates
   const reprocessTextareaRef = useRef(null)
+  const pendingTabSwitchRef = useRef(null) // Track pending tab switch after warning
 
   // Get user's current plan from localStorage (default to Starter)
   const getUserPlan = useCallback(() => {
@@ -1680,6 +1682,45 @@ function ProcessingResultsContent() {
     return confirmableImagesCount > 0
   }, [confirmableImagesCount])
 
+  // Handler for UI tab clicks - warn if there are unconfirmed orders
+  const handleTabClick = useCallback((newStatus) => {
+    // If clicking the same tab, allow it
+    if (newStatus === selectedStatusFilter) {
+      return
+    }
+
+    // If there are unconfirmed orders, show warning
+    if (hasUnconfirmedOrder && !allowLeaveRef.current) {
+      setNavigationIntent('tab')
+      setReloadWarningModalOpen(true)
+      // Store the intended tab to switch to after confirmation
+      pendingTabSwitchRef.current = newStatus
+      return
+    }
+
+    // Otherwise, allow the tab switch
+    setSelectedStatusFilter(newStatus)
+  }, [hasUnconfirmedOrder, selectedStatusFilter])
+
+  // Navigation interceptor for navbar - warns if there are unconfirmed orders
+  const handleNavigationAttempt = useCallback((path, event) => {
+    // If there are unconfirmed orders and user hasn't confirmed leaving, show warning
+    if (hasUnconfirmedOrder && !allowLeaveRef.current) {
+      // Don't navigate to the same page
+      if (path === pathname || (path !== '/' && pathname?.startsWith(path))) {
+        return true // Allow same-page navigation
+      }
+      
+      setNavigationIntent('navigate')
+      setReloadWarningModalOpen(true)
+      // Store the intended path to navigate to after confirmation
+      pendingTabSwitchRef.current = path
+      return false // Prevent navigation
+    }
+    
+    return true // Allow navigation
+  }, [hasUnconfirmedOrder, pathname])
+
   // Handle page reload, back button, and tab close warnings
   useEffect(() => {
     if (!hasUnconfirmedOrder) {
@@ -1714,11 +1755,38 @@ function ProcessingResultsContent() {
       setReloadWarningModalOpen(true)
     }
 
+    // Handle browser tab switch warning
+    const handleVisibilityChange = () => {
+      if (allowLeaveRef.current) {
+        return // Allow if user confirmed
+      }
+      
+      // When user switches away from the tab (page becomes hidden)
+      if (document.hidden) {
+        // Show warning immediately if there are unconfirmed orders
+        // Note: We can't prevent browser tab switching, but we can warn
+        if (hasUnconfirmedOrder && !allowLeaveRef.current) {
+          setNavigationIntent('tab')
+          setReloadWarningModalOpen(true)
+        }
+        return
+      }
+      
+      // When user switches back to the tab (page becomes visible)
+      // Show warning if there are unconfirmed orders
+      if (hasUnconfirmedOrder && !allowLeaveRef.current) {
+        setNavigationIntent('tab')
+        setReloadWarningModalOpen(true)
+      }
+    }
+
     window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
       window.removeEventListener('popstate', handlePopState)
       window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [hasUnconfirmedOrder])
 
@@ -1727,7 +1795,7 @@ function ProcessingResultsContent() {
   if (loading && images.length === 0 && !orderId) {
     return (
       <div className="min-h-screen bg-background">
-        <AuthenticatedNav />
+        <AuthenticatedNav onNavigationAttempt={handleNavigationAttempt} />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
@@ -1741,7 +1809,7 @@ function ProcessingResultsContent() {
   if (error || (!orderId && !batch)) {
     return (
       <div className="min-h-screen bg-background">
-        <AuthenticatedNav />
+        <AuthenticatedNav onNavigationAttempt={handleNavigationAttempt} />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
@@ -1940,7 +2008,7 @@ function ProcessingResultsContent() {
       )}
 
       <div className={isConfirmingOrder ? "pointer-events-none opacity-50" : ""}>
-        <AuthenticatedNav />
+        <AuthenticatedNav onNavigationAttempt={handleNavigationAttempt} />
 
       {/* Sticky Header */}
       <div className="sticky top-16 z-40 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b shadow-sm">
@@ -1955,7 +2023,7 @@ function ProcessingResultsContent() {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setSelectedStatusFilter(STATUSES.PROCESSED)}
+                onClick={() => handleTabClick(STATUSES.PROCESSED)}
                 className={`
                   relative flex items-center gap-2 px-1 py-4 text-sm font-medium transition-colors
                   ${selectedStatusFilter === STATUSES.PROCESSED 
@@ -1986,7 +2054,7 @@ function ProcessingResultsContent() {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setSelectedStatusFilter(STATUSES.DELETED)}
+                onClick={() => handleTabClick(STATUSES.DELETED)}
                 className={`
                   relative flex items-center gap-2 px-1 py-4 text-sm font-medium transition-colors
                   ${selectedStatusFilter === STATUSES.DELETED 
@@ -2013,7 +2081,7 @@ function ProcessingResultsContent() {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setSelectedStatusFilter(STATUSES.AMENDMENT)}
+                onClick={() => handleTabClick(STATUSES.AMENDMENT)}
                 className={`
                   relative flex items-center gap-2 px-1 py-4 text-sm font-medium transition-colors
                   ${selectedStatusFilter === STATUSES.AMENDMENT 
@@ -2353,9 +2421,6 @@ function ProcessingResultsContent() {
                           {image.originalName}
                         </p>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          {image.status === STATUSES.PROCESSED && (
-                            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5" />
-                          )}
                           {/* Undo Action for Deleted/Amendment */}
                           {(image.status === STATUSES.DELETED || image.status === STATUSES.AMENDMENT) && (
                             <Button
@@ -3425,7 +3490,11 @@ function ProcessingResultsContent() {
                 ? 'Are you sure you want to go back? We recommend confirming your order before leaving this page.'
                 : navigationIntent === 'reload'
                 ? 'Are you sure you want to reload? We recommend confirming your order before refreshing this page.'
-                : 'Are you sure you want to  leave? We recommend confirming your order before navigating away.'
+                : navigationIntent === 'tab'
+                ? 'You switched to another tab. We recommend confirming your order before navigating away from this page.'
+                : navigationIntent === 'navigate'
+                ? 'Are you sure you want to leave? We recommend confirming your order before navigating away from this page.'
+                : 'Are you sure you want to leave? We recommend confirming your order before navigating away.'
               }
             </p>
           </div>
@@ -3444,24 +3513,43 @@ function ProcessingResultsContent() {
               variant="destructive"
               onClick={async () => {
                 allowLeaveRef.current = true
+                const intendedPath = pendingTabSwitchRef.current
                 setReloadWarningModalOpen(false)
                 setNavigationIntent(null)
+                pendingTabSwitchRef.current = null
                 
-                // Clear any pending orders to start fresh
-                try {
-                  await removePendingOrder()
-                } catch (error) {
-                  console.error('Error clearing pending order:', error)
-                }
-                
-                // Navigate to upload page to start fresh
-                setTimeout(() => {
-                  router.push('/upload')
-                  // Reset after a delay to allow navigation to complete
+                // If this was triggered by navbar navigation, navigate to the intended path
+                if (intendedPath && typeof intendedPath === 'string' && intendedPath.startsWith('/')) {
+                  // Clear any pending orders to start fresh
+                  try {
+                    await removePendingOrder()
+                  } catch (error) {
+                    console.error('Error clearing pending order:', error)
+                  }
+                  
+                  // Navigate to the intended path
                   setTimeout(() => {
-                    allowLeaveRef.current = false
-                  }, 500)
-                }, 100)
+                    router.push(intendedPath)
+                    // Reset after a delay to allow navigation to complete
+                    setTimeout(() => {
+                      allowLeaveRef.current = false
+                    }, 500)
+                  }, 100)
+                } else {
+                  // For other navigation intents (back, reload, tab), navigate to upload page
+                  try {
+                    await removePendingOrder()
+                  } catch (error) {
+                    console.error('Error clearing pending order:', error)
+                  }
+                  
+                  setTimeout(() => {
+                    router.push('/upload')
+                    setTimeout(() => {
+                      allowLeaveRef.current = false
+                    }, 500)
+                  }, 100)
+                }
               }}
             >
               Leave Anyway

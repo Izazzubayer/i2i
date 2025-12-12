@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
@@ -25,7 +25,9 @@ import {
   Cloud,
   DollarSign,
   Code,
-  Mail
+  Mail,
+  Image as ImageIcon,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -37,17 +39,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 
-export default function AuthenticatedNav() {
+export default function AuthenticatedNav({ onNavigationAttempt }) {
   const router = useRouter()
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState(null)
   const [navigatingTo, setNavigatingTo] = useState(null)
   const [mounted, setMounted] = useState(false)
+  const lastAuthStateRef = useRef(null) // Track last state to avoid unnecessary updates
 
-  const handleNavigation = useCallback((path) => {
+  const handleNavigation = useCallback((path, event) => {
+    // If there's a navigation interceptor, check with it first
+    if (onNavigationAttempt) {
+      const shouldProceed = onNavigationAttempt(path, event)
+      if (!shouldProceed) {
+        return // Don't navigate if interceptor returns false
+      }
+    }
+    
     setNavigatingTo(path)
     // Prefetch immediately
     router.prefetch(path)
@@ -57,93 +76,160 @@ export default function AuthenticatedNav() {
       // Reset navigating state after navigation
       setTimeout(() => setNavigatingTo(null), 300)
     })
-  }, [router])
+  }, [router, onNavigationAttempt])
 
-  // Get user data from localStorage
+  // Check authentication status
+  // Empty dependency array is intentional - we only want this to run on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    // Mark component as mounted to prevent hydration mismatch
     setMounted(true)
     
-    const getUserData = () => {
-      try {
-        // Check both localStorage and sessionStorage
-        const userData = localStorage.getItem('user') || sessionStorage.getItem('user')
-        const authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
-        const storage = localStorage.getItem('authToken') ? localStorage : sessionStorage
-        
-        // If user has a valid token, they should be authenticated
-        // Token is only given after email verification, so trust it
+    const checkAuth = () => {
+      if (typeof window === 'undefined') return
+      
+      // Check both localStorage and sessionStorage
+      const userData = localStorage.getItem('user') || sessionStorage.getItem('user')
+      const authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
+      const storage = localStorage.getItem('authToken') ? localStorage : sessionStorage
+      
+      // Debug logging to see what we're finding
+      if (!authToken && !userData) {
+        // Only log when we don't find anything (to reduce noise)
+        console.log('🔍 AuthenticatedNav: Checking auth - no token or user data found')
+      }
+      
+      // SIMPLE RULE: If token exists, user is authenticated
+      // Token is only given after successful signin, so it's the primary indicator
+      if (authToken) {
         if (userData) {
-          const parsedUser = JSON.parse(userData)
-          
-          // Check if email is verified
-          const isVerified = parsedUser.isVerified === true
-          
-          // If token exists, user is authenticated (token = verified)
-          // Only clear if explicitly not verified AND no token exists
-          if (isVerified || authToken) {
-            // User is verified (either by flag or by having a token)
-            // Show user account - token presence means they're authenticated
-            console.log('✅ User authenticated - showing account', { isVerified, hasToken: !!authToken })
-            setUser(parsedUser)
-          } else {
-            // Only clear if explicitly not verified AND no token
-            // This prevents clearing on reload for verified users
-            console.log('⚠️ User email not verified and no token - clearing storage')
+          try {
+            const parsedUser = JSON.parse(userData)
+            const newState = { authenticated: true, userEmail: parsedUser.email }
+            
+            // Only update if state changed
+            if (newState.userEmail !== lastAuthStateRef.current?.userEmail || lastAuthStateRef.current?.authenticated !== true) {
+              console.log('✅ AuthenticatedNav: User authenticated', parsedUser.email || parsedUser.displayName)
+              setIsAuthenticated(true)
+              setUser(parsedUser)
+              lastAuthStateRef.current = newState
+            }
+            return
+          } catch (error) {
+            console.error('❌ AuthenticatedNav: Error parsing user data:', error)
+            // Token exists but user data is corrupted - clear everything
             storage.removeItem('user')
             storage.removeItem('authToken')
             storage.removeItem('refreshToken')
+            setIsAuthenticated(false)
             setUser(null)
-            window.dispatchEvent(new Event('localStorageChange'))
+            lastAuthStateRef.current = { authenticated: false }
+            return
           }
-        } else if (authToken) {
-          // Token exists but no user data - might be from another session
-          // Don't clear token, but don't show account without user data
-          console.log('⚠️ Token exists but no user data')
-          setUser(null)
         } else {
-          // No user data and no token - not authenticated
-          setUser(null)
+          // Token exists but no user data - still consider authenticated
+          if (lastAuthStateRef.current?.authenticated !== true) {
+            console.log('⚠️ AuthenticatedNav: Token exists but no user data - still authenticated')
+            setIsAuthenticated(true)
+            setUser(null) // Will show default user
+            lastAuthStateRef.current = { authenticated: true }
+          }
+          return
         }
-      } catch (error) {
-        console.error('❌ Error parsing user data:', error)
-        // Only clear on parse error if we can't recover
-        const authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
-        const storage = localStorage.getItem('authToken') ? localStorage : sessionStorage
-        if (!authToken) {
-          // No token, safe to clear corrupted data
-          storage.removeItem('user')
-          storage.removeItem('authToken')
-          storage.removeItem('refreshToken')
+      }
+      
+      // No token - not authenticated
+      if (lastAuthStateRef.current?.authenticated !== false) {
+        console.log('❌ AuthenticatedNav: Not authenticated')
+        // Don't clear userData immediately - might be a race condition
+        // Only clear if we're sure there's no token
+        if (userData && !authToken) {
+          // Wait a bit before clearing - token might be stored soon
+          setTimeout(() => {
+            const stillNoToken = !localStorage.getItem('authToken')
+            if (stillNoToken && localStorage.getItem('user')) {
+              localStorage.removeItem('user')
+            }
+          }, 1000)
         }
+        setIsAuthenticated(false)
         setUser(null)
-        window.dispatchEvent(new Event('localStorageChange'))
+        lastAuthStateRef.current = { authenticated: false }
       }
     }
 
-    // Initial load
-    getUserData()
+    // Initial check immediately
+    checkAuth()
     
-    // Listen for storage changes (works across tabs)
+    // Also check after short delays to catch data stored just before/after page load
+    const delayedCheck1 = setTimeout(() => {
+      console.log('🔄 AuthenticatedNav: Delayed check 1 (100ms)')
+      checkAuth()
+    }, 100)
+    
+    const delayedCheck2 = setTimeout(() => {
+      console.log('🔄 AuthenticatedNav: Delayed check 2 (500ms)')
+      checkAuth()
+    }, 500)
+    
+    // Check periodically but less frequently (every 2 seconds for first 10 seconds, then every 5)
+    // This ensures navbar updates even if events are missed
+    let checkCount = 0
+    const intervalId = setInterval(() => {
+      checkCount++
+      if (checkCount <= 5) {
+        // Check every 2 seconds for first 10 seconds
+        console.log(`🔄 AuthenticatedNav: Periodic check ${checkCount}`)
+        checkAuth()
+      } else {
+        // Then check every 5 seconds
+        checkAuth()
+      }
+    }, 2000)
+    
     const handleStorageChange = (e) => {
       if (e.key === 'user' || e.key === 'authToken') {
-        getUserData()
+        checkAuth()
       }
     }
     
-    // Custom event for same-tab storage changes
     const handleCustomStorageChange = () => {
-      getUserData()
+      checkAuth()
     }
     
     window.addEventListener('storage', handleStorageChange)
     window.addEventListener('localStorageChange', handleCustomStorageChange)
+    window.addEventListener('focus', checkAuth)
+    
+    // Also check when page becomes visible (after redirect/tab switch)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🔄 AuthenticatedNav: Page visible - checking auth')
+        checkAuth()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    // Check when page loads (in case of hard redirect)
+    const handleLoad = () => {
+      setTimeout(checkAuth, 50)
+    }
+    if (document.readyState === 'complete') {
+      setTimeout(checkAuth, 50)
+    } else {
+      window.addEventListener('load', handleLoad)
+    }
     
     return () => {
+      clearTimeout(delayedCheck1)
+      clearTimeout(delayedCheck2)
+      clearInterval(intervalId)
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('localStorageChange', handleCustomStorageChange)
+      window.removeEventListener('focus', checkAuth)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('load', handleLoad)
     }
-  }, [])
+  }, []) // Empty dependency array - intentionally only run on mount
 
   // Get user initials from name or email
   const getUserInitials = (userData) => {
@@ -170,48 +256,39 @@ export default function AuthenticatedNav() {
 
   const handleSignOut = async () => {
     try {
-      // Call signout API
       await signout()
       
-      // Clear all local storage
       localStorage.removeItem('authToken')
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('user')
       
-      // Trigger storage change event to update UI
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('localStorageChange'))
       }
       
       toast.success('Signed out successfully')
-      
-      // Redirect to home page with hard navigation to ensure UI updates
       window.location.href = '/'
     } catch (error) {
       console.error('Sign out error:', error)
       
-      // Clear storage anyway even if API call fails
       localStorage.removeItem('authToken')
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('user')
       
-      // Trigger storage change event
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('localStorageChange'))
       }
       
       toast.error('Signed out (API call failed, but local session cleared)')
-      
-      // Redirect to home page
       window.location.href = '/'
     }
   }
 
-  // Use user data or fallback
   const userData = user ? {
     name: user.displayName || user.name || user.email?.split('@')[0] || 'User',
     email: user.email || '',
-    avatar: user.avatarUrl || user.avatar || '', // Prioritize avatarUrl
+    // Use same priority as account page: avatarUrl -> avatar -> profilePicture
+    avatar: user.avatarUrl || user.avatar || user.profilePicture || '',
     initials: getUserInitials(user),
     images: user.images || 0,
     tokens: user.tokens || 0,
@@ -225,26 +302,44 @@ export default function AuthenticatedNav() {
     plan: 'Free'
   }
 
-  const navItems = [
+  // Navigation items - different for authenticated vs unauthenticated
+  const navItems = isAuthenticated ? [
     { label: 'Home', href: '/', icon: Home },
+    { label: 'Upload', href: '/upload', icon: ImageIcon },
     { label: 'Orders', href: '/orders', icon: Package },
     { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
+    { label: 'Pricing', href: '/pricing', icon: DollarSign },
+  ] : [
+    { label: 'Home', href: '/', icon: Home },
+    { label: 'Upload', href: '/upload', icon: ImageIcon },
+    { label: 'Portfolio', href: '/portfolio', icon: ImageIcon },
     { label: 'Pricing', href: '/pricing', icon: DollarSign },
   ]
 
   const resourcesItems = [
     { label: 'API', href: '/api-docs', icon: Code },
     { label: 'Contact', href: '/contact', icon: Mail },
+    { label: 'How i2i Works', href: '/how-i2i-works', icon: Sparkles },
+    { label: 'FAQ', href: '/faq', icon: HelpCircle },
   ]
 
-  const isResourcesActive = pathname?.startsWith('/api-docs') || pathname?.startsWith('/contact')
+  const isResourcesActive = pathname?.startsWith('/api-docs') || 
+    pathname?.startsWith('/contact') || 
+    pathname?.startsWith('/how-i2i-works') || 
+    pathname?.startsWith('/faq')
 
   return (
     <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
+          <div 
+            className="flex items-center gap-2 group cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault()
+              handleNavigation('/', e)
+            }}
+          >
             <motion.div
               className="relative"
               whileHover={{ scale: 1.05 }}
@@ -261,21 +356,24 @@ export default function AuthenticatedNav() {
             <span className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
               Omnimage
             </span>
-          </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-1 flex-1 justify-center max-w-5xl mx-auto">
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href))
               return (
-                <Link key={item.href} href={item.href} prefetch={true}>
-                  <Button 
-                    variant={isActive ? 'secondary' : 'ghost'} 
-                    size="sm"
-                  >
-                    {item.label}
-                  </Button>
-                </Link>
+                <Button 
+                  key={item.href}
+                  variant={isActive ? 'secondary' : 'ghost'} 
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    handleNavigation(item.href, e)
+                  }}
+                >
+                  {item.label}
+                </Button>
               )
             })}
             
@@ -295,10 +393,15 @@ export default function AuthenticatedNav() {
                 <DropdownMenuContent align="center">
                   {resourcesItems.map((item) => {
                     return (
-                      <DropdownMenuItem key={item.href} asChild>
-                        <Link href={item.href} prefetch={true}>
-                          {item.label}
-                        </Link>
+                      <DropdownMenuItem 
+                        key={item.href}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          handleNavigation(item.href, e)
+                        }}
+                        className="cursor-pointer"
+                      >
+                        {item.label}
                       </DropdownMenuItem>
                     )
                   })}
@@ -325,106 +428,127 @@ export default function AuthenticatedNav() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Profile Dropdown - Only show if user is verified and mounted */}
-            {mounted && user && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="gap-2 px-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={userData.avatar} />
-                      <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white">
-                        {userData.initials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="hidden md:inline text-sm font-medium">{userData.name}</span>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                </DropdownMenuTrigger>
-
-              <DropdownMenuContent align="end" className="w-64">
-                {/* Account Section - Header */}
-                <DropdownMenuLabel>
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={userData.avatar} />
-                      <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-lg">
-                        {userData.initials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold truncate">{userData.name}</div>
-                      <div className="text-xs text-muted-foreground truncate">{userData.email}</div>
-                    </div>
-                  </div>
-                </DropdownMenuLabel>
-
-                <DropdownMenuSeparator />
-
-                {/* Account */}
-                <DropdownMenuItem
-                  onClick={() => handleNavigation('/account')}
-                  className="cursor-pointer"
-                  disabled={navigatingTo === '/account'}
+            {/* Auth Section - Show Login/Signup when NOT authenticated */}
+            {!isAuthenticated ? (
+              <div className="hidden lg:flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="gap-2"
+                  onClick={(e) => handleNavigation('/sign-in', e)}
                 >
-                  <User className="mr-2 h-4 w-4" />
-                  Account
-                </DropdownMenuItem>
-
-                {/* Login & Security */}
-                <DropdownMenuItem
-                  onClick={() => handleNavigation('/account/security')}
-                  className="cursor-pointer"
-                  disabled={navigatingTo === '/account/security'}
+                  <User className="h-4 w-4" />
+                  Log In
+                </Button>
+                <span className="text-muted-foreground">·</span>
+                <Button 
+                  size="sm" 
+                  onClick={(e) => handleNavigation('/sign-up', e)}
                 >
-                  <Shield className="mr-2 h-4 w-4" />
-                  Login & Security
-                </DropdownMenuItem>
+                  Sign Up
+                </Button>
+              </div>
+            ) : (
+              /* Profile Dropdown - Show when authenticated */
+              mounted && user && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="gap-2 px-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={userData.avatar} />
+                        <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white">
+                          {userData.initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="hidden md:inline text-sm font-medium">{userData.name}</span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
 
-                {/* Notifications */}
-                <DropdownMenuItem
-                  onClick={() => handleNavigation('/account/notifications')}
-                  className="cursor-pointer"
-                  disabled={navigatingTo === '/account/notifications'}
-                >
-                  <Bell className="mr-2 h-4 w-4" />
-                  Notifications
-                </DropdownMenuItem>
+                  <DropdownMenuContent align="end" className="w-64">
+                    {/* Account Section - Header */}
+                    <DropdownMenuLabel>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={userData.avatar} />
+                          <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-lg">
+                            {userData.initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold truncate">{userData.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">{userData.email}</div>
+                        </div>
+                      </div>
+                    </DropdownMenuLabel>
 
-                <DropdownMenuSeparator />
+                    <DropdownMenuSeparator />
 
-                {/* Billing & Subscription */}
-                <DropdownMenuItem
-                  onClick={() => handleNavigation('/billing')}
-                  className="cursor-pointer"
-                  disabled={navigatingTo === '/billing'}
-                >
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Billing & Subscription
-                </DropdownMenuItem>
+                    {/* Account */}
+                    <DropdownMenuItem
+                      onClick={() => handleNavigation('/account')}
+                      className="cursor-pointer"
+                      disabled={navigatingTo === '/account'}
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      Account
+                    </DropdownMenuItem>
 
+                    {/* Login & Security */}
+                    <DropdownMenuItem
+                      onClick={() => handleNavigation('/account/security')}
+                      className="cursor-pointer"
+                      disabled={navigatingTo === '/account/security'}
+                    >
+                      <Shield className="mr-2 h-4 w-4" />
+                      Login & Security
+                    </DropdownMenuItem>
 
-                {/* Integrations */}
-                <DropdownMenuItem
-                  onClick={() => handleNavigation('/integrations')}
-                  className="cursor-pointer"
-                  disabled={navigatingTo === '/integrations'}
-                >
-                  <Cloud className="mr-2 h-4 w-4" />
-                  Integrations
-                </DropdownMenuItem>
+                    {/* Notifications */}
+                    <DropdownMenuItem
+                      onClick={() => handleNavigation('/account/notifications')}
+                      className="cursor-pointer"
+                      disabled={navigatingTo === '/account/notifications'}
+                    >
+                      <Bell className="mr-2 h-4 w-4" />
+                      Notifications
+                    </DropdownMenuItem>
 
-                <DropdownMenuSeparator />
+                    <DropdownMenuSeparator />
 
-                {/* Sign Out */}
-                <DropdownMenuItem
-                  onClick={handleSignOut}
-                  className="text-destructive focus:text-destructive cursor-pointer"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                    {/* Billing & Subscription */}
+                    <DropdownMenuItem
+                      onClick={() => handleNavigation('/billing')}
+                      className="cursor-pointer"
+                      disabled={navigatingTo === '/billing'}
+                    >
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Billing & Subscription
+                    </DropdownMenuItem>
+
+                    {/* Integrations */}
+                    <DropdownMenuItem
+                      onClick={() => handleNavigation('/integrations')}
+                      className="cursor-pointer"
+                      disabled={navigatingTo === '/integrations'}
+                    >
+                      <Cloud className="mr-2 h-4 w-4" />
+                      Integrations
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator />
+
+                    {/* Sign Out */}
+                    <DropdownMenuItem
+                      onClick={handleSignOut}
+                      className="text-destructive focus:text-destructive cursor-pointer"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )
             )}
 
             {/* Mobile Menu Button */}
@@ -452,19 +576,18 @@ export default function AuthenticatedNav() {
                 {navItems.map((item) => {
                   const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href))
                   return (
-                    <Link
+                    <Button 
                       key={item.href}
-                      href={item.href}
-                      prefetch={true}
-                      onClick={() => setMobileMenuOpen(false)}
+                      variant={isActive ? 'secondary' : 'ghost'} 
+                      className="w-full justify-start"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        handleNavigation(item.href, e)
+                        setMobileMenuOpen(false)
+                      }}
                     >
-                      <Button 
-                        variant={isActive ? 'secondary' : 'ghost'} 
-                        className="w-full justify-start"
-                      >
-                        {item.label}
-                      </Button>
-                    </Link>
+                      {item.label}
+                    </Button>
                   )
                 })}
                 
@@ -474,23 +597,97 @@ export default function AuthenticatedNav() {
                     <p className="text-xs font-semibold text-muted-foreground uppercase mb-2 px-2">Resources</p>
                     {resourcesItems.map((item) => {
                       return (
-                        <Link
+                        <Button
                           key={item.href}
-                          href={item.href}
-                          prefetch={true}
-                          onClick={() => setMobileMenuOpen(false)}
+                          variant="ghost"
+                          className="w-full justify-start"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            handleNavigation(item.href, e)
+                            setMobileMenuOpen(false)
+                          }}
                         >
-                          <Button
-                            variant="ghost"
-                            className="w-full justify-start"
-                          >
-                            {item.label}
-                          </Button>
-                        </Link>
+                          {item.label}
+                        </Button>
                       )
                     })}
                   </div>
                 )}
+
+                {/* Auth Section - Mobile */}
+                <div className="pt-4 border-t space-y-2">
+                  {!isAuthenticated ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start gap-2"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          handleNavigation('/sign-in', e)
+                          setMobileMenuOpen(false)
+                        }}
+                      >
+                        <User className="h-4 w-4" />
+                        Log In
+                      </Button>
+                      <Button
+                        className="w-full justify-start gap-2"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          handleNavigation('/sign-up', e)
+                          setMobileMenuOpen(false)
+                        }}
+                      >
+                        Sign Up
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-2"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          handleNavigation('/account', e)
+                          setMobileMenuOpen(false)
+                        }}
+                      >
+                        <User className="h-4 w-4" />
+                        Account
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-2 text-destructive"
+                        onClick={() => {
+                          handleSignOut()
+                          setMobileMenuOpen(false)
+                        }}
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Sign Out
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {/* Language Selector - Mobile */}
+                <div className="pt-2">
+                  <Select defaultValue="en">
+                    <SelectTrigger className="w-full">
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4" />
+                        <SelectValue />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="es">Español</SelectItem>
+                      <SelectItem value="fr">Français</SelectItem>
+                      <SelectItem value="de">Deutsch</SelectItem>
+                      <SelectItem value="zh">中文</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </motion.div>
           )}
