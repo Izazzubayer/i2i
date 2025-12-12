@@ -37,12 +37,21 @@ import {
   MousePointer2,
   Clock,
   History,
+  ChevronDown,
+  ChevronRight,
+  ChevronLeft,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import {
   Dialog,
   DialogContent,
@@ -106,6 +115,15 @@ function ProcessingResultsContent() {
   const [confirmedOrderData, setConfirmedOrderData] = useState(null)
   const [isUploadingToDAM, setIsUploadingToDAM] = useState(false)
   const [imageSizes, setImageSizes] = useState({})
+  const [instructionAccordionOpen, setInstructionAccordionOpen] = useState(false)
+
+  // Helper function to truncate text to a word limit
+  const truncateText = (text, maxWords = 50) => {
+    if (!text) return text
+    const words = text.trim().split(/\s+/)
+    if (words.length <= maxWords) return text
+    return words.slice(0, maxWords).join(' ') + '...'
+  }
 
   // Helper function to format file size
   const formatFileSize = (bytes) => {
@@ -162,6 +180,7 @@ function ProcessingResultsContent() {
   const imageHistoryRef = useRef(new Map()) // Store previous states for undo
   const allowLeaveRef = useRef(false) // Track if user confirmed leaving
   const pollIntervalRef = useRef(null) // Poll interval for order updates
+  const reprocessTextareaRef = useRef(null)
 
   // Get user's current plan from localStorage (default to Starter)
   const getUserPlan = useCallback(() => {
@@ -2686,7 +2705,8 @@ function ProcessingResultsContent() {
                                    nonAmendmentVersions.find(v => !v.isReprocess) ||
                                    nonAmendmentVersions[0] ||
                                    allVersions.find(v => v.id === currentImage.selectedVersionId) ||
-                                   allVersions[0]
+                                   allVersions[0] ||
+                                   null
             
             const beforeImage = currentImage.originalUrl
             const afterImage = selectedVersion?.processedUrl || currentImage.processedUrl
@@ -2702,6 +2722,25 @@ function ProcessingResultsContent() {
             versionsOldestFirst.forEach((v, index) => {
               versionNumbers.set(v.id, index + 1)
             })
+
+            // Find current image index for navigation
+            const currentImageIndex = images.findIndex(img => img.id === currentImage.id)
+            const hasNext = currentImageIndex < images.length - 1
+            const hasPrevious = currentImageIndex > 0
+
+            const handleNext = () => {
+              if (hasNext) {
+                const nextImage = images[currentImageIndex + 1]
+                setViewingImage(nextImage)
+              }
+            }
+
+            const handlePrevious = () => {
+              if (hasPrevious) {
+                const prevImage = images[currentImageIndex - 1]
+                setViewingImage(prevImage)
+              }
+            }
 
             return (
               <div className="flex flex-col h-full max-h-[95vh]">
@@ -2722,6 +2761,28 @@ function ProcessingResultsContent() {
                   
                   {/* Actions Menu */}
                   <div className="flex items-center gap-2">
+                    {/* Navigation Buttons */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handlePrevious}
+                      disabled={!hasPrevious}
+                      className="h-9 w-9"
+                      title="View previous output"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleNext}
+                      disabled={!hasNext}
+                      className="h-9 w-9"
+                      title="View next output"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -2731,7 +2792,6 @@ function ProcessingResultsContent() {
                       <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem
                           onClick={() => {
-                            setViewingImage(null)
                             handleOpenReprocess(currentImage.id)
                           }}
                           disabled={currentImage.status === STATUSES.IN_PROGRESS}
@@ -2741,7 +2801,6 @@ function ProcessingResultsContent() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
-                            setViewingImage(null)
                             handleOpenAmendment(currentImage.id)
                           }}
                           disabled={currentImage.status === STATUSES.IN_PROGRESS}
@@ -2898,25 +2957,43 @@ function ProcessingResultsContent() {
 
                   {/* Right Column - Instructions & Version Timeline */}
                   <div className="w-96 flex flex-col overflow-hidden min-h-0">
-                    <ScrollArea className="flex-1 h-full">
-                      <div className="p-6 pl-2 space-y-6">
-                        {/* User Instruction */}
-                        <div>
-                          <div className="p-4 rounded-lg bg-background border">
-                            <p className="text-sm text-foreground whitespace-pre-wrap">
-                              {selectedVersion?.prompt || currentImage.instruction || 'No instructions provided'}
-                            </p>
-                          </div>
-                        </div>
+                    <div className="p-6 pl-2 flex flex-col h-full">
+                      {/* Instruction */}
+                      <Accordion 
+                        type="single" 
+                        collapsible 
+                        className="w-full"
+                        value={instructionAccordionOpen ? "instruction" : ""}
+                        onValueChange={(value) => setInstructionAccordionOpen(value === "instruction")}
+                      >
+                        <AccordionItem value="instruction" className="border-none">
+                          <AccordionTrigger className="text-sm font-semibold py-2 hover:no-underline">
+                            <div className="flex items-center gap-2">
+                              <FileEdit className="h-4 w-4 text-muted-foreground" />
+                              Instruction
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="p-4 rounded-lg bg-background border mb-4 max-h-[200px] overflow-y-auto">
+                              <p className="text-sm text-foreground whitespace-pre-wrap break-words">
+                                {(() => {
+                                  const instructionText = selectedVersion?.prompt || currentImage.instruction || 'No instructions provided'
+                                  return truncateText(instructionText, 50)
+                                })()}
+                              </p>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
 
-                        {/* Version Timeline */}
-                        <div>
-                          <div className="flex items-center gap-2 mb-3">
-                            <History className="h-4 w-4 text-muted-foreground" />
-                            <h3 className="text-sm font-semibold">Version History</h3>
-                          </div>
-                          <ScrollArea className="h-[550px]">
-                            <div className="space-y-2 pr-2">
+                      {/* Version Timeline */}
+                      <div className="flex flex-col flex-1 min-h-0">
+                        <div className="flex items-center gap-2 mb-3">
+                          <History className="h-4 w-4 text-muted-foreground" />
+                          <h3 className="text-sm font-semibold">Version History</h3>
+                        </div>
+                        <ScrollArea className="flex-1">
+                          <div className="space-y-2 pr-2">
                               {allVersions.length === 0 ? (
                                 <div className="p-4 rounded-lg bg-background border text-center text-sm text-muted-foreground">
                                   No versions available
@@ -2952,10 +3029,16 @@ function ProcessingResultsContent() {
                                           {!isReprocess && !isAmendment && (
                                             <CheckCircle2 className="h-3 w-3 text-muted-foreground" />
                                           )}
-                                          <span className="text-xs font-medium">
-                                            Version {versionNumbers.get(version.id) || 1}
-                                            {index === 0 && ' (Latest)'}
-                                          </span>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-xs font-medium">
+                                              Version {versionNumbers.get(version.id) || 1}
+                                            </span>
+                                            {index === 0 && (
+                                              <Badge variant="default" className="text-xs">
+                                                Current
+                                              </Badge>
+                                            )}
+                                          </div>
                                         </div>
                                         {version.timestamp && (
                                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -2969,11 +3052,11 @@ function ProcessingResultsContent() {
                                           </p>
                                         )}
                                       </div>
-                                      {isSelected && version.id !== currentVersion?.id && (
+                                      {isSelected && index !== 0 && version.id !== currentVersion?.id && (
                                         <Button
                                           size="sm"
                                           variant="outline"
-                                          className="h-7 text-xs"
+                                          className="h-7 text-xs gap-1.5"
                                           onClick={(e) => {
                                             e.stopPropagation()
                                             if (currentVersion) {
@@ -2982,6 +3065,7 @@ function ProcessingResultsContent() {
                                           }}
                                           title="Rollback to current version"
                                         >
+                                          <Undo2 className="h-3 w-3" />
                                           Rollback
                                         </Button>
                                       )}
@@ -2994,10 +3078,9 @@ function ProcessingResultsContent() {
                           </ScrollArea>
                         </div>
                       </div>
-                    </ScrollArea>
+                    </div>
                   </div>
                 </div>
-              </div>
             )
           })()}
         </DialogContent>
@@ -3005,7 +3088,23 @@ function ProcessingResultsContent() {
 
       {/* Reprocess Modal */}
       <Dialog open={reprocessModalOpen} onOpenChange={setReprocessModalOpen}>
-        <DialogContent>
+        <DialogContent 
+          className="max-w-3xl max-h-[90vh] overflow-y-auto"
+          onKeyDown={(e) => {
+            // Don't interfere with textarea keyboard shortcuts
+            if (e.target.tagName === 'TEXTAREA') {
+              const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+              const isModifierKey = isMac ? e.metaKey : e.ctrlKey
+              if (isModifierKey) {
+                const key = e.key.toLowerCase()
+                if (key === 'a' || key === 'c' || key === 'v' || key === 'x') {
+                  // Let the textarea handle these shortcuts
+                  e.stopPropagation()
+                }
+              }
+            }
+          }}
+        >
           <DialogHeader>
             <DialogTitle>
               Reprocess Image{selectedImages.size > 1 && selectedImages.has(reprocessImageId) ? ` (${selectedImages.size})` : ''}
@@ -3019,14 +3118,47 @@ function ProcessingResultsContent() {
 
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">
-                Processing Instructions
-              </label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-sm font-medium">
+                  Processing Instructions
+                </label>
+                <span className="text-xs text-muted-foreground font-normal">
+                  {reprocessPrompt.trim() ? reprocessPrompt.trim().split(/\s+/).filter(word => word.length > 0).length : 0} / 300 words
+                </span>
+              </div>
               <Textarea
+                ref={reprocessTextareaRef}
                 value={reprocessPrompt}
-                onChange={(e) => setReprocessPrompt(e.target.value)}
+                onChange={(e) => {
+                  const text = e.target.value
+                  const words = text.trim().split(/\s+/).filter(word => word.length > 0)
+                  if (words.length <= 300 || text.length < reprocessPrompt.length) {
+                    setReprocessPrompt(text)
+                  }
+                }}
+                onKeyDown={(e) => {
+                  // Handle Ctrl/Cmd+A (select all), Ctrl/Cmd+C (copy), Ctrl/Cmd+V (paste), Ctrl/Cmd+X (cut)
+                  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+                  const isModifierKey = isMac ? e.metaKey : e.ctrlKey
+                  
+                  if (isModifierKey) {
+                    const key = e.key.toLowerCase()
+                    if (key === 'a') {
+                      // Select all - use native method
+                      e.preventDefault()
+                      e.stopPropagation()
+                      if (reprocessTextareaRef.current) {
+                        reprocessTextareaRef.current.focus()
+                        reprocessTextareaRef.current.select()
+                      }
+                    } else if (key === 'c' || key === 'x' || key === 'v') {
+                      // Copy, Cut, or Paste - allow default browser behavior
+                      // Don't stop propagation to let browser handle it naturally
+                    }
+                  }
+                }}
                 placeholder="Enter processing instructions... (e.g., enhance colors, adjust brightness, remove background)"
-                rows={6}
+                rows={12}
                 className="resize-none"
               />
               <p className="text-xs text-muted-foreground mt-2">
@@ -3069,7 +3201,23 @@ function ProcessingResultsContent() {
 
       {/* Amendment Modal */}
       <Dialog open={amendmentModalOpen} onOpenChange={setAmendmentModalOpen}>
-        <DialogContent>
+        <DialogContent 
+          className="max-w-3xl max-h-[90vh] overflow-y-auto"
+          onKeyDown={(e) => {
+            // Don't interfere with textarea keyboard shortcuts
+            if (e.target.tagName === 'TEXTAREA') {
+              const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+              const isModifierKey = isMac ? e.metaKey : e.ctrlKey
+              if (isModifierKey) {
+                const key = e.key.toLowerCase()
+                if (key === 'a' || key === 'c' || key === 'v' || key === 'x') {
+                  // Let the textarea handle these shortcuts
+                  e.stopPropagation()
+                }
+              }
+            }
+          }}
+        >
           <DialogHeader>
             <DialogTitle>
               {selectedImages.size > 1 && selectedImages.has(amendmentImageId) 
@@ -3084,12 +3232,20 @@ function ProcessingResultsContent() {
           </DialogHeader>
 
           <div className="space-y-4">
-            <Textarea
-              value={amendmentInstruction}
-              onChange={(e) => setAmendmentInstruction(e.target.value)}
-              placeholder="Enter amendment instructions..."
-              rows={6}
-            />
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-sm font-medium">
+                  Amendment Instructions
+                </label>
+              </div>
+              <Textarea
+                value={amendmentInstruction}
+                onChange={(e) => setAmendmentInstruction(e.target.value)}
+                placeholder="Enter amendment instructions..."
+                rows={12}
+                className="resize-none"
+              />
+            </div>
           </div>
 
           <DialogFooter>
