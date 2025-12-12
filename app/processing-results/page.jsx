@@ -40,6 +40,7 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronLeft,
+  MessageSquare,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -798,9 +799,11 @@ function ProcessingResultsContent() {
   // Filter images by status
   const filteredImages = useMemo(() => {
     // When PROCESSED is selected, show both PROCESSED and IN_PROGRESS images
+    // But exclude AMENDMENT images (they should only show in Amendment tab)
     if (selectedStatusFilter === STATUSES.PROCESSED) {
       return images.filter((img) => 
-        img.status === STATUSES.PROCESSED || img.status === STATUSES.IN_PROGRESS
+        (img.status === STATUSES.PROCESSED || img.status === STATUSES.IN_PROGRESS) &&
+        img.status !== STATUSES.AMENDMENT
       )
     }
     return images.filter((img) => img.status === selectedStatusFilter)
@@ -835,6 +838,25 @@ function ProcessingResultsContent() {
   const allSelected = useMemo(() => {
     return filteredImages.length > 0 && filteredImages.every((img) => selectedImages.has(img.id))
   }, [filteredImages, selectedImages])
+
+  // Update viewing image when filter changes - navigate to first filtered image or close modal
+  useEffect(() => {
+    if (viewingImage) {
+      const isCurrentImageInFilter = filteredImages.some(img => img.id === viewingImage.id)
+      if (!isCurrentImageInFilter) {
+        // Current image is not in filtered set
+        if (filteredImages.length > 0) {
+          // Navigate to first filtered image
+          setViewingImage(filteredImages[0])
+        } else {
+          // No filtered images, close modal
+          setViewingImage(null)
+        }
+      }
+    }
+    // Only depend on filteredImages, not viewingImage to avoid infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredImages])
 
   // Toggle select all for current filter
   const toggleSelectAll = useCallback(() => {
@@ -2161,10 +2183,9 @@ function ProcessingResultsContent() {
                   } bg-card`}
                   onContextMenu={(e) => handleContextMenu(e, image)}
                   onClick={() => {
-                    // Allow viewing processed images and amendments (amendments are in their own section)
-                    if (image.status === STATUSES.PROCESSED || image.status === STATUSES.AMENDMENT) {
-                      setViewingImage(image)
-                    }
+                    // Allow viewing any image in the filtered set (processed, amendment, or deleted)
+                    // Since we're already iterating over filteredImages, we can view any of them
+                    setViewingImage(image)
                   }}
                 >
                   <div className="relative aspect-[4/3] bg-gradient-to-br from-muted to-muted/50 overflow-hidden">
@@ -2723,22 +2744,39 @@ function ProcessingResultsContent() {
               versionNumbers.set(v.id, index + 1)
             })
 
-            // Find current image index for navigation
-            const currentImageIndex = images.findIndex(img => img.id === currentImage.id)
-            const hasNext = currentImageIndex < images.length - 1
+            // Find current image index for navigation within filtered images
+            const currentImageIndex = filteredImages.findIndex(img => img.id === currentImage.id)
+            
+            // If current image is not in filtered images, don't render modal content
+            // The useEffect will handle navigation or closing
+            if (currentImageIndex === -1) {
+              return (
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              )
+            }
+
+            const hasNext = currentImageIndex < filteredImages.length - 1
             const hasPrevious = currentImageIndex > 0
 
             const handleNext = () => {
               if (hasNext) {
-                const nextImage = images[currentImageIndex + 1]
+                const nextImage = filteredImages[currentImageIndex + 1]
                 setViewingImage(nextImage)
+              } else {
+                // No more images in filtered set, close modal
+                setViewingImage(null)
               }
             }
 
             const handlePrevious = () => {
               if (hasPrevious) {
-                const prevImage = images[currentImageIndex - 1]
+                const prevImage = filteredImages[currentImageIndex - 1]
                 setViewingImage(prevImage)
+              } else {
+                // No more images in filtered set, close modal
+                setViewingImage(null)
               }
             }
 
@@ -2986,6 +3024,9 @@ function ProcessingResultsContent() {
                         </AccordionItem>
                       </Accordion>
 
+                      {/* Divider */}
+                      <div className="border-t border-border my-4"></div>
+
                       {/* Version Timeline */}
                       <div className="flex flex-col flex-1 min-h-0">
                         <div className="flex items-center gap-2 mb-3">
@@ -3034,7 +3075,7 @@ function ProcessingResultsContent() {
                                               Version {versionNumbers.get(version.id) || 1}
                                             </span>
                                             {index === 0 && (
-                                              <Badge variant="default" className="text-xs">
+                                              <Badge variant="default" className="text-[10px] px-1.5 py-0">
                                                 Current
                                               </Badge>
                                             )}
@@ -3047,9 +3088,12 @@ function ProcessingResultsContent() {
                                           </div>
                                         )}
                                         {version.prompt && (
-                                          <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                                            {version.prompt.substring(0, 80)}...
-                                          </p>
+                                          <div className="flex items-start gap-1.5 text-xs text-muted-foreground mt-2">
+                                            <MessageSquare className="h-3 w-3 flex-shrink-0 mt-0.5" />
+                                            <p className="line-clamp-2">
+                                              {version.prompt.substring(0, 80)}...
+                                            </p>
+                                          </div>
                                         )}
                                       </div>
                                       {isSelected && index !== 0 && version.id !== currentVersion?.id && (
