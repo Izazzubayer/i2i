@@ -3442,23 +3442,21 @@ function ProcessingResultsContent() {
             </Button>
             <Button 
               variant="destructive"
-              onClick={() => {
+              onClick={async () => {
                 allowLeaveRef.current = true
-                const intent = navigationIntent
                 setReloadWarningModalOpen(false)
                 setNavigationIntent(null)
                 
-                // Execute the intended action based on what triggered the modal
+                // Clear any pending orders to start fresh
+                try {
+                  await removePendingOrder()
+                } catch (error) {
+                  console.error('Error clearing pending order:', error)
+                }
+                
+                // Navigate to upload page to start fresh
                 setTimeout(() => {
-                  if (intent === 'reload') {
-                    window.location.reload()
-                  } else if (intent === 'back') {
-                    // Allow back navigation
-                    window.history.back()
-                  } else {
-                    // Default: go to home
-                    router.push('/')
-                  }
+                  router.push('/upload')
                   // Reset after a delay to allow navigation to complete
                   setTimeout(() => {
                     allowLeaveRef.current = false
