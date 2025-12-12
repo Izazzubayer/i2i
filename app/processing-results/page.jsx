@@ -2899,7 +2899,7 @@ function ProcessingResultsContent() {
                   {/* Right Column - Instructions & Version Timeline */}
                   <div className="w-96 flex flex-col overflow-hidden min-h-0">
                     <ScrollArea className="flex-1 h-full">
-                      <div className="p-6 space-y-6">
+                      <div className="p-6 pl-2 space-y-6">
                         {/* User Instruction */}
                         <div>
                           <div className="p-4 rounded-lg bg-background border">
