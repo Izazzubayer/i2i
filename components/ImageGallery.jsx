@@ -393,7 +393,10 @@ export default function ImageGallery() {
                 onHoverEnd={() => setHoveredImage(null)}
                 className={viewMode === 'list' ? 'w-full' : ''}
               >
-                <Card className={`overflow-hidden transition-all hover:shadow-lg ${selectedImages.has(image.id) ? 'ring-2 ring-primary' : ''
+                <Card className={`overflow-hidden transition-all hover:shadow-lg border-2 ${
+                    selectedImages.has(image.id) 
+                      ? 'border-primary shadow-lg' 
+                      : 'border-border'
                   } ${viewMode === 'list' ? 'flex flex-row' : ''}`}>
                   <div className={`relative bg-muted ${viewMode === 'list' ? 'w-48 flex-shrink-0' : 'aspect-[4/3]'
                     }`}>
