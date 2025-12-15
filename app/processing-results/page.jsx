@@ -1607,6 +1607,11 @@ function ProcessingResultsContent() {
     return images.filter(img => img.status === STATUSES.PROCESSED || img.status === STATUSES.AMENDMENT).length
   }, [images])
 
+  // Check if there are amendment orders
+  const hasAmendmentOrders = useMemo(() => {
+    return images.some(img => img.status === STATUSES.AMENDMENT)
+  }, [images])
+
   // Handle upload to DAM
   const handleUploadToDAM = useCallback(async (damConnection) => {
     if (!confirmedOrderData) return
@@ -1682,25 +1687,16 @@ function ProcessingResultsContent() {
     return confirmableImagesCount > 0
   }, [confirmableImagesCount])
 
-  // Handler for UI tab clicks - warn if there are unconfirmed orders
+  // Handler for UI tab clicks - no warning needed for internal tab switches
   const handleTabClick = useCallback((newStatus) => {
     // If clicking the same tab, allow it
     if (newStatus === selectedStatusFilter) {
       return
     }
 
-    // If there are unconfirmed orders, show warning
-    if (hasUnconfirmedOrder && !allowLeaveRef.current) {
-      setNavigationIntent('tab')
-      setReloadWarningModalOpen(true)
-      // Store the intended tab to switch to after confirmation
-      pendingTabSwitchRef.current = newStatus
-      return
-    }
-
-    // Otherwise, allow the tab switch
+    // Allow the tab switch without warning (internal navigation only)
     setSelectedStatusFilter(newStatus)
-  }, [hasUnconfirmedOrder, selectedStatusFilter])
+  }, [selectedStatusFilter])
 
   // Navigation interceptor for navbar - warns if there are unconfirmed orders
   const handleNavigationAttempt = useCallback((path, event) => {
@@ -1755,26 +1751,15 @@ function ProcessingResultsContent() {
       setReloadWarningModalOpen(true)
     }
 
-    // Handle browser tab switch warning
+    // Handle browser tab switch warning - ONLY when switching away (tab becomes hidden)
     const handleVisibilityChange = () => {
       if (allowLeaveRef.current) {
         return // Allow if user confirmed
       }
       
-      // When user switches away from the tab (page becomes hidden)
-      if (document.hidden) {
-        // Show warning immediately if there are unconfirmed orders
-        // Note: We can't prevent browser tab switching, but we can warn
-        if (hasUnconfirmedOrder && !allowLeaveRef.current) {
-          setNavigationIntent('tab')
-          setReloadWarningModalOpen(true)
-        }
-        return
-      }
-      
-      // When user switches back to the tab (page becomes visible)
-      // Show warning if there are unconfirmed orders
-      if (hasUnconfirmedOrder && !allowLeaveRef.current) {
+      // ONLY show warning when user switches away from the tab (page becomes hidden)
+      // Do NOT show when switching back (page becomes visible)
+      if (document.hidden && hasUnconfirmedOrder) {
         setNavigationIntent('tab')
         setReloadWarningModalOpen(true)
       }
@@ -2592,7 +2577,7 @@ function ProcessingResultsContent() {
         )}
       </main>
 
-      {/* Sticky Confirm Order Footer */}
+      {/* Sticky Confirm Order / View Orders Footer */}
       {confirmableImagesCount > 0 && (
         <motion.div
           initial={{ y: 100, opacity: 0 }}
@@ -2605,10 +2590,16 @@ function ProcessingResultsContent() {
               <div className="flex items-center gap-4">
                 <div>
                   <p className="text-sm font-semibold">
-                    {confirmableImagesCount} image{confirmableImagesCount !== 1 ? 's' : ''} ready to confirm
+                    {hasAmendmentOrders 
+                      ? `${confirmableImagesCount} image${confirmableImagesCount !== 1 ? 's' : ''} ready to confirm`
+                      : `${confirmableImagesCount} image${confirmableImagesCount !== 1 ? 's' : ''} processed`
+                    }
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Review your processed images and confirm the order
+                    {hasAmendmentOrders 
+                      ? 'Review your processed images and confirm the order'
+                      : 'View your processed images in orders'
+                    }
                   </p>
                 </div>
               </div>
@@ -2616,24 +2607,35 @@ function ProcessingResultsContent() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <Button
-                  size="lg"
-                  onClick={handleConfirmOrder}
-                  disabled={isConfirmingOrder}
-                  className="gap-2"
-                >
-                  {isConfirmingOrder ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Confirming...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-5 w-5" />
-                      Confirm Order
-                    </>
-                  )}
-                </Button>
+                {hasAmendmentOrders ? (
+                  <Button
+                    size="lg"
+                    onClick={handleConfirmOrder}
+                    disabled={isConfirmingOrder}
+                    className="gap-2"
+                  >
+                    {isConfirmingOrder ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Confirming...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-5 w-5" />
+                        Confirm Order
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    size="lg"
+                    onClick={() => router.push('/orders')}
+                    className="gap-2"
+                  >
+                    <ArrowRight className="h-5 w-5" />
+                    Finish
+                  </Button>
+                )}
               </motion.div>
             </div>
           </div>
@@ -3172,10 +3174,10 @@ function ProcessingResultsContent() {
                                               handleSelectVersion(currentImage.id, currentVersion.id)
                                             }
                                           }}
-                                          title="Rollback to current version"
+                                          title="Revert to current version"
                                         >
                                           <Undo2 className="h-3 w-3" />
-                                          Rollback
+                                          Revert
                                         </Button>
                                       )}
                                     </div>
@@ -3520,21 +3522,21 @@ function ProcessingResultsContent() {
                 
                 // If this was triggered by navbar navigation, navigate to the intended path
                 if (intendedPath && typeof intendedPath === 'string' && intendedPath.startsWith('/')) {
-                  // Clear any pending orders to start fresh
-                  try {
-                    await removePendingOrder()
-                  } catch (error) {
-                    console.error('Error clearing pending order:', error)
-                  }
-                  
+                // Clear any pending orders to start fresh
+                try {
+                  await removePendingOrder()
+                } catch (error) {
+                  console.error('Error clearing pending order:', error)
+                }
+                
                   // Navigate to the intended path
-                  setTimeout(() => {
+                setTimeout(() => {
                     router.push(intendedPath)
-                    // Reset after a delay to allow navigation to complete
-                    setTimeout(() => {
-                      allowLeaveRef.current = false
-                    }, 500)
-                  }, 100)
+                  // Reset after a delay to allow navigation to complete
+                  setTimeout(() => {
+                    allowLeaveRef.current = false
+                  }, 500)
+                }, 100)
                 } else {
                   // For other navigation intents (back, reload, tab), navigate to upload page
                   try {
